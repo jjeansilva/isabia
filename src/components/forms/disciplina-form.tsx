@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -45,10 +46,10 @@ export function DisciplinaForm({ open, onOpenChange, disciplina }: { open: boole
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: disciplina || {
-      nome: "",
-      descricao: "",
-      cor: colors[0],
+    defaultValues: {
+      nome: disciplina?.nome || "",
+      descricao: disciplina?.descricao || "",
+      cor: disciplina?.cor || colors[0],
     },
   });
 
