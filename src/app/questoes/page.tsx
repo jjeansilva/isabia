@@ -33,6 +33,8 @@ function QuestoesTable() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedQuestao, setSelectedQuestao] = useState<Questao | undefined>(undefined);
+  const [questaoToDelete, setQuestaoToDelete] = useState<Questao | undefined>(undefined);
+
 
   const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
     queryKey: ["questoes"],
@@ -55,9 +57,11 @@ function QuestoesTable() {
     onSuccess: () => {
       toast({ title: "Sucesso!", description: "Questão excluída com sucesso." });
       queryClient.invalidateQueries({ queryKey: ["questoes"] });
+      setQuestaoToDelete(undefined);
     },
     onError: (error) => {
        toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível excluir a questão." });
+       setQuestaoToDelete(undefined);
     }
   });
 
@@ -70,8 +74,10 @@ function QuestoesTable() {
     setIsFormOpen(true);
   }
 
-  const handleDelete = (id: string) => {
-    deleteMutation.mutate(id);
+  const handleDeleteConfirm = () => {
+    if (questaoToDelete) {
+      deleteMutation.mutate(questaoToDelete.id);
+    }
   }
 
   const getDifficultyColor = (dificuldade: Questao['dificuldade']) => {
@@ -88,6 +94,24 @@ function QuestoesTable() {
   return (
     <>
       {isFormOpen && <QuestionForm open={isFormOpen} onOpenChange={setIsFormOpen} questao={selectedQuestao} />}
+      <AlertDialog open={!!questaoToDelete} onOpenChange={() => setQuestaoToDelete(undefined)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Excluir Questão?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Tem certeza que deseja excluir esta questão? <br/>
+                    <strong className="truncate block mt-2">"{questaoToDelete?.enunciado}"</strong>
+                    <br/>
+                    Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteConfirm}>Sim, Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -120,25 +144,9 @@ function QuestoesTable() {
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(q)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                          <AlertDialogHeader>
-                              <AlertDialogTitle>Excluir Questão?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                  Tem certeza que deseja excluir esta questão? Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(q.id)}>Sim, Excluir</AlertDialogAction>
-                          </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setQuestaoToDelete(q)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
