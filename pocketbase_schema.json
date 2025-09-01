@@ -695,9 +695,7 @@
                 }
             }
         ],
-        "indexes": [
-            "CREATE UNIQUE INDEX `idx_stats_data` ON `stats` (`data`)"
-        ],
+        "indexes": [],
         "listRule": null,
         "viewRule": null,
         "createRule": null,
@@ -706,5 +704,3 @@
         "options": {}
     }
 ]
-
-    
