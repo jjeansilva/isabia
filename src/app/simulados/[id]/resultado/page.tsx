@@ -17,17 +17,22 @@ export default function ResultadoPage() {
     const id = params.id as string;
     const dataSource = useData();
 
-    const { data: simulado, isLoading } = useQuery({
+    const { data: simulado, isLoading: isLoadingSimulado } = useQuery({
         queryKey: ['simuladoResultado', id],
         queryFn: () => dataSource.get<Simulado>('simulados', id),
     });
 
-    const { data: questoes } = useQuery({
-        queryKey: ['questoes'],
+    const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
+        queryKey: ['questoes', 'all'], // Use a distinct key
         queryFn: () => dataSource.list<Questao>('questoes'),
     });
     
-    const getQuestaoById = (qid: string) => questoes?.find(q => q.id === qid);
+    const getQuestaoById = (qid: string) => {
+        if (!questoes) return null;
+        return questoes.find(q => q.id === qid);
+    }
+
+    const isLoading = isLoadingSimulado || isLoadingQuestoes;
 
     if (isLoading) {
         return <div><Skeleton className="h-8 w-64 mb-4" /><Skeleton className="h-48 w-full" /></div>;
@@ -45,7 +50,7 @@ export default function ResultadoPage() {
         <>
             <PageHeader
                 title={`Resultados: ${simulado.nome}`}
-                description={`Concluído em: ${new Date(simulado.finalizadoEm!).toLocaleDateString()}`}
+                description={`Concluído em: ${simulado.finalizadoEm ? new Date(simulado.finalizadoEm).toLocaleDateString() : 'N/A'}`}
             />
             <div className="grid gap-4 md:grid-cols-3 mb-6">
                 <KpiCard title="Acerto" value={`${percentualAcerto.toFixed(1)}%`} icon={<Percent className="h-5 w-5 text-muted-foreground"/>} />
@@ -71,7 +76,7 @@ export default function ResultadoPage() {
                                 return (
                                     <TableRow key={sq.id}>
                                         <TableCell>{sq.ordem}</TableCell>
-                                        <TableCell className="max-w-sm truncate">{questao?.enunciado}</TableCell>
+                                        <TableCell className="max-w-sm truncate">{questao?.enunciado ?? 'Carregando...'}</TableCell>
                                         <TableCell>
                                             {sq.correta === undefined ? (
                                                 <Badge variant="secondary">Não respondida</Badge>
