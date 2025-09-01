@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model);
         // Important: Re-initialize the data source with the new auth state
-        if (pb.authStore.isValid) {
+        if (pb.authStore.isValid && token && model) {
             dataSource.pb.authStore.save(token, model);
         }
         setIsLoading(false);
@@ -76,13 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login');
   };
   
-  // Render children immediately if the route is public, otherwise wait for auth check
   if (isLoading && !PUBLIC_ROUTES.includes(pathname)) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-            <div>Loading...</div>
-        </div>
-      );
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div>Loading...</div>
+      </div>
+    );
   }
 
   return (
