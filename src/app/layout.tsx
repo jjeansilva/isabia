@@ -4,6 +4,7 @@ import './globals.css';
 import { MainLayout } from '@/components/layout/main-layout';
 import { DataProvider } from '@/providers/data-provider';
 import { QueryProvider } from '@/providers/query-provider';
+import { AuthProvider } from '@/providers/auth-provider';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -27,7 +28,9 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <QueryProvider>
           <DataProvider>
-            <MainLayout>{children}</MainLayout>
+            <AuthProvider>
+              <MainLayout>{children}</MainLayout>
+            </AuthProvider>
           </DataProvider>
         </QueryProvider>
       </body>

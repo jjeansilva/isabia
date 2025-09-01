@@ -1,10 +1,17 @@
 
+export interface User {
+    id: string;
+    email: string;
+    name: string;
+}
+
 export interface Disciplina {
   id: string;
   nome: string;
   descricao?: string;
   cor?: string;
   ordem?: number;
+  user: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -15,6 +22,7 @@ export interface Topico {
   topicoPaiId?: string;
   nome: string;
   ordem?: number;
+  user: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,6 +47,7 @@ export interface Questao {
   version: number;
   isActive: boolean;
   hashConteudo: string;
+  user: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,6 +64,7 @@ export interface Simulado {
   criadoEm: string;
   finalizadoEm?: string;
   questoes: SimuladoQuestao[];
+  user: string;
 }
 
 export interface SimuladoQuestao {
@@ -76,6 +86,7 @@ export interface Resposta {
   respostaUsuario: any;
   confianca: RespostaConfianca;
   tempoSegundos: number;
+  user: string;
   respondedAt: string;
 }
 
@@ -84,6 +95,7 @@ export interface Revisao {
   questaoId: string;
   bucket: number;
   proximaRevisao: string;
+  user: string;
 }
 
 export interface StatsDia {
@@ -93,6 +105,7 @@ export interface StatsDia {
   acertos: number;
   erros: number;
   tempoMedio: number;
+  user: string;
 }
 
-export type CollectionName = 'isabia_disciplinas' | 'isabia_topicos' | 'isabia_questoes' | 'isabia_simulados' | 'isabia_respostas' | 'isabia_revisao' | 'isabia_stats';
+export type CollectionName = 'users' | 'isabia_disciplinas' | 'isabia_topicos' | 'isabia_questoes' | 'isabia_simulados' | 'isabia_respostas' | 'isabia_revisao' | 'isabia_stats';

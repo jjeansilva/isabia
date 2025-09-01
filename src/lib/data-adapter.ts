@@ -15,6 +15,7 @@ const saveToStorage = <T>(key: string, data: T[]): void => {
 };
 
 export interface IDataSource {
+  pb?: PocketBase;
   list<T>(collection: CollectionName, filter?: any): Promise<T[]>;
   get<T>(collection: CollectionName, id: string): Promise<T | null>;
   create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T>;
@@ -230,7 +231,7 @@ class MockDataSource implements IDataSource {
 }
 
 class PocketBaseDataSource implements IDataSource {
-  private pb: PocketBase;
+  public pb: PocketBase;
   
   constructor() {
     this.pb = new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
@@ -246,20 +247,28 @@ class PocketBaseDataSource implements IDataSource {
             process.env.PB_ADMIN_PASSWORD
         );
       } else if (typeof window !== 'undefined') {
-        // Handle client-side auth if necessary in the future
+        // Client-side auth is handled by the AuthProvider now
       }
     }
   }
+  
+  private addUserData(data: any): any {
+    if (this.pb.authStore.model) {
+      return {
+        ...data,
+        user: this.pb.authStore.model.id,
+      };
+    }
+    return data;
+  }
 
   async list<T>(collection: CollectionName, filter?: any): Promise<T[]> {
-    await this.ensureAuthenticated();
     const filterString = filter ? Object.entries(filter).map(([key, value]) => `${key}="${value}"`).join(' && ') : '';
     const records = await this.pb.collection(collection).getFullList<T>({ filter: filterString });
     return records;
   }
 
   async get<T>(collection: CollectionName, id: string): Promise<T | null> {
-    await this.ensureAuthenticated();
     try {
         const record = await this.pb.collection(collection).getOne<T>(id);
         return record;
@@ -270,18 +279,17 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async create<T>(collection: CollectionName, data: Omit<T, "id" | "createdAt" | "updatedAt">): Promise<T> {
-    await this.ensureAuthenticated();
-    const record = await this.pb.collection(collection).create<T>(data);
+    const dataWithUser = this.addUserData(data);
+    const record = await this.pb.collection(collection).create<T>(dataWithUser);
     return record;
   }
 
   async bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]> {
-      await this.ensureAuthenticated();
       // PocketBase free plan has a rate limit, so we can't just spam requests.
       // A small delay helps, but for larger imports, this might still be an issue.
       const results: T[] = [];
       for(const item of data) {
-          const result = await this.pb.collection(collection).create<T>(item);
+          const result = await this.create<T>(collection, item as any);
           results.push(result);
           await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay
       }
@@ -289,18 +297,16 @@ class PocketBaseDataSource implements IDataSource {
   }
   
   async update<T extends { id: string; }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> {
-    await this.ensureAuthenticated();
     const record = await this.pb.collection(collection).update<T>(id, data);
     return record;
   }
   
   async delete(collection: CollectionName, id: string): Promise<void> {
-    await this.ensureAuthenticated();
     await this.pb.collection(collection).delete(id);
   }
   
   async deleteAll(collection: CollectionName): Promise<void> {
-    await this.ensureAuthenticated();
+    await this.ensureAuthenticated(); // Needs admin for this
     const records = await this.pb.collection(collection).getFullList({ fields: 'id' });
     for (const record of records) {
         await this.pb.collection(collection).delete(record.id);
@@ -310,8 +316,6 @@ class PocketBaseDataSource implements IDataSource {
 
 
   async gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado> {
-    await this.ensureAuthenticated();
-    
     const filterParts: string[] = [];
     filterParts.push(`isActive=true`);
     filterParts.push(`disciplinaId="${criteria.disciplinaId}"`);
@@ -337,7 +341,7 @@ class PocketBaseDataSource implements IDataSource {
         throw new Error(`Não foram encontradas questões suficientes para os critérios selecionados. Encontradas: ${selectedQuestoes.length}, Pedidas: ${criteria.quantidade}`);
     }
 
-    const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt'> = {
+    const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt' | 'user'> = {
         nome: criteria.nome,
         dificuldade: criteria.dificuldade,
         status: 'rascunho',
@@ -391,7 +395,6 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async getQuestoesParaRevisar(): Promise<Questao[]> {
-    await this.ensureAuthenticated();
     const hoje = new Date().toISOString().split('T')[0];
     const revisoesHoje = await this.pb.collection('isabia_revisao').getFullList<Revisao>({
         filter: `proximaRevisao <= "${hoje}"`
@@ -407,8 +410,6 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> {
-    await this.ensureAuthenticated();
-    
     let revisao: Revisao | undefined;
     try {
         revisao = await this.pb.collection('isabia_revisao').getFirstListItem<Revisao>(`questaoId="${questaoId}"`);
@@ -435,7 +436,7 @@ class PocketBaseDataSource implements IDataSource {
     } else {
       const bucket = performance === 'dificil' ? 0 : 1;
       const diasParaAdicionar = intervalos[performance][bucket];
-      const novaRevisao: Omit<Revisao, 'id' | 'createdAt' | 'updatedAt'> = {
+      const novaRevisao: Omit<Revisao, 'id' | 'createdAt' | 'updatedAt' | 'user'> = {
         questaoId: questaoId,
         bucket: bucket,
         proximaRevisao: new Date(new Date().setDate(now.getDate() + diasParaAdicionar)).toISOString(),
@@ -445,7 +446,9 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo): Promise<number> {
-    await this.ensureAuthenticated();
+    // Admin auth is required to create for other users or bypass rules.
+    // Since we're creating data for the currently logged-in user, we don't need special admin auth.
+    // await this.ensureAuthenticated();
 
     const lines = csvData.trim().split('\n');
     const headerLine = lines.shift()?.trim().replace(/"/g, '');
@@ -492,7 +495,7 @@ class PocketBaseDataSource implements IDataSource {
                 disciplina = await this.pb.collection('isabia_disciplinas').getFirstListItem<Disciplina>(`nome="${disciplinaNome}"`);
             } catch(e) {
                 if ((e as any)?.status === 404) {
-                    disciplina = await this.create<Disciplina>('isabia_disciplinas', { nome: disciplinaNome });
+                    disciplina = await this.create<Disciplina>('isabia_disciplinas', { nome: disciplinaNome } as any);
                 } else {
                     throw e; // Rethrow other errors
                 }
@@ -508,7 +511,7 @@ class PocketBaseDataSource implements IDataSource {
                 topico = await this.pb.collection('isabia_topicos').getFirstListItem<Topico>(`nome="${topicoNome}" AND disciplinaId="${disciplina.id}"`);
             } catch(e) {
                  if ((e as any)?.status === 404) {
-                    topico = await this.create<Topico>('isabia_topicos', { nome: topicoNome, disciplinaId: disciplina.id });
+                    topico = await this.create<Topico>('isabia_topicos', { nome: topicoNome, disciplinaId: disciplina.id } as any);
                  } else {
                     throw e; // Rethrow other errors
                  }

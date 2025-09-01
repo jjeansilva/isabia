@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -11,9 +12,15 @@ import { Header } from "./header";
 import { MobileNav } from "./mobile-nav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Toaster } from "@/components/ui/toaster";
+import { useAuth } from "@/providers/auth-provider";
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
+  
+  if (!user) {
+    return <>{children}</>
+  }
 
   return (
     <SidebarProvider defaultOpen={!isMobile}>
