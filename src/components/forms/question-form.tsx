@@ -1,0 +1,270 @@
+"use client";
+
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Questao, QuestionDificuldade, QuestionOrigem, QuestionTipo } from "@/types";
+import { useData } from "@/hooks/use-data";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Checkbox } from "../ui/checkbox";
+import { Trash2 } from "lucide-react";
+import { suggestSimilarQuestions } from "@/ai/flows/suggest-similar-questions";
+import { useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Skeleton } from "../ui/skeleton";
+
+const formSchema = z.object({
+  disciplinaId: z.string().min(1, "Disciplina é obrigatória"),
+  topicoId: z.string().min(1, "Tópico é obrigatório"),
+  subtopicoId: z.string().optional(),
+  tipo: z.enum(["multipla", "vf", "lacuna", "flashcard"]),
+  dificuldade: z.enum(["facil", "medio", "dificil"]),
+  origem: z.enum(["autoral", "banca", "importacao"]),
+  enunciado: z.string().min(10, "Enunciado é muito curto").max(2000, "Enunciado muito longo"),
+  alternativas: z.array(z.string()).optional(),
+  respostaCorreta: z.any(),
+  explicacao: z.string().optional(),
+}).refine(data => {
+    if (data.tipo === 'multipla') {
+        return data.alternativas && data.alternativas.length >= 2 && data.respostaCorreta;
+    }
+    return true;
+}, { message: "Questões de múltipla escolha devem ter pelo menos 2 alternativas e uma resposta correta.", path: ["respostaCorreta"] });
+
+
+export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; onOpenChange: (open: boolean) => void; questao?: Questao }) {
+  const dataSource = useData();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: questao ? {
+        ...questao,
+        respostaCorreta: questao.tipo === 'multipla' ? questao.alternativas?.indexOf(questao.respostaCorreta) : questao.respostaCorreta,
+    } : {
+      tipo: "multipla",
+      dificuldade: "medio",
+      origem: "autoral",
+      enunciado: "",
+      alternativas: ["", "", "", ""],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "alternativas",
+  });
+  
+  const { data: disciplinas } = useQuery({ queryKey: ['disciplinas'], queryFn: () => dataSource.list('disciplinas') });
+  const { data: topicos } = useQuery({ queryKey: ['topicos'], queryFn: () => dataSource.list('topicos') });
+
+  const mutation = useMutation({
+    mutationFn: (newQuestao: Omit<Questao, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'isActive' | 'hashConteudo'>) => {
+      const finalData = {
+        ...newQuestao,
+        respostaCorreta: newQuestao.tipo === 'multipla' && newQuestao.alternativas ? newQuestao.alternativas[newQuestao.respostaCorreta] : newQuestao.respostaCorreta,
+        version: questao?.version ?? 1,
+        isActive: true,
+        hashConteudo: 'temp-hash'
+      };
+      return questao
+        ? dataSource.update('questoes', questao.id, finalData as Partial<Questao>)
+        : dataSource.create('questoes', finalData as any);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['questoes'] });
+      toast({ title: "Sucesso!", description: `Questão ${questao ? 'atualizada' : 'criada'} com sucesso.` });
+      onOpenChange(false);
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Erro!", description: "Não foi possível salvar a questão." });
+    },
+  });
+  
+  const [similarQuestions, setSimilarQuestions] = useState<string[]>([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
+  async function handleSuggestSimilar() {
+    const enunciado = form.getValues("enunciado");
+    if(!enunciado) {
+      toast({ variant: "destructive", title: "Oops!", description: "Escreva o enunciado antes de pedir sugestões." });
+      return;
+    }
+    setIsAiLoading(true);
+    setSimilarQuestions([]);
+    try {
+      const result = await suggestSimilarQuestions({ enunciado });
+      setSimilarQuestions(result.similarQuestions);
+    } catch(e) {
+      toast({ variant: "destructive", title: "Erro de IA", description: "Não foi possível gerar sugestões." });
+    } finally {
+      setIsAiLoading(false);
+    }
+  }
+
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    mutation.mutate(values as any);
+  }
+
+  const tipo = form.watch("tipo");
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{questao ? "Editar" : "Nova"} Questão</DialogTitle>
+          <DialogDescription>Preencha os detalhes da sua questão.</DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-1">
+            <div className="grid md:grid-cols-3 gap-4">
+               {/* Disciplina, Tópico, Subtópico */}
+            </div>
+            <div className="grid md:grid-cols-3 gap-4">
+                <FormField control={form.control} name="tipo" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Tipo</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {(['multipla', 'vf', 'lacuna', 'flashcard'] as QuestionTipo[]).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </FormItem>
+                )}/>
+                {/* Dificuldade, Origem */}
+            </div>
+
+            <FormField control={form.control} name="enunciado" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Enunciado</FormLabel>
+                    <FormControl><Textarea placeholder="Digite o enunciado aqui..." {...field} rows={5} /></FormControl>
+                    <FormMessage/>
+                </FormItem>
+            )}/>
+            
+            {tipo === 'multipla' && (
+              <div className="space-y-4 rounded-md border p-4">
+                <FormLabel>Alternativas</FormLabel>
+                {fields.map((field, index) => (
+                  <FormField key={field.id} control={form.control} name={`alternativas.${index}`}
+                    render={({ field }) => (
+                      <FormItem className="flex items-center gap-2">
+                        <FormControl>
+                            <div className="flex items-center gap-2 w-full">
+                                <FormField control={form.control} name="respostaCorreta" render={({ field: radioField }) => (
+                                    <RadioGroup onValueChange={val => radioField.onChange(parseInt(val))} defaultValue={radioField.value?.toString()}>
+                                        <RadioGroupItem value={index.toString()} />
+                                    </RadioGroup>
+                                )}/>
+                                <Input {...field} placeholder={`Alternativa ${index + 1}`}/>
+                                {fields.length > 2 && <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4"/></Button>}
+                            </div>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                ))}
+                 <Button type="button" variant="outline" size="sm" onClick={() => append("")}>Adicionar Alternativa</Button>
+              </div>
+            )}
+            
+            {tipo === 'vf' && (
+                <FormField control={form.control} name="respostaCorreta" render={({ field }) => (
+                    <FormItem className="space-y-3 rounded-md border p-4">
+                        <FormLabel>Resposta Correta</FormLabel>
+                        <FormControl>
+                            <RadioGroup onValueChange={(val) => field.onChange(val === 'true')} defaultValue={field.value?.toString()} className="flex gap-4">
+                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="true"/></FormControl><FormLabel className="font-normal">Verdadeiro</FormLabel></FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="false"/></FormControl><FormLabel className="font-normal">Falso</FormLabel></FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                    </FormItem>
+                )}/>
+            )}
+
+            {tipo === 'lacuna' && (
+                 <FormField control={form.control} name="respostaCorreta" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Texto da Lacuna</FormLabel>
+                        <FormControl><Input placeholder="Resposta da lacuna" {...field} /></FormControl>
+                        <FormMessage/>
+                    </FormItem>
+                )}/>
+            )}
+
+            {tipo === 'flashcard' && (
+                 <FormField control={form.control} name="respostaCorreta" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Verso do Cartão (Resposta)</FormLabel>
+                        <FormControl><Textarea placeholder="Resposta do flashcard" {...field} /></FormControl>
+                        <FormMessage/>
+                    </FormItem>
+                )}/>
+            )}
+
+             <FormField control={form.control} name="explicacao" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Explicação</FormLabel>
+                    <FormControl><Textarea placeholder="Explicação detalhada da resposta correta..." {...field} /></FormControl>
+                </FormItem>
+            )}/>
+            
+            <div className="space-y-4 rounded-md border p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">Sugestões de IA</h3>
+                <Button type="button" variant="outline" size="sm" onClick={handleSuggestSimilar} disabled={isAiLoading}>
+                  {isAiLoading ? "Gerando..." : "Sugerir similares"}
+                </Button>
+              </div>
+              {isAiLoading && <div className="space-y-2"><Skeleton className="h-4 w-full"/><Skeleton className="h-4 w-[90%]"/><Skeleton className="h-4 w-[95%]"/></div>}
+              {similarQuestions.length > 0 && (
+                <Alert>
+                  <AlertTitle>Questões Similares Sugeridas</AlertTitle>
+                  <AlertDescription>
+                    <ul className="list-disc pl-5 space-y-1 mt-2">
+                      {similarQuestions.map((q, i) => <li key={i}>{q}</li>)}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Salvando...' : 'Salvar'}</Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}

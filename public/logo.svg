@@ -1,0 +1,13 @@
+<svg width="120" height="32" viewBox="0 0 120 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_101_2)">
+<path d="M12.9231 0L0 9.23077V32H12.9231V0Z" fill="currentColor"/>
+<path d="M29.5385 0L16.6154 9.23077V32H29.5385V0Z" fill="currentColor" fill-opacity="0.7"/>
+<path d="M34.8462 22.7692H43.1538V32H34.8462V22.7692Z" fill="currentColor"/>
+</g>
+<text x="50" y="24" font-family="Inter, sans-serif" font-size="24" font-weight="bold" fill="currentColor">iSabIA</text>
+<defs>
+<clipPath id="clip0_101_2">
+<rect width="43.1538" height="32" fill="white"/>
+</clipPath>
+</defs>
+</svg>
