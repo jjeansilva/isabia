@@ -19,7 +19,7 @@ export interface IDataSource {
   get<T>(collection: CollectionName, id: string): Promise<T | null>;
   create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T>;
   bulkCreate?<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]>;
-  bulkCreateFromCsv?(csvData: string): Promise<number>;
+  bulkCreateFromCsv?(csvData: string, tipo: QuestionTipo): Promise<number>;
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
   gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado>;
@@ -407,26 +407,27 @@ class PocketBaseDataSource implements IDataSource {
     }
   }
 
-  async bulkCreateFromCsv(csvData: string): Promise<number> {
+  async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo): Promise<number> {
     await this.ensureAuthenticated();
 
     const lines = csvData.trim().split('\n');
-    const header = lines.shift()?.trim().replace(/"/g, '').split(',');
+    const headerLine = lines.shift()?.trim().replace(/"/g, '');
     
-    if (!header || header.length < 7) {
-      throw new Error("Cabeçalho do CSV inválido ou ausente.");
+    if (!headerLine) {
+        throw new Error("CSV está vazio ou não contém um cabeçalho.");
     }
+
+    const header = headerLine.split(',');
     
-    const colMap = {
-      tipo: header.indexOf('tipo'),
-      dificuldade: header.indexOf('dificuldade'),
-      disciplina: header.indexOf('disciplina'),
-      topico: header.indexOf('tópico da disciplina'),
-      subtopico: header.indexOf('subtópico da disciplina'), // Note: subtópico is merged into tópico
-      questao: header.indexOf('questão'),
-      resposta: header.indexOf('resposta'),
-      explicacao: header.indexOf('breve explicação'),
-    };
+    const colMap: {[key: string]: number} = {};
+    header.forEach((h, i) => colMap[h.trim()] = i);
+
+    const requiredCols = ['dificuldade', 'disciplina', 'tópico da disciplina', 'questão', 'resposta'];
+    for(const col of requiredCols) {
+        if(!(col in colMap)) {
+            throw new Error(`Coluna obrigatória ausente no cabeçalho do CSV: "${col}"`);
+        }
+    }
     
     // Cache for created disciplines and topics to avoid multiple lookups/creates
     const disciplinasCache: Record<string, Disciplina> = {};
@@ -440,10 +441,10 @@ class PocketBaseDataSource implements IDataSource {
         const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/"/g, '').trim()) || [];
         
         const disciplinaNome = values[colMap.disciplina];
-        let topicoNome = values[colMap.topico];
-        const subtopicoNome = values[colMap.subtopico];
+        let topicoNome = values[colMap['tópico da disciplina']];
+        const subtopicoNome = values[colMap.subtópico]; // Note: subtópico is merged into tópico
 
-        if (subtopicoNome && subtopicoNome.toLowerCase() !== 'n/a') {
+        if (subtopicoNome && subtopicoNome.toLowerCase() !== 'n/a' && subtopicoNome !== '') {
             topicoNome = `${topicoNome} - ${subtopicoNome}`;
         }
         
@@ -478,16 +479,16 @@ class PocketBaseDataSource implements IDataSource {
             topicosCache[cacheKey] = topico;
         }
 
-        const tipo = values[colMap.tipo].toLowerCase() as QuestionTipo;
         let respostaCorreta: any = values[colMap.resposta];
         let alternativas: string[] | undefined;
 
         if (tipo === 'multipla') {
-            alternativas = values.slice(colMap.resposta).filter(v => v.trim() !== '');
-            // Assuming the first alternative listed in the "resposta" columns is the correct one.
-            respostaCorreta = alternativas[0];
+             const resp = values[colMap.resposta];
+             const outrasAlternativas = header.filter(h => h.startsWith('alternativa_')).map(key => values[colMap[key]]).filter(Boolean);
+             alternativas = [resp, ...outrasAlternativas].sort(() => Math.random() - 0.5); // Randomize order
+             respostaCorreta = resp;
         } else if (tipo === 'vf') {
-            respostaCorreta = respostaCorreta.toLowerCase() === 'verdadeiro';
+            respostaCorreta = ['verdadeiro', 'certo', 'v'].includes(respostaCorreta.toLowerCase());
         }
 
         const questao: Partial<Questao> = {
