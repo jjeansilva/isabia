@@ -80,7 +80,7 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] md:max-w-[700px]">
+      <DialogContent className="sm:max-w-[425px] md:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Importar Questões via CSV</DialogTitle>
           <DialogDescription>Selecione o tipo, cole o conteúdo do seu CSV e importe em lote.</DialogDescription>
