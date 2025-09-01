@@ -1,0 +1,712 @@
+
+[
+    {
+        "id": "revisoes",
+        "name": "revisao",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "nplxjzdr",
+                "name": "questaoId",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "unique": true,
+                "options": {
+                    "collectionId": "questoes",
+                    "cascadeDelete": true,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": null
+                }
+            },
+            {
+                "system": false,
+                "id": "jph7t0b7",
+                "name": "bucket",
+                "type": "number",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 0,
+                    "max": null,
+                    "noDecimal": true
+                }
+            },
+            {
+                "system": false,
+                "id": "w3f5wct5",
+                "name": "proximaRevisao",
+                "type": "date",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": "",
+                    "max": ""
+                }
+            }
+        ],
+        "indexes": [
+            "CREATE UNIQUE INDEX `idx_revisao_questaoId` ON `revisao` (`questaoId`)"
+        ],
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {}
+    },
+    {
+        "id": "disciplinas",
+        "name": "disciplinas",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "k7vjgz9w",
+                "name": "nome",
+                "type": "text",
+                "required": true,
+                "presentable": true,
+                "unique": false,
+                "options": {
+                    "min": 3,
+                    "max": 100,
+                    "pattern": ""
+                }
+            },
+            {
+                "system": false,
+                "id": "yecxmm3d",
+                "name": "descricao",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": 200,
+                    "pattern": ""
+                }
+            },
+            {
+                "system": false,
+                "id": "a5yuyk5g",
+                "name": "cor",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": 7,
+                    "pattern": "^#[0-9A-F]{6}$"
+                }
+            },
+            {
+                "system": false,
+                "id": "bcfu7pqs",
+                "name": "ordem",
+                "type": "number",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "noDecimal": true
+                }
+            }
+        ],
+        "indexes": [],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": "",
+        "options": {}
+    },
+    {
+        "id": "questoes",
+        "name": "questoes",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "h7xzkqiy",
+                "name": "disciplinaId",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "collectionId": "disciplinas",
+                    "cascadeDelete": false,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": [
+                        "nome"
+                    ]
+                }
+            },
+            {
+                "system": false,
+                "id": "5fmgxvqg",
+                "name": "topicoId",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "collectionId": "topicos",
+                    "cascadeDelete": false,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": [
+                        "nome"
+                    ]
+                }
+            },
+            {
+                "system": false,
+                "id": "i0mws9n0",
+                "name": "tipo",
+                "type": "select",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSelect": 1,
+                    "values": [
+                        "multipla",
+                        "vf",
+                        "lacuna",
+                        "flashcard"
+                    ]
+                }
+            },
+            {
+                "system": false,
+                "id": "a9g2qayf",
+                "name": "dificuldade",
+                "type": "select",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSelect": 1,
+                    "values": [
+                        "facil",
+                        "medio",
+                        "dificil"
+                    ]
+                }
+            },
+            {
+                "system": false,
+                "id": "i17w1d85",
+                "name": "origem",
+                "type": "select",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSelect": 1,
+                    "values": [
+                        "autoral",
+                        "banca",
+                        "importacao"
+                    ]
+                }
+            },
+            {
+                "system": false,
+                "id": "s8iqlc0i",
+                "name": "enunciado",
+                "type": "editor",
+                "required": true,
+                "presentable": true,
+                "unique": false,
+                "options": {
+                    "convertUrls": false
+                }
+            },
+            {
+                "system": false,
+                "id": "bczqg58z",
+                "name": "alternativas",
+                "type": "json",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSize": 2000000
+                }
+            },
+            {
+                "system": false,
+                "id": "g0d64hfb",
+                "name": "respostaCorreta",
+                "type": "json",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSize": 2000000
+                }
+            },
+            {
+                "system": false,
+                "id": "f5k6cwqu",
+                "name": "explicacao",
+                "type": "editor",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "convertUrls": false
+                }
+            },
+            {
+                "system": false,
+                "id": "q0g0udgt",
+                "name": "tags",
+                "type": "json",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSize": 2000000
+                }
+            },
+            {
+                "system": false,
+                "id": "9gq8wlnx",
+                "name": "version",
+                "type": "number",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 1,
+                    "max": null,
+                    "noDecimal": true
+                }
+            },
+            {
+                "system": false,
+                "id": "d0n8k3lq",
+                "name": "isActive",
+                "type": "bool",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {}
+            },
+            {
+                "system": false,
+                "id": "4gczwz9j",
+                "name": "hashConteudo",
+                "type": "text",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            }
+        ],
+        "indexes": [],
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {}
+    },
+    {
+        "id": "simulados",
+        "name": "simulados",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "gqg3t1yq",
+                "name": "nome",
+                "type": "text",
+                "required": true,
+                "presentable": true,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            },
+            {
+                "system": false,
+                "id": "7vwnp0je",
+                "name": "descricao",
+                "type": "text",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            },
+            {
+                "system": false,
+                "id": "j7lzzlpa",
+                "name": "dificuldade",
+                "type": "select",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSelect": 1,
+                    "values": [
+                        "facil",
+                        "dificil",
+                        "aleatorio"
+                    ]
+                }
+            },
+            {
+                "system": false,
+                "id": "09q7i9yq",
+                "name": "status",
+                "type": "select",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSelect": 1,
+                    "values": [
+                        "rascunho",
+                        "andamento",
+                        "concluido"
+                    ]
+                }
+            },
+            {
+                "system": false,
+                "id": "f5k6cwqu",
+                "name": "criadoEm",
+                "type": "date",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": "",
+                    "max": ""
+                }
+            },
+            {
+                "system": false,
+                "id": "f5k6cwqv",
+                "name": "finalizadoEm",
+                "type": "date",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": "",
+                    "max": ""
+                }
+            },
+            {
+                "system": false,
+                "id": "w3f5wct5",
+                "name": "questoes",
+                "type": "json",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSize": 2000000
+                }
+            }
+        ],
+        "indexes": [],
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {}
+    },
+    {
+        "id": "respostas",
+        "name": "respostas",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "h7xzkqiy",
+                "name": "questaoId",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "collectionId": "questoes",
+                    "cascadeDelete": true,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": null
+                }
+            },
+            {
+                "system": false,
+                "id": "5fmgxvqg",
+                "name": "simuladoId",
+                "type": "relation",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "collectionId": "simulados",
+                    "cascadeDelete": true,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": null
+                }
+            },
+            {
+                "system": false,
+                "id": "d0n8k3lq",
+                "name": "acertou",
+                "type": "bool",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {}
+            },
+            {
+                "system": false,
+                "id": "g0d64hfb",
+                "name": "respostaUsuario",
+                "type": "json",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSize": 2000000
+                }
+            },
+            {
+                "system": false,
+                "id": "a9g2qayf",
+                "name": "confianca",
+                "type": "select",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSelect": 1,
+                    "values": [
+                        "certeza",
+                        "duvida",
+                        "chute"
+                    ]
+                }
+            },
+            {
+                "system": false,
+                "id": "jph7t0b7",
+                "name": "tempoSegundos",
+                "type": "number",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 0,
+                    "max": null,
+                    "noDecimal": true
+                }
+            },
+            {
+                "system": false,
+                "id": "f5k6cwqu",
+                "name": "respondedAt",
+                "type": "date",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": "",
+                    "max": ""
+                }
+            }
+        ],
+        "indexes": [],
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {}
+    },
+    {
+        "id": "topicos",
+        "name": "topicos",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "h7xzkqiy",
+                "name": "disciplinaId",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "collectionId": "disciplinas",
+                    "cascadeDelete": true,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": [
+                        "nome"
+                    ]
+                }
+            },
+            {
+                "system": false,
+                "id": "k7vjgz9w",
+                "name": "nome",
+                "type": "text",
+                "required": true,
+                "presentable": true,
+                "unique": false,
+                "options": {
+                    "min": 3,
+                    "max": 150,
+                    "pattern": ""
+                }
+            },
+            {
+                "system": false,
+                "id": "bcfu7pqs",
+                "name": "ordem",
+                "type": "number",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "noDecimal": true
+                }
+            }
+        ],
+        "indexes": [],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": "",
+        "options": {}
+    },
+    {
+        "id": "stats",
+        "name": "stats",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "f5k6cwqu",
+                "name": "data",
+                "type": "date",
+                "required": true,
+                "presentable": true,
+                "unique": true,
+                "options": {
+                    "min": "",
+                    "max": ""
+                }
+            },
+            {
+                "system": false,
+                "id": "jph7t0b7",
+                "name": "totalQuestoes",
+                "type": "number",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 0,
+                    "max": null,
+                    "noDecimal": true
+                }
+            },
+            {
+                "system": false,
+                "id": "bcfu7pqs",
+                "name": "acertos",
+                "type": "number",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 0,
+                    "max": null,
+                    "noDecimal": true
+                }
+            },
+            {
+                "system": false,
+                "id": "a5yuyk5g",
+                "name": "erros",
+                "type": "number",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 0,
+                    "max": null,
+                    "noDecimal": true
+                }
+            },
+            {
+                "system": false,
+                "id": "yecxmm3d",
+                "name": "tempoMedio",
+                "type": "number",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 0,
+                    "max": null,
+                    "noDecimal": false
+                }
+            }
+        ],
+        "indexes": [
+            "CREATE UNIQUE INDEX `idx_stats_data` ON `stats` (`data`)"
+        ],
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {}
+    }
+]
+
+    
