@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -74,7 +75,11 @@ export function SimuladoForm() {
     });
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-        mutation.mutate(values);
+        const submissionValues = {
+            ...values,
+            topicoId: values.topicoId === 'all' ? undefined : values.topicoId
+        }
+        mutation.mutate(submissionValues);
     }
     
     return (
@@ -93,7 +98,7 @@ export function SimuladoForm() {
                             <FormLabel>Disciplina</FormLabel>
                             <Select onValueChange={(value) => {
                                 field.onChange(value);
-                                form.setValue('topicoId', '');
+                                form.setValue('topicoId', undefined);
                             }} defaultValue={field.value}>
                                 <FormControl><SelectTrigger><SelectValue placeholder="Selecione a disciplina" /></SelectTrigger></FormControl>
                                 <SelectContent>
@@ -106,10 +111,10 @@ export function SimuladoForm() {
                     <FormField control={form.control} name="topicoId" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Tópico (Opcional)</FormLabel>
-                             <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ''} disabled={!selectedDisciplinaId || !topicos}>
+                             <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDisciplinaId || !topicos}>
                                 <FormControl><SelectTrigger><SelectValue placeholder="Todos os tópicos"/></SelectTrigger></FormControl>
                                 <SelectContent>
-                                     <SelectItem value="">Todos os tópicos</SelectItem>
+                                     <SelectItem value="all">Todos os tópicos</SelectItem>
                                     {topicos?.map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
                                 </SelectContent>
                             </Select>
