@@ -50,9 +50,7 @@
                 }
             }
         ],
-        "indexes": [
-            "CREATE UNIQUE INDEX `idx_revisao_questaoId` ON `revisao` (`questaoId`)"
-        ],
+        "indexes": [],
         "listRule": null,
         "viewRule": null,
         "createRule": null,
