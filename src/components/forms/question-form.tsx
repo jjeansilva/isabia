@@ -29,12 +29,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Questao, QuestionDificuldade, QuestionOrigem, QuestionTipo } from "@/types";
+import { Questao, QuestionDificuldade, QuestionOrigem, QuestionTipo, Topico } from "@/types";
 import { useData } from "@/hooks/use-data";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Checkbox } from "../ui/checkbox";
 import { Trash2 } from "lucide-react";
 import { suggestSimilarQuestions } from "@/ai/flows/suggest-similar-questions";
 import { useState } from "react";
@@ -67,7 +66,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
     resolver: zodResolver(formSchema),
     defaultValues: questao ? {
         ...questao,
-        respostaCorreta: questao.tipo === 'multipla' ? questao.alternativas?.indexOf(questao.respostaCorreta) : questao.respostaCorreta,
+        respostaCorreta: questao.tipo === 'multipla' && questao.alternativas ? questao.alternativas.indexOf(questao.respostaCorreta as string) : questao.respostaCorreta,
     } : {
       tipo: "multipla",
       dificuldade: "medio",
@@ -83,7 +82,14 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
   });
   
   const { data: disciplinas } = useQuery({ queryKey: ['disciplinas'], queryFn: () => dataSource.list('disciplinas') });
-  const { data: topicos } = useQuery({ queryKey: ['topicos'], queryFn: () => dataSource.list('topicos') });
+  
+  const selectedDisciplinaId = form.watch("disciplinaId");
+  const { data: topicos } = useQuery({ 
+      queryKey: ['topicos', selectedDisciplinaId], 
+      queryFn: () => dataSource.list<Topico>('topicos', { disciplinaId: selectedDisciplinaId }),
+      enabled: !!selectedDisciplinaId, // Only fetch if disciplina is selected
+  });
+
 
   const mutation = useMutation({
     mutationFn: (newQuestao: Omit<Questao, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'isActive' | 'hashConteudo'>) => {
@@ -102,6 +108,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
       queryClient.invalidateQueries({ queryKey: ['questoes'] });
       toast({ title: "Sucesso!", description: `Questão ${questao ? 'atualizada' : 'criada'} com sucesso.` });
       onOpenChange(false);
+      form.reset();
     },
     onError: () => {
       toast({ variant: "destructive", title: "Erro!", description: "Não foi possível salvar a questão." });
@@ -144,8 +151,34 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-1">
-            <div className="grid md:grid-cols-3 gap-4">
-               {/* Disciplina, Tópico */}
+            <div className="grid md:grid-cols-2 gap-4">
+               <FormField control={form.control} name="disciplinaId" render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Disciplina</FormLabel>
+                      <Select onValueChange={(value) => {
+                          field.onChange(value)
+                          form.setValue('topicoId', '');
+                      }} defaultValue={field.value}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Selecione a disciplina"/></SelectTrigger></FormControl>
+                          <SelectContent>
+                              {disciplinas?.map(d => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                  </FormItem>
+               )}/>
+               <FormField control={form.control} name="topicoId" render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Tópico</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!selectedDisciplinaId || !topicos}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Selecione o tópico"/></SelectTrigger></FormControl>
+                          <SelectContent>
+                                {topicos?.map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                  </FormItem>
+               )}/>
             </div>
             <div className="grid md:grid-cols-3 gap-4">
                 <FormField control={form.control} name="tipo" render={({ field }) => (
@@ -159,7 +192,28 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
                         </Select>
                     </FormItem>
                 )}/>
-                {/* Dificuldade, Origem */}
+                <FormField control={form.control} name="dificuldade" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Dificuldade</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {(['facil', 'medio', 'dificil'] as QuestionDificuldade[]).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </FormItem>
+                )}/>
+                <FormField control={form.control} name="origem" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Origem</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {(['autoral', 'banca', 'importacao'] as QuestionOrigem[]).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </FormItem>
+                )}/>
             </div>
 
             <FormField control={form.control} name="enunciado" render={({ field }) => (
@@ -173,25 +227,25 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
             {tipo === 'multipla' && (
               <div className="space-y-4 rounded-md border p-4">
                 <FormLabel>Alternativas</FormLabel>
-                {fields.map((field, index) => (
-                  <FormField key={field.id} control={form.control} name={`alternativas.${index}`}
-                    render={({ field }) => (
-                      <FormItem className="flex items-center gap-2">
-                        <FormControl>
-                            <div className="flex items-center gap-2 w-full">
-                                <FormField control={form.control} name="respostaCorreta" render={({ field: radioField }) => (
-                                    <RadioGroup onValueChange={val => radioField.onChange(parseInt(val))} defaultValue={radioField.value?.toString()}>
-                                        <RadioGroupItem value={index.toString()} />
-                                    </RadioGroup>
-                                )}/>
-                                <Input {...field} placeholder={`Alternativa ${index + 1}`}/>
-                                {fields.length > 2 && <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4"/></Button>}
-                            </div>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                ))}
+                <FormField control={form.control} name="respostaCorreta" render={({ field: radioField }) => (
+                  <RadioGroup onValueChange={val => radioField.onChange(parseInt(val))} defaultValue={radioField.value?.toString()} className="space-y-2">
+                    {fields.map((field, index) => (
+                      <FormField key={field.id} control={form.control} name={`alternativas.${index}`}
+                        render={({ field }) => (
+                          <FormItem className="flex items-center gap-2">
+                            <FormControl>
+                                <div className="flex items-center gap-2 w-full">
+                                    <RadioGroupItem value={index.toString()} id={`alt-radio-${index}`} />
+                                    <Input {...field} placeholder={`Alternativa ${index + 1}`}/>
+                                    {fields.length > 2 && <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4"/></Button>}
+                                </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </RadioGroup>
+                )}/>
                  <Button type="button" variant="outline" size="sm" onClick={() => append("")}>Adicionar Alternativa</Button>
               </div>
             )}
@@ -214,7 +268,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
                  <FormField control={form.control} name="respostaCorreta" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Texto da Lacuna</FormLabel>
-                        <FormControl><Input placeholder="Resposta da lacuna" {...field} /></FormControl>
+                        <FormControl><Input placeholder="Resposta da lacuna" {...field} value={field.value || ''}/></FormControl>
                         <FormMessage/>
                     </FormItem>
                 )}/>
@@ -224,7 +278,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
                  <FormField control={form.control} name="respostaCorreta" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Verso do Cartão (Resposta)</FormLabel>
-                        <FormControl><Textarea placeholder="Resposta do flashcard" {...field} /></FormControl>
+                        <FormControl><Textarea placeholder="Resposta do flashcard" {...field} value={field.value || ''}/></FormControl>
                         <FormMessage/>
                     </FormItem>
                 )}/>
@@ -233,7 +287,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
              <FormField control={form.control} name="explicacao" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Explicação</FormLabel>
-                    <FormControl><Textarea placeholder="Explicação detalhada da resposta correta..." {...field} /></FormControl>
+                    <FormControl><Textarea placeholder="Explicação detalhada da resposta correta..." {...field} value={field.value || ''}/></FormControl>
                 </FormItem>
             )}/>
             

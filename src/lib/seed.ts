@@ -17,8 +17,6 @@ function createMockData() {
     { id: 't2', disciplinaId: 'd1', nome: 'Controle de Constitucionalidade', ordem: 2, createdAt: now, updatedAt: now },
     { id: 't3', disciplinaId: 'd2', nome: 'Atos Administrativos', ordem: 1, createdAt: now, updatedAt: now },
     { id: 't4', disciplinaId: 'd3', nome: 'Concordância Verbal', ordem: 1, createdAt: now, updatedAt: now },
-    { id: 't5', topicoId: 't1', nome: 'Remédios Constitucionais', ordem: 1, createdAt: now, updatedAt: now },
-    { id: 't6', topicoId: 't3', nome: 'Atributos do Ato', ordem: 1, createdAt: now, updatedAt: now },
   ];
   
   // Questões

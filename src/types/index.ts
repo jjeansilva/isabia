@@ -35,7 +35,6 @@ export interface Questao {
   explicacao?: string;
   tags?: string[];
   version: number;
-  supersededBy?: string | null;
   isActive: boolean;
   hashConteudo: string;
   createdAt: string;

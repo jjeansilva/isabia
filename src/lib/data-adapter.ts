@@ -19,7 +19,7 @@ export interface IDataSource {
   create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T>;
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
-  gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado>;
+  gerarSimulado(criteria: { disciplinaId: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado>;
   getDashboardStats(): Promise<any>;
 }
 
@@ -72,14 +72,11 @@ class MockDataSource implements IDataSource {
     return Promise.resolve();
   }
 
-  async gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado> {
+  async gerarSimulado(criteria: { disciplinaId: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado> {
       let allQuestoes = getFromStorage<Questao>('questoes');
       
       let filtered = allQuestoes.filter(q => q.isActive && q.disciplinaId === criteria.disciplinaId);
 
-      if (criteria.topicoId) {
-          filtered = filtered.filter(q => q.topicoId === criteria.topicoId);
-      }
       if (criteria.dificuldade !== 'aleatorio') {
           if (criteria.dificuldade === 'facil') {
             filtered = filtered.filter(q => q.dificuldade === 'facil' || q.dificuldade === 'medio');
@@ -90,6 +87,10 @@ class MockDataSource implements IDataSource {
 
       const shuffled = filtered.sort(() => 0.5 - Math.random());
       const selectedQuestoes = shuffled.slice(0, criteria.quantidade);
+      
+      if (selectedQuestoes.length < criteria.quantidade) {
+          throw new Error(`Não foram encontradas questões suficientes para os critérios selecionados. Encontradas: ${selectedQuestoes.length}, Pedidas: ${criteria.quantidade}`);
+      }
 
       const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt'> = {
           nome: criteria.nome,
