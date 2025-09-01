@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -29,7 +30,7 @@ export default function DashboardPage() {
 
   const getAcertoBadge = (acerto: number) => {
     if (acerto > 70) {
-      return <Badge className="bg-approval text-white">Alto</Badge>;
+      return <Badge className="bg-approval text-approval-foreground">Alto</Badge>;
     }
     if (acerto > 50) {
       return <Badge variant="secondary">Médio</Badge>;
