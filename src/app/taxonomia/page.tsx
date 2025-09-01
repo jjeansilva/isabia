@@ -9,8 +9,9 @@ import { PlusCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DisciplinaForm } from "@/components/forms/disciplina-form";
 
-function DisciplinaCard({ disciplina }: { disciplina: Disciplina }) {
+function DisciplinaCard({ disciplina, onEdit }: { disciplina: Disciplina, onEdit: (d: Disciplina) => void }) {
   return (
     <Card style={{ borderLeftColor: disciplina.cor, borderLeftWidth: 4 }}>
       <CardHeader>
@@ -18,7 +19,7 @@ function DisciplinaCard({ disciplina }: { disciplina: Disciplina }) {
         <CardDescription>{disciplina.descricao || "Nenhuma descrição"}</CardDescription>
       </CardHeader>
       <CardFooter className="flex justify-end">
-        <Button variant="outline" size="sm">Editar</Button>
+        <Button variant="outline" size="sm" onClick={() => onEdit(disciplina)}>Editar</Button>
       </CardFooter>
     </Card>
   )
@@ -27,12 +28,29 @@ function DisciplinaCard({ disciplina }: { disciplina: Disciplina }) {
 
 export default function TaxonomiaPage() {
   const dataSource = useData();
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedDisciplina, setSelectedDisciplina] = useState<Disciplina | undefined>(undefined);
+
 
   const { data: disciplinas, isLoading } = useQuery({
     queryKey: ["disciplinas"],
     queryFn: () => dataSource.list<Disciplina>("disciplinas"),
   });
+  
+  const handleNew = () => {
+    setSelectedDisciplina(undefined);
+    setIsFormOpen(true);
+  }
+
+  const handleEdit = (disciplina: Disciplina) => {
+    setSelectedDisciplina(disciplina);
+    setIsFormOpen(true);
+  }
+
+  const handleFormClose = () => {
+    setIsFormOpen(false);
+    setSelectedDisciplina(undefined);
+  }
 
   return (
     <>
@@ -40,13 +58,19 @@ export default function TaxonomiaPage() {
         title="Taxonomia"
         description="Gerencie suas disciplinas, tópicos e subtópicos."
       >
-        <Button onClick={() => setShowCreateModal(true)}>
+        <Button onClick={handleNew}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Nova Disciplina
         </Button>
       </PageHeader>
 
-      {/* {showCreateModal && <DisciplinaForm open={showCreateModal} onOpenChange={setShowCreateModal} />} */}
+      {isFormOpen && (
+        <DisciplinaForm
+          open={isFormOpen}
+          onOpenChange={handleFormClose}
+          disciplina={selectedDisciplina}
+        />
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {isLoading && Array.from({ length: 3 }).map((_, i) => (
@@ -55,7 +79,7 @@ export default function TaxonomiaPage() {
             <CardFooter><Skeleton className="h-10 w-24" /></CardFooter>
           </Card>
         ))}
-        {disciplinas?.map((d) => <DisciplinaCard key={d.id} disciplina={d} />)}
+        {disciplinas?.map((d) => <DisciplinaCard key={d.id} disciplina={d} onEdit={handleEdit} />)}
       </div>
 
        {!isLoading && disciplinas?.length === 0 && (
@@ -65,7 +89,7 @@ export default function TaxonomiaPage() {
                   <CardDescription>Comece adicionando sua primeira disciplina para organizar seus estudos.</CardDescription>
               </CardHeader>
               <CardContent>
-                  <Button onClick={() => setShowCreateModal(true)}>
+                  <Button onClick={handleNew}>
                       <PlusCircle className="mr-2 h-4 w-4" />
                       Criar primeira disciplina
                   </Button>
