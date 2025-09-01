@@ -72,10 +72,10 @@ export function DisciplinaForm({ open, onOpenChange, disciplina }: { open: boole
 
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
-      const dataToSave = { ...disciplina, ...values };
-      return disciplina
-        ? dataSource.update("isabia_disciplinas", disciplina.id, dataToSave)
-        : dataSource.create("isabia_disciplinas", dataToSave);
+      if (disciplina) {
+        return dataSource.update("isabia_disciplinas", disciplina.id, values);
+      }
+      return dataSource.create("isabia_disciplinas", values);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["disciplinas"] });
@@ -122,7 +122,7 @@ export function DisciplinaForm({ open, onOpenChange, disciplina }: { open: boole
                 <FormItem>
                   <FormLabel>Descrição (Opcional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Breve resumo sobre a disciplina" {...field} />
+                    <Textarea placeholder="Breve resumo sobre a disciplina" {...field} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
