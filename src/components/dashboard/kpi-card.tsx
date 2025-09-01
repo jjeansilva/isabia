@@ -17,7 +17,7 @@ interface KpiCardProps {
   loading?: boolean;
 }
 
-export function KpiCard({ title, value, change, chart, icon, loading }: KpiCardProps) {
+export function KpiCard({ title, value, change, changeColor, chart, icon, loading }: KpiCardProps) {
 
   if (loading) {
       return (
