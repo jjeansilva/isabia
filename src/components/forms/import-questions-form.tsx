@@ -26,17 +26,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useData } from "@/hooks/use-data";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { QuestionTipo } from "@/types";
+import { Input } from "../ui/input";
 
 const formSchema = z.object({
   tipo: z.enum(["multipla", "vf", "lacuna", "flashcard"]),
-  csv: z.string().min(1, "O conteúdo CSV não pode estar vazio."),
+  csvFile: z
+    .custom<FileList>()
+    .refine((files) => files?.length > 0, "O arquivo CSV é obrigatório.")
+    .refine((files) => files?.[0]?.type === "text/csv", "O arquivo deve ser do tipo CSV."),
 });
 
 
@@ -49,7 +52,6 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
     resolver: zodResolver(formSchema),
     defaultValues: {
       tipo: "vf",
-      csv: "",
     },
   });
 
@@ -74,16 +76,26 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    mutation.mutate({csvData: values.csv, tipo: values.tipo});
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const file = values.csvFile[0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const csvData = e.target?.result as string;
+      if (csvData) {
+        mutation.mutate({csvData, tipo: values.tipo});
+      } else {
+        toast({ variant: "destructive", title: "Erro!", description: "Não foi possível ler o arquivo CSV." });
+      }
+    };
+    reader.readAsText(file);
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] md:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Importar Questões via CSV</DialogTitle>
-          <DialogDescription>Selecione o tipo, cole o conteúdo do seu CSV e importe em lote.</DialogDescription>
+          <DialogDescription>Selecione o tipo, escolha o arquivo CSV e importe em lote.</DialogDescription>
         </DialogHeader>
         <Alert>
             <AlertTitle>Formato do CSV</AlertTitle>
@@ -119,15 +131,16 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
             />
             <FormField
               control={form.control}
-              name="csv"
-              render={({ field }) => (
+              name="csvFile"
+              render={({ field: { onChange, value, ...rest } }) => (
                 <FormItem>
-                  <FormLabel>Conteúdo CSV</FormLabel>
+                  <FormLabel>Arquivo CSV</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Cole o seu conteúdo CSV aqui..."
-                      {...field}
-                      rows={10}
+                    <Input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => onChange(e.target.files)}
+                      {...rest}
                     />
                   </FormControl>
                   <FormMessage />
