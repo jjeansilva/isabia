@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useData } from "@/hooks/use-data";
 import { Disciplina, Topico } from "@/types";
 import { PageHeader } from "@/components/page-header";
@@ -18,21 +18,55 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { TopicoForm } from "@/components/forms/topico-form";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast";
 
 
-function TopicoItem({ topico }: { topico: Topico }) {
+function TopicoItem({ topico, onEdit, onDelete }: { topico: Topico, onEdit: () => void, onDelete: () => void }) {
     return (
-        <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
+        <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted -ml-2 -mr-2 pl-4 pr-2">
             <span>{topico.nome}</span>
             <div className="flex gap-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8"><Edit2 className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}><Edit2 className="h-4 w-4" /></Button>
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir Tópico?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Tem certeza que deseja excluir o tópico "{topico.nome}"? Esta ação não pode ser desfeita e removerá os dados associados.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={onDelete}>Sim, Excluir</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </div>
     )
 }
 
-function DisciplinaAccordionItem({ disciplina, onEdit, onAddTopico }: { disciplina: Disciplina, onEdit: (d: Disciplina) => void, onAddTopico: (d: Disciplina) => void }) {
+function DisciplinaAccordionItem({ disciplina, onEdit, onAddTopico, onEditTopico, onDeleteTopico }: { 
+    disciplina: Disciplina, 
+    onEdit: (d: Disciplina) => void, 
+    onAddTopico: (d: Disciplina) => void,
+    onEditTopico: (t: Topico, d: Disciplina) => void,
+    onDeleteTopico: (t: Topico) => void,
+}) {
   const dataSource = useData();
   const { data: topicos, isLoading } = useQuery({
       queryKey: ['topicos', disciplina.id],
@@ -52,11 +86,11 @@ function DisciplinaAccordionItem({ disciplina, onEdit, onAddTopico }: { discipli
             </div>
           </div>
       </AccordionTrigger>
-      <AccordionContent className="p-4">
+      <AccordionContent className="p-4 space-y-4">
         {isLoading && <p>Carregando tópicos...</p>}
         {topicos && topicos.length > 0 && (
-            <div className="space-y-2">
-                {topicos.map(t => <TopicoItem key={t.id} topico={t} />)}
+            <div className="space-y-1">
+                {topicos.map(t => <TopicoItem key={t.id} topico={t} onEdit={() => onEditTopico(t, disciplina)} onDelete={() => onDeleteTopico(t)} />)}
             </div>
         )}
          {topicos && topicos.length === 0 && (
@@ -74,10 +108,14 @@ function DisciplinaAccordionItem({ disciplina, onEdit, onAddTopico }: { discipli
 
 export default function TaxonomiaPage() {
   const dataSource = useData();
-  const [isDisciplinaFormOpen, setIsDisciplinaFormOpen] = useState(false);
-  const [isTopicoFormOpen, setIsTopicoFormOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
+  const [isDisciplinaFormOpen, setIsDisciplinaFormOpen] = useState(false);
   const [selectedDisciplina, setSelectedDisciplina] = useState<Disciplina | undefined>(undefined);
+  
+  const [isTopicoFormOpen, setIsTopicoFormOpen] = useState(false);
+  const [selectedTopico, setSelectedTopico] = useState<Topico | undefined>(undefined);
   const [parentDisciplina, setParentDisciplina] = useState<Disciplina | undefined>(undefined);
 
 
@@ -97,8 +135,31 @@ export default function TaxonomiaPage() {
   }
   
   const handleNewTopico = (disciplina: Disciplina) => {
+      setSelectedTopico(undefined);
       setParentDisciplina(disciplina);
       setIsTopicoFormOpen(true);
+  }
+  
+  const handleEditTopico = (topico: Topico, disciplina: Disciplina) => {
+    setSelectedTopico(topico);
+    setParentDisciplina(disciplina);
+    setIsTopicoFormOpen(true);
+  }
+
+  const deleteMutation = useMutation({
+    mutationFn: (topicoId: string) => dataSource.delete('topicos', topicoId),
+    onSuccess: (_, variables) => {
+      toast({ title: "Tópico Excluído!", description: "O tópico foi removido com sucesso." });
+      queryClient.invalidateQueries({ queryKey: ["topicos", selectedTopico?.disciplinaId] });
+    },
+    onError: (error) => {
+      toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível excluir o tópico." });
+    }
+  });
+
+  const handleDeleteTopico = (topico: Topico) => {
+      setSelectedTopico(topico);
+      deleteMutation.mutate(topico.id);
   }
 
   const handleFormClose = () => {
@@ -106,6 +167,7 @@ export default function TaxonomiaPage() {
     setSelectedDisciplina(undefined);
     setIsTopicoFormOpen(false);
     setParentDisciplina(undefined);
+    setSelectedTopico(undefined);
   }
 
   return (
@@ -133,6 +195,7 @@ export default function TaxonomiaPage() {
             open={isTopicoFormOpen}
             onOpenChange={handleFormClose}
             disciplina={parentDisciplina}
+            topico={selectedTopico}
           />
       )}
 
@@ -143,7 +206,16 @@ export default function TaxonomiaPage() {
         ))}
         
         <Accordion type="single" collapsible className="w-full space-y-2">
-            {disciplinas?.map((d) => <DisciplinaAccordionItem key={d.id} disciplina={d} onEdit={handleEditDisciplina} onAddTopico={handleNewTopico} />)}
+            {disciplinas?.map((d) => (
+              <DisciplinaAccordionItem 
+                key={d.id} 
+                disciplina={d} 
+                onEdit={handleEditDisciplina} 
+                onAddTopico={handleNewTopico}
+                onEditTopico={handleEditTopico}
+                onDeleteTopico={handleDeleteTopico}
+              />)
+            )}
         </Accordion>
       </div>
 

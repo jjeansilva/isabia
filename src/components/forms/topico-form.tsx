@@ -74,7 +74,7 @@ export function TopicoForm({ open, onOpenChange, disciplina, topico }: { open: b
         <DialogHeader>
           <DialogTitle>{topico ? "Editar" : "Novo"} Tópico</DialogTitle>
           <DialogDescription>
-            Adicionando tópico para a disciplina: <span className="font-semibold">{disciplina.nome}</span>
+            {topico ? "Editando" : "Adicionando"} tópico para a disciplina: <span className="font-semibold">{disciplina.nome}</span>
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
