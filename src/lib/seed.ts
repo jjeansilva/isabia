@@ -186,13 +186,13 @@ export function seedLocalStorage() {
   if (typeof window !== 'undefined' && !localStorage.getItem('isab_seeded')) {
     console.log("Seeding local storage with mock data...");
     const data = createMockData();
-    localStorage.setItem('isab_disciplinas', JSON.stringify(data.disciplinas));
-    localStorage.setItem('isab_topicos', JSON.stringify(data.topicos));
-    localStorage.setItem('isab_questoes', JSON.stringify(data.questoes));
-    localStorage.setItem('isab_simulados', JSON.stringify(data.simulados));
-    localStorage.setItem('isab_respostas', JSON.stringify(data.respostas));
-    localStorage.setItem('isab_revisao', JSON.stringify(data.revisao));
-    localStorage.setItem('isab_stats', JSON.stringify(data.stats));
+    localStorage.setItem('isab_isabia_disciplinas', JSON.stringify(data.disciplinas));
+    localStorage.setItem('isab_isabia_topicos', JSON.stringify(data.topicos));
+    localStorage.setItem('isab_isabia_questoes', JSON.stringify(data.questoes));
+    localStorage.setItem('isab_isabia_simulados', JSON.stringify(data.simulados));
+    localStorage.setItem('isab_isabia_respostas', JSON.stringify(data.respostas));
+    localStorage.setItem('isab_isabia_revisao', JSON.stringify(data.revisao));
+    localStorage.setItem('isab_isabia_stats', JSON.stringify(data.stats));
     localStorage.setItem('isab_seeded', 'true');
   }
 }

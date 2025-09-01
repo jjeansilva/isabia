@@ -199,10 +199,10 @@ class MockDataSource implements IDataSource {
         bucket: bucket,
         proximaRevisao: new Date(new Date().setDate(now.getDate() + diasParaAdicionar)).toISOString(),
       };
-      revisoes.push(revisao);
+      revisoes.push(revisao as any);
     }
     
-    saveToStorage('revisao', revisoes);
+    saveToStorage('isabia_revisao', revisoes);
     return Promise.resolve();
   }
 }
@@ -217,10 +217,15 @@ class PocketBaseDataSource implements IDataSource {
 
   private async ensureAuthenticated() {
     if (!this.pb.authStore.isValid) {
-      await this.pb.admins.authWithPassword(
-        process.env.PB_ADMIN_EMAIL!,
-        process.env.PB_ADMIN_PASSWORD!
-      );
+      // This is a server-side only operation, requires admin credentials
+      if (process.env.PB_ADMIN_EMAIL && process.env.PB_ADMIN_PASSWORD) {
+        await this.pb.admins.authWithPassword(
+            process.env.PB_ADMIN_EMAIL,
+            process.env.PB_ADMIN_PASSWORD
+        );
+      } else if (typeof window !== 'undefined') {
+        // Handle client-side auth if necessary in the future
+      }
     }
   }
 
@@ -237,7 +242,7 @@ class PocketBaseDataSource implements IDataSource {
         const record = await this.pb.collection(collection).getOne<T>(id);
         return record;
     } catch(e) {
-        if (e instanceof Error && e.message.includes("404")) return null;
+        if (e instanceof Error && (e as any).status === 404) return null;
         throw e;
     }
   }
