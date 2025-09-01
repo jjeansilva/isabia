@@ -6,7 +6,7 @@ function createMockData() {
   const now = new Date();
 
   // Disciplinas
-  const disciplinas: Omit<Disciplina, 'id'|'createdAt'|'updatedAt'>[] = [
+  const disciplinas: Omit<Disciplina, 'id'|'createdAt'|'updatedAt'|'user'>[] = [
     { nome: 'Direito Constitucional', cor: '#00329C', ordem: 1 },
     { nome: 'Direito Administrativo', cor: '#32BAD9', ordem: 2 },
     { nome: 'Português', cor: '#03A688', ordem: 3 },
@@ -97,7 +97,7 @@ function createMockData() {
   ];
 
   // Stats
-  const stats: Omit<StatsDia, 'id'>[] = Array.from({ length: 7 }, (_, i) => ({
+  const stats: Omit<StatsDia, 'id' | 'user'>[] = Array.from({ length: 7 }, (_, i) => ({
     data: new Date(new Date().setDate(now.getDate() - (6 - i))).toISOString().split('T')[0],
     totalQuestoes: Math.floor(Math.random() * 40) + 10,
     acertos: Math.floor(Math.random() * 30) + 5,
@@ -112,16 +112,13 @@ export async function seedPocketBase(dataSource: IDataSource) {
     console.log("Seeding PocketBase with mock data...");
     const { disciplinas, topicosData, questoesData, stats } = createMockData();
 
-    // Clear existing data
-    const collections: CollectionName[] = ['isabia_disciplinas', 'isabia_topicos', 'isabia_questoes', 'isabia_simulados', 'isabia_respostas', 'isabia_revisao', 'isabia_stats'];
-    for(const collection of collections) {
-      console.log(`Clearing ${collection}...`);
-      await dataSource.deleteAll(collection);
-    }
+    // NOTE: We are not clearing data anymore as it requires admin privileges 
+    // that a normal user session doesn't have. The user should clear manually if needed
+    // or we can provide a dedicated admin function later.
     
     // Seed Disciplinas
     console.log("Seeding disciplinas...");
-    const createdDisciplinas = await dataSource.bulkCreate<Omit<Disciplina, 'id' | 'createdAt' | 'updatedAt'>>('isabia_disciplinas', disciplinas);
+    const createdDisciplinas = await dataSource.bulkCreate<Omit<Disciplina, 'id' | 'createdAt' | 'updatedAt'| 'user'>>('isabia_disciplinas', disciplinas);
     
     // Map names to IDs for relation
     const disciplinaMap = createdDisciplinas.reduce((acc, d) => {
@@ -165,14 +162,15 @@ export function seedLocalStorage() {
     console.log("Seeding local storage with mock data...");
     const rawData = createMockData();
     const now = new Date().toISOString();
+    const user = "localuser";
 
-    const seededDisciplinas: Disciplina[] = rawData.disciplinas.map(d => ({...d, id: uuidv4(), createdAt: now, updatedAt: now}));
+    const seededDisciplinas: Disciplina[] = rawData.disciplinas.map(d => ({...d, id: uuidv4(), createdAt: now, updatedAt: now, user }));
     const disciplinaMap = seededDisciplinas.reduce((acc, d) => {
         acc[d.nome] = d.id;
         return acc;
     }, {} as Record<string, string>);
     
-    const seededTopicos: Topico[] = rawData.topicosData.map(t => ({...t, id: uuidv4(), disciplinaId: disciplinaMap[t.disciplina], createdAt: now, updatedAt: now}));
+    const seededTopicos: Topico[] = rawData.topicosData.map(t => ({...t, id: uuidv4(), disciplinaId: disciplinaMap[t.disciplina], createdAt: now, updatedAt: now, user}));
      const topicoMap = seededTopicos.reduce((acc, t) => {
         const key = `${t.disciplinaId}-${t.nome}`;
         acc[key] = t.id;
@@ -189,10 +187,11 @@ export function seedLocalStorage() {
             topicoId,
             createdAt: now,
             updatedAt: now,
+            user
         } as Questao;
     });
 
-    const seededStats: StatsDia[] = rawData.stats.map(s => ({...s, id: uuidv4()}));
+    const seededStats: StatsDia[] = rawData.stats.map(s => ({...s, id: uuidv4(), user }));
 
 
     localStorage.setItem('isab_isabia_disciplinas', JSON.stringify(seededDisciplinas));

@@ -18,12 +18,11 @@ export interface IDataSource {
   pb?: PocketBase;
   list<T>(collection: CollectionName, filter?: any): Promise<T[]>;
   get<T>(collection: CollectionName, id: string): Promise<T | null>;
-  create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T>;
+  create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'user'>): Promise<T>;
   bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]>;
   bulkCreateFromCsv?(csvData: string, tipo: QuestionTipo): Promise<number>;
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
-  deleteAll(collection: CollectionName): Promise<void>;
   gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado>;
   getDashboardStats(): Promise<any>;
   getQuestoesParaRevisar(): Promise<Questao[]>;
@@ -93,11 +92,6 @@ class MockDataSource implements IDataSource {
     return Promise.resolve();
   }
   
-  async deleteAll(collection: CollectionName): Promise<void> {
-    saveToStorage(collection, []);
-    return Promise.resolve();
-  }
-
   async gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado> {
       let allQuestoes = getFromStorage<Questao>('isabia_questoes');
       
@@ -235,21 +229,6 @@ class PocketBaseDataSource implements IDataSource {
   
   constructor() {
     this.pb = new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
-    console.log("PocketBaseDataSource initialized for:", process.env.NEXT_PUBLIC_PB_URL);
-  }
-
-  private async ensureAuthenticated() {
-    if (!this.pb.authStore.isValid) {
-      // This is a server-side only operation, requires admin credentials
-      if (process.env.PB_ADMIN_EMAIL && process.env.PB_ADMIN_PASSWORD) {
-        await this.pb.admins.authWithPassword(
-            process.env.PB_ADMIN_EMAIL,
-            process.env.PB_ADMIN_PASSWORD
-        );
-      } else if (typeof window !== 'undefined') {
-        // Client-side auth is handled by the AuthProvider now
-      }
-    }
   }
   
   private addUserData(data: any): any {
@@ -278,7 +257,7 @@ class PocketBaseDataSource implements IDataSource {
     }
   }
 
-  async create<T>(collection: CollectionName, data: Omit<T, "id" | "createdAt" | "updatedAt">): Promise<T> {
+  async create<T>(collection: CollectionName, data: Omit<T, "id" | "createdAt" | "updatedAt" | "user">): Promise<T> {
     const dataWithUser = this.addUserData(data);
     const record = await this.pb.collection(collection).create<T>(dataWithUser);
     return record;
@@ -304,16 +283,6 @@ class PocketBaseDataSource implements IDataSource {
   async delete(collection: CollectionName, id: string): Promise<void> {
     await this.pb.collection(collection).delete(id);
   }
-  
-  async deleteAll(collection: CollectionName): Promise<void> {
-    await this.ensureAuthenticated(); // Needs admin for this
-    const records = await this.pb.collection(collection).getFullList({ fields: 'id' });
-    for (const record of records) {
-        await this.pb.collection(collection).delete(record.id);
-        await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay
-    }
-  }
-
 
   async gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado> {
     const filterParts: string[] = [];
@@ -446,10 +415,6 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo): Promise<number> {
-    // Admin auth is required to create for other users or bypass rules.
-    // Since we're creating data for the currently logged-in user, we don't need special admin auth.
-    // await this.ensureAuthenticated();
-
     const lines = csvData.trim().split('\n');
     const headerLine = lines.shift()?.trim().replace(/"/g, '');
     
