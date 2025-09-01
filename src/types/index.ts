@@ -1,3 +1,4 @@
+
 export interface Disciplina {
   id: string;
   nome: string;
@@ -11,6 +12,7 @@ export interface Disciplina {
 export interface Topico {
   id: string;
   disciplinaId: string;
+  topicoPaiId?: string;
   nome: string;
   ordem?: number;
   createdAt: string;

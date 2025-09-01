@@ -4,7 +4,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useData } from "@/hooks/use-data";
 import { useToast } from "@/hooks/use-toast";
@@ -28,13 +28,27 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const formSchema = z.object({
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
   disciplinaId: z.string(),
+  topicoPaiId: z.string().optional(),
 });
 
-export function TopicoForm({ open, onOpenChange, disciplina, topico }: { open: boolean; onOpenChange: (open: boolean) => void; disciplina: Disciplina, topico?: Topico }) {
+export function TopicoForm({ open, onOpenChange, disciplina, topico, topicoPai }: { 
+    open: boolean; 
+    onOpenChange: (open: boolean) => void; 
+    disciplina: Disciplina; 
+    topico?: Topico,
+    topicoPai?: Topico,
+}) {
   const dataSource = useData();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -44,12 +58,22 @@ export function TopicoForm({ open, onOpenChange, disciplina, topico }: { open: b
     defaultValues: topico || {
       nome: "",
       disciplinaId: disciplina.id,
+      topicoPaiId: topicoPai?.id,
     },
+  });
+
+  const { data: topicosDaDisciplina } = useQuery({
+      queryKey: ['topicos', disciplina.id],
+      queryFn: () => dataSource.list<Topico>('isabia_topicos', { filter: `disciplinaId = "${disciplina.id}" && topicoPaiId = ""` }),
+      enabled: open, // only fetch when dialog is open
   });
 
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
       const dataToSave = { ...topico, ...values };
+      if (!dataToSave.topicoPaiId) {
+          dataToSave.topicoPaiId = "";
+      }
       return topico
         ? dataSource.update("isabia_topicos", topico.id, dataToSave)
         : dataSource.create("isabia_topicos", dataToSave);
@@ -67,15 +91,18 @@ export function TopicoForm({ open, onOpenChange, disciplina, topico }: { open: b
   function onSubmit(values: z.infer<typeof formSchema>) {
     mutation.mutate(values);
   }
+  
+  const dialogTitle = topicoPai ? "Novo Subtópico" : (topico ? "Editar Tópico" : "Novo Tópico");
+  const dialogDescription = topicoPai 
+    ? `Adicionando subtópico para "${topicoPai.nome}"`
+    : `Adicionando tópico para a disciplina: ${disciplina.nome}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{topico ? "Editar" : "Novo"} Tópico</DialogTitle>
-          <DialogDescription>
-            {topico ? "Editando" : "Adicionando"} tópico para a disciplina: <span className="font-semibold">{disciplina.nome}</span>
-          </DialogDescription>
+          <DialogTitle>{dialogTitle}</DialogTitle>
+          <DialogDescription>{dialogDescription}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -84,14 +111,32 @@ export function TopicoForm({ open, onOpenChange, disciplina, topico }: { open: b
               name="nome"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome do Tópico</FormLabel>
+                  <FormLabel>Nome</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Direitos Fundamentais" {...field} />
+                    <Input placeholder={topicoPai ? "Ex: Cláusulas Pétreas" : "Ex: Direitos Fundamentais"} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            {!topicoPai && !topico?.topicoPaiId && (
+                 <FormField
+                    control={form.control}
+                    name="topicoPaiId"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Tópico Pai (Opcional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ""}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Nenhum (Tópico Principal)"/></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="">Nenhum (Tópico Principal)</SelectItem>
+                                {topicosDaDisciplina?.filter(t => t.id !== topico?.id).map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}/>
+            )}
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
               <Button type="submit" disabled={mutation.isPending}>
