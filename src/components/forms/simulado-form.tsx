@@ -25,11 +25,12 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SimuladoDificuldade } from "@/types";
+import { SimuladoDificuldade, Topico } from "@/types";
 
 const formSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres."),
   disciplinaId: z.string().min(1, "Disciplina é obrigatória."),
+  topicoId: z.string().optional(),
   quantidade: z.coerce.number().min(1, "Pelo menos 1 questão.").max(100, "Máximo de 100 questões."),
   dificuldade: z.enum(["facil", "dificil", "aleatorio"]),
 });
@@ -52,6 +53,14 @@ export function SimuladoForm() {
         queryKey: ['disciplinas'], 
         queryFn: () => dataSource.list('disciplinas') 
     });
+
+    const selectedDisciplinaId = form.watch("disciplinaId");
+    const { data: topicos } = useQuery({ 
+        queryKey: ['topicos', selectedDisciplinaId], 
+        queryFn: () => dataSource.list<Topico>('topicos', { disciplinaId: selectedDisciplinaId }),
+        enabled: !!selectedDisciplinaId,
+    });
+
 
     const mutation = useMutation({
         mutationFn: (criteria: z.infer<typeof formSchema>) => dataSource.gerarSimulado(criteria),
@@ -78,12 +87,15 @@ export function SimuladoForm() {
                         <FormMessage />
                     </FormItem>
                 )}/>
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="disciplinaId" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Disciplina</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger></FormControl>
+                            <Select onValueChange={(value) => {
+                                field.onChange(value);
+                                form.setValue('topicoId', '');
+                            }} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Selecione a disciplina" /></SelectTrigger></FormControl>
                                 <SelectContent>
                                     {disciplinas?.map(d => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
                                 </SelectContent>
@@ -91,6 +103,21 @@ export function SimuladoForm() {
                             <FormMessage />
                         </FormItem>
                     )}/>
+                    <FormField control={form.control} name="topicoId" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Tópico (Opcional)</FormLabel>
+                             <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ''} disabled={!selectedDisciplinaId || !topicos}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Todos os tópicos"/></SelectTrigger></FormControl>
+                                <SelectContent>
+                                     <SelectItem value="">Todos os tópicos</SelectItem>
+                                    {topicos?.map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="quantidade" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Nº de Questões</FormLabel>
