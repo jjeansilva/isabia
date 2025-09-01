@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao } from '@/types';
+import PocketBase from 'pocketbase';
 
 // Helper to get/set data from localStorage
 const getFromStorage = <T>(key: string): T[] => {
@@ -207,25 +208,34 @@ class MockDataSource implements IDataSource {
 }
 
 class PocketBaseDataSource implements IDataSource {
+  private pb: PocketBase;
+  
   constructor() {
-    // const pb = new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
-    // ... authentication logic
-    console.warn("PocketBaseDataSource is a stub and not connected to a real backend.");
+    this.pb = new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
+    console.log("PocketBaseDataSource initialized for:", process.env.NEXT_PUBLIC_PB_URL);
   }
 
-  private async _notImplemented(): Promise<any> {
-    throw new Error("PocketBaseDataSource method not implemented.");
+  private async _notImplemented(methodName: string): Promise<any> {
+    console.warn(`PocketBaseDataSource method not implemented: ${methodName}`);
+    // Returning empty arrays or nulls to avoid breaking the UI during transition
+    if (methodName.startsWith('list') || methodName.includes('Questoes')) {
+        return [];
+    }
+    if (methodName.startsWith('get')) {
+        return null;
+    }
+    return Promise.reject(new Error(`PocketBaseDataSource method not implemented: ${methodName}`));
   }
 
-  list<T>(collection: CollectionName, filter?: any): Promise<T[]> { return this._notImplemented(); }
-  get<T>(collection: CollectionName, id: string): Promise<T | null> { return this._notImplemented(); }
-  create<T>(collection: CollectionName, data: Omit<T, "id">): Promise<T> { return this._notImplemented(); }
-  update<T extends { id: string; }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> { return this._notImplemented(); }
-  delete(collection: CollectionName, id: string): Promise<void> { return this._notImplemented(); }
-  gerarSimulado(criteria: any): Promise<Simulado> { return this._notImplemented(); }
-  getDashboardStats(): Promise<any> { return this._notImplemented(); }
-  getQuestoesParaRevisar(): Promise<Questao[]> { return this._notImplemented(); }
-  registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> { return this._notImplemented(); }
+  list<T>(collection: CollectionName, filter?: any): Promise<T[]> { return this._notImplemented(`list ${collection}`); }
+  get<T>(collection: CollectionName, id: string): Promise<T | null> { return this._notImplemented(`get ${collection}`); }
+  create<T>(collection: CollectionName, data: Omit<T, "id">): Promise<T> { return this._notImplemented(`create ${collection}`); }
+  update<T extends { id: string; }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> { return this._notImplemented(`update ${collection}`); }
+  delete(collection: CollectionName, id: string): Promise<void> { return this._notImplemented(`delete ${collection}`); }
+  gerarSimulado(criteria: any): Promise<Simulado> { return this._notImplemented('gerarSimulado'); }
+  getDashboardStats(): Promise<any> { return this._notImplemented('getDashboardStats'); }
+  getQuestoesParaRevisar(): Promise<Questao[]> { return this._notImplemented('getQuestoesParaRevisar'); }
+  registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> { return this._notImplemented('registrarRespostaRevisao'); }
 }
 
 let dataSource: IDataSource;
