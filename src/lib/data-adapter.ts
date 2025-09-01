@@ -18,6 +18,7 @@ export interface IDataSource {
   list<T>(collection: CollectionName, filter?: any): Promise<T[]>;
   get<T>(collection: CollectionName, id: string): Promise<T | null>;
   create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T>;
+  bulkCreate?<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]>;
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
   gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado>;
@@ -251,6 +252,12 @@ class PocketBaseDataSource implements IDataSource {
     await this.ensureAuthenticated();
     const record = await this.pb.collection(collection).create<T>(data);
     return record;
+  }
+
+  async bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]> {
+      await this.ensureAuthenticated();
+      const promises = data.map(item => this.pb.collection(collection).create<T>(item));
+      return Promise.all(promises);
   }
   
   async update<T extends { id: string; }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> {

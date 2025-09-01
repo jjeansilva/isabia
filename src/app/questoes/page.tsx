@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useData } from "@/hooks/use-data";
 import { PageHeader } from "@/components/page-header";
@@ -22,9 +23,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { ImportQuestionsForm } from "@/components/forms/import-questions-form";
 
 function QuestoesTable() {
   const dataSource = useData();
@@ -173,7 +174,16 @@ function QuestoesTable() {
 }
 
 export default function QuestoesPage() {
+  const searchParams = useSearchParams();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('import') === 'true') {
+      setShowImportModal(true);
+    }
+  }, [searchParams]);
+
 
   return (
     <>
@@ -185,6 +195,7 @@ export default function QuestoesPage() {
       </PageHeader>
       
       {showCreateModal && <QuestionForm open={showCreateModal} onOpenChange={setShowCreateModal} />}
+      {showImportModal && <ImportQuestionsForm open={showImportModal} onOpenChange={setShowImportModal} />}
       
       <QuestoesTable />
     </>
