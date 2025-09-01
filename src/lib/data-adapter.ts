@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico } from '@/types';
+import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao } from '@/types';
 
 // Helper to get/set data from localStorage
 const getFromStorage = <T>(key: string): T[] => {
@@ -21,6 +21,8 @@ export interface IDataSource {
   delete(collection: CollectionName, id: string): Promise<void>;
   gerarSimulado(criteria: { disciplinaId: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado>;
   getDashboardStats(): Promise<any>;
+  getQuestoesParaRevisar(): Promise<Questao[]>;
+  registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void>;
 }
 
 class MockDataSource implements IDataSource {
@@ -117,7 +119,7 @@ class MockDataSource implements IDataSource {
     const simulados = await this.list<Simulado>('simulados');
     const questoes = await this.list<Questao>('questoes');
     const respostas = await this.list('respostas');
-    const revisao = await this.list('revisao');
+    const revisao = await this.list<Revisao>('revisao');
 
     const totalAcertos = respostas.filter((r: any) => r.acertou).length;
     const acertoGeral = respostas.length > 0 ? (totalAcertos / respostas.length) * 100 : 0;
@@ -144,6 +146,60 @@ class MockDataSource implements IDataSource {
         distribution,
     });
   }
+
+  async getQuestoesParaRevisar(): Promise<Questao[]> {
+    const revisoes = getFromStorage<Revisao>('revisao');
+    const hoje = new Date();
+    const revisoesHojeIds = revisoes
+        .filter(r => new Date(r.proximaRevisao) <= hoje)
+        .map(r => r.questaoId);
+
+    const todasQuestoes = getFromStorage<Questao>('questoes');
+    const questoesParaRevisar = todasQuestoes.filter(q => revisoesHojeIds.includes(q.id));
+    
+    return Promise.resolve(questoesParaRevisar);
+  }
+
+  async registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> {
+    const revisoes = getFromStorage<Revisao>('revisao');
+    const questoes = getFromStorage<Questao>('questoes');
+    const questao = questoes.find(q => q.id === questaoId);
+    if(!questao) throw new Error("Questão não encontrada para registrar revisão.");
+    
+    let revisao = revisoes.find(r => r.questaoId === questaoId);
+    const now = new Date();
+
+    const intervalos = {
+        facil: [1, 4, 10, 30], // dias
+        medio: [1, 2, 5, 15],
+        dificil: [0, 1, 2, 4],
+    };
+
+    if (revisao) {
+      if (performance === 'dificil') {
+        revisao.bucket = 0; // Resetar
+      } else {
+        revisao.bucket = Math.min(revisao.bucket + 1, intervalos[performance].length - 1);
+      }
+      const diasParaAdicionar = intervalos[performance][revisao.bucket];
+      revisao.proximaRevisao = new Date(now.setDate(now.getDate() + diasParaAdicionar)).toISOString();
+      const index = revisoes.findIndex(r => r.id === revisao!.id);
+      revisoes[index] = revisao;
+    } else {
+      const bucket = performance === 'dificil' ? 0 : 1;
+      const diasParaAdicionar = intervalos[performance][bucket];
+      revisao = {
+        id: uuidv4(),
+        questaoId: questaoId,
+        bucket: bucket,
+        proximaRevisao: new Date(now.setDate(now.getDate() + diasParaAdicionar)).toISOString(),
+      };
+      revisoes.push(revisao);
+    }
+    
+    saveToStorage('revisao', revisoes);
+    return Promise.resolve();
+  }
 }
 
 class PocketBaseDataSource implements IDataSource {
@@ -164,6 +220,8 @@ class PocketBaseDataSource implements IDataSource {
   delete(collection: CollectionName, id: string): Promise<void> { return this._notImplemented(); }
   gerarSimulado(criteria: any): Promise<Simulado> { return this._notImplemented(); }
   getDashboardStats(): Promise<any> { return this._notImplemented(); }
+  getQuestoesParaRevisar(): Promise<Questao[]> { return this._notImplemented(); }
+  registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> { return this._notImplemented(); }
 }
 
 let dataSource: IDataSource;
