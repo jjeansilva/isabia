@@ -47,15 +47,15 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           title="Acerto Geral"
-          value={`${stats?.acertoGeral.toFixed(1) ?? '...'}%`}
+          value={`${stats?.acertoGeral?.toFixed(1) ?? '...'}%`}
           icon={
-            isLoading ? null : getAcertoBadge(stats.acertoGeral)
+            isLoading ? null : (stats && getAcertoBadge(stats.acertoGeral))
           }
           loading={isLoading}
         />
         <KpiCard
           title="Questões Respondidas (7d)"
-          value={stats?.statsDia.reduce((acc: number, s: any) => acc + s.totalQuestoes, 0) ?? '...'}
+          value={stats?.statsDia?.reduce((acc: number, s: any) => acc + s.totalQuestoes, 0) ?? '...'}
           icon={<CheckCircle2 className="h-5 w-5 text-muted-foreground" />}
           chart={
             <SparklineChart 
@@ -68,7 +68,7 @@ export default function DashboardPage() {
         />
         <KpiCard
           title="Tempo Médio / Questão"
-          value={`${stats?.statsDia.length > 0 ? (stats?.statsDia.reduce((acc: number, s: any) => acc + s.tempoMedio, 0) / stats?.statsDia.length).toFixed(0) : '...'}s`}
+          value={`${stats?.statsDia && stats.statsDia.length > 0 ? (stats?.statsDia.reduce((acc: number, s: any) => acc + s.tempoMedio, 0) / stats?.statsDia.length).toFixed(0) : '...'}s`}
           icon={<Clock className="h-5 w-5 text-muted-foreground" />}
           loading={isLoading}
         />
