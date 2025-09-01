@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -47,11 +48,27 @@ export function DisciplinaForm({ open, onOpenChange, disciplina }: { open: boole
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      nome: disciplina?.nome || "",
-      descricao: disciplina?.descricao || "",
-      cor: disciplina?.cor || colors[0],
+      nome: "",
+      descricao: "",
+      cor: colors[0],
     },
   });
+
+  useEffect(() => {
+    if (disciplina) {
+      form.reset({
+        nome: disciplina.nome || "",
+        descricao: disciplina.descricao || "",
+        cor: disciplina.cor || colors[0],
+      });
+    } else {
+      form.reset({
+        nome: "",
+        descricao: "",
+        cor: colors[0],
+      });
+    }
+  }, [disciplina, form, open]);
 
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
