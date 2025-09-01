@@ -111,10 +111,8 @@ function DisciplinaAccordionItem({
   return (
     <AccordionItem value={disciplina.id} className="border-b-0">
         <div className="flex items-center justify-between w-full p-4 rounded-lg bg-card border" style={{ borderLeftColor: disciplina.cor, borderLeftWidth: 4 }}>
-            <AccordionTrigger className="p-0 hover:no-underline flex-1">
-                <div className="text-left">
-                    <h3 className="font-semibold text-lg">{disciplina.nome}</h3>
-                </div>
+            <AccordionTrigger className="p-0 hover:no-underline flex-1 text-left font-semibold text-lg">
+                {disciplina.nome}
             </AccordionTrigger>
             <div className="flex items-center gap-2 pl-4">
                 <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(disciplina)}}>Editar</Button>
