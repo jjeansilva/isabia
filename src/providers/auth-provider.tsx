@@ -19,27 +19,33 @@ const PUBLIC_ROUTES = ['/login', '/signup'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const dataSource = getDataSource() as any; // Assuming it's the PocketBase instance
+  const dataSource = getDataSource() as any; 
   const pb = dataSource.pb as PocketBase;
 
 
   useEffect(() => {
-    // Sync user state from authStore
-    const handleAuthChange = () => {
-      setUser(pb.authStore.model);
-    };
-
-    const unsubscribe = pb.authStore.onChange(handleAuthChange, true);
+    // This effect runs once on mount to check the initial auth state
+    const unsubscribe = pb.authStore.onChange((token, model) => {
+        setUser(model);
+        // Important: Re-initialize the data source with the new auth state
+        if (pb.authStore.isValid) {
+            dataSource.pb.authStore.save(token, model);
+        }
+        setIsLoading(false);
+    }, true); // `true` calls the handler immediately with the current state
 
     return () => {
       unsubscribe();
     };
-  }, [pb]);
+  }, [pb, dataSource]);
 
   useEffect(() => {
-    // Route protection
+    // This effect handles route protection after the initial auth check is complete
+    if (isLoading) return;
+
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
     const isAuthenticated = pb.authStore.isValid;
     
@@ -48,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else if (isAuthenticated && isPublicRoute) {
       router.push('/dashboard');
     }
-  }, [pathname, router, pb.authStore.isValid]);
+  }, [pathname, router, pb.authStore.isValid, isLoading]);
 
 
   const login = async (email:string, pass:string) => {
@@ -66,13 +72,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     pb.authStore.clear();
+    // setUser(null) will be triggered by the onChange listener
     router.push('/login');
   };
   
   // Render children immediately if the route is public, otherwise wait for auth check
-  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-  if (pb.authStore.isLoading && !isPublicRoute) {
-      return <div>Loading...</div>; // Or a proper loading spinner
+  if (isLoading && !PUBLIC_ROUTES.includes(pathname)) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+            <div>Loading...</div>
+        </div>
+      );
   }
 
   return (
