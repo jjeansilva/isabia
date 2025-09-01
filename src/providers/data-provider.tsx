@@ -11,7 +11,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const dataSource = useMemo(() => {
     // Seed data on first load only if there is no backend configured
     // AND if it has never been seeded before.
-    if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_PB_URL) {
+    if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_PB_URL && !localStorage.getItem('isab_seeded')) {
         seedLocalStorage();
     }
     return getDataSource();

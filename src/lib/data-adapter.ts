@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao } from '@/types';
-import PocketBase from 'pocketbase';
+import PocketBase, { ListResult } from 'pocketbase';
 
 // Helper to get/set data from localStorage
 const getFromStorage = <T>(key: string): T[] => {
@@ -215,27 +215,184 @@ class PocketBaseDataSource implements IDataSource {
     console.log("PocketBaseDataSource initialized for:", process.env.NEXT_PUBLIC_PB_URL);
   }
 
-  private async _notImplemented(methodName: string): Promise<any> {
-    console.warn(`PocketBaseDataSource method not implemented: ${methodName}`);
-    // Returning empty arrays or nulls to avoid breaking the UI during transition
-    if (methodName.startsWith('list') || methodName.includes('Questoes')) {
-        return [];
+  private async ensureAuthenticated() {
+    if (!this.pb.authStore.isValid) {
+      await this.pb.admins.authWithPassword(
+        process.env.PB_ADMIN_EMAIL!,
+        process.env.PB_ADMIN_PASSWORD!
+      );
     }
-    if (methodName.startsWith('get')) {
-        return null;
-    }
-    return Promise.reject(new Error(`PocketBaseDataSource method not implemented: ${methodName}`));
   }
 
-  list<T>(collection: CollectionName, filter?: any): Promise<T[]> { return this._notImplemented(`list ${collection}`); }
-  get<T>(collection: CollectionName, id: string): Promise<T | null> { return this._notImplemented(`get ${collection}`); }
-  create<T>(collection: CollectionName, data: Omit<T, "id">): Promise<T> { return this._notImplemented(`create ${collection}`); }
-  update<T extends { id: string; }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> { return this._notImplemented(`update ${collection}`); }
-  delete(collection: CollectionName, id: string): Promise<void> { return this._notImplemented(`delete ${collection}`); }
-  gerarSimulado(criteria: any): Promise<Simulado> { return this._notImplemented('gerarSimulado'); }
-  getDashboardStats(): Promise<any> { return this._notImplemented('getDashboardStats'); }
-  getQuestoesParaRevisar(): Promise<Questao[]> { return this._notImplemented('getQuestoesParaRevisar'); }
-  registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> { return this._notImplemented('registrarRespostaRevisao'); }
+  async list<T>(collection: CollectionName, filter?: any): Promise<T[]> {
+    await this.ensureAuthenticated();
+    const filterString = filter ? Object.entries(filter).map(([key, value]) => `${key}="${value}"`).join(' && ') : '';
+    const records = await this.pb.collection(collection).getFullList<T>({ filter: filterString });
+    return records;
+  }
+
+  async get<T>(collection: CollectionName, id: string): Promise<T | null> {
+    await this.ensureAuthenticated();
+    try {
+        const record = await this.pb.collection(collection).getOne<T>(id);
+        return record;
+    } catch(e) {
+        if (e instanceof Error && e.message.includes("404")) return null;
+        throw e;
+    }
+  }
+
+  async create<T>(collection: CollectionName, data: Omit<T, "id" | "createdAt" | "updatedAt">): Promise<T> {
+    await this.ensureAuthenticated();
+    const record = await this.pb.collection(collection).create<T>(data);
+    return record;
+  }
+  
+  async update<T extends { id: string; }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> {
+    await this.ensureAuthenticated();
+    const record = await this.pb.collection(collection).update<T>(id, data);
+    return record;
+  }
+  
+  async delete(collection: CollectionName, id: string): Promise<void> {
+    await this.ensureAuthenticated();
+    await this.pb.collection(collection).delete(id);
+  }
+
+  async gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado> {
+    await this.ensureAuthenticated();
+    
+    const filterParts: string[] = [];
+    filterParts.push(`isActive=true`);
+    filterParts.push(`disciplinaId="${criteria.disciplinaId}"`);
+    if(criteria.topicoId) {
+        filterParts.push(`topicoId="${criteria.topicoId}"`);
+    }
+
+    if (criteria.dificuldade !== 'aleatorio') {
+        if (criteria.dificuldade === 'facil') {
+            filterParts.push(`(dificuldade="facil" || dificuldade="medio")`);
+        } else { // dificil
+            filterParts.push(`(dificuldade="medio" || dificuldade="dificil")`);
+        }
+    }
+    
+    const filterString = filterParts.join(" && ");
+    const allQuestoes = await this.pb.collection('questoes').getFullList<Questao>({ filter: filterString });
+
+    const shuffled = allQuestoes.sort(() => 0.5 - Math.random());
+    const selectedQuestoes = shuffled.slice(0, criteria.quantidade);
+      
+    if (selectedQuestoes.length < criteria.quantidade) {
+        throw new Error(`Não foram encontradas questões suficientes para os critérios selecionados. Encontradas: ${selectedQuestoes.length}, Pedidas: ${criteria.quantidade}`);
+    }
+
+    const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt'> = {
+        nome: criteria.nome,
+        dificuldade: criteria.dificuldade,
+        status: 'rascunho',
+        criadoEm: new Date().toISOString(),
+        questoes: selectedQuestoes.map((q, index) => ({
+            id: '', // pocketbase will generate this
+            simuladoId: '', 
+            questaoId: q.id,
+            ordem: index + 1,
+        })),
+    };
+
+    const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
+      
+    createdSimulado.questoes.forEach(q => q.simuladoId = createdSimulado.id);
+      
+    return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: createdSimulado.questoes });
+  }
+
+  async getDashboardStats(): Promise<any> {
+    const statsDia = await this.list('stats');
+    const simulados = await this.list<Simulado>('simulados');
+    const questoes = await this.list<Questao>('questoes');
+    const respostas = await this.list('respostas');
+    const revisao = await this.list<Revisao>('revisao');
+
+    const totalAcertos = respostas.filter((r: any) => r.acertou).length;
+    const acertoGeral = respostas.length > 0 ? (totalAcertos / respostas.length) * 100 : 0;
+    
+    const simuladoEmAndamento = simulados.find(s => s.status === 'andamento');
+    const questoesParaRevisarHoje = revisao.filter((r: any) => new Date(r.proximaRevisao) <= new Date()).length;
+
+    const allDisciplinas = await this.list<Disciplina>('disciplinas');
+    const distribution = allDisciplinas.map(d => {
+        const total = questoes.filter(q => q.disciplinaId === d.id).length;
+        return { name: d.nome, total };
+    });
+
+    return Promise.resolve({
+        statsDia,
+        acertoGeral,
+        simuladosCount: {
+            criados: simulados.length,
+            emAndamento: simulados.filter(s => s.status === 'andamento').length,
+            concluidos: simulados.filter(s => s.status === 'concluido').length,
+        },
+        simuladoEmAndamento,
+        questoesParaRevisarHoje,
+        distribution,
+    });
+  }
+
+  async getQuestoesParaRevisar(): Promise<Questao[]> {
+    await this.ensureAuthenticated();
+    const hoje = new Date().toISOString().split('T')[0];
+    const revisoesHoje = await this.pb.collection('revisao').getFullList<Revisao>({
+        filter: `proximaRevisao <= "${hoje}"`
+    });
+    const revisoesHojeIds = revisoesHoje.map(r => r.questaoId);
+
+    if (revisoesHojeIds.length === 0) return [];
+    
+    const filterString = revisoesHojeIds.map(id => `id="${id}"`).join(" || ");
+    const questoes = await this.pb.collection('questoes').getFullList<Questao>({ filter: filterString });
+    
+    return questoes;
+  }
+
+  async registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> {
+    await this.ensureAuthenticated();
+    
+    let revisao: Revisao | undefined;
+    try {
+        revisao = await this.pb.collection('revisao').getFirstListItem<Revisao>(`questaoId="${questaoId}"`);
+    } catch (e) {
+        // Not found, will create new one
+    }
+
+    const now = new Date();
+    const intervalos = {
+        facil: [1, 4, 10, 30], // dias
+        medio: [1, 2, 5, 15],
+        dificil: [0, 1, 2, 4],
+    };
+
+    if (revisao) {
+      if (performance === 'dificil') {
+        revisao.bucket = 0; // Resetar
+      } else {
+        revisao.bucket = Math.min(revisao.bucket + 1, intervalos[performance].length - 1);
+      }
+      const diasParaAdicionar = intervalos[performance][revisao.bucket];
+      revisao.proximaRevisao = new Date(now.setDate(now.getDate() + diasParaAdicionar)).toISOString();
+      await this.update('revisao', revisao.id, { bucket: revisao.bucket, proximaRevisao: revisao.proximaRevisao });
+    } else {
+      const bucket = performance === 'dificil' ? 0 : 1;
+      const diasParaAdicionar = intervalos[performance][bucket];
+      const novaRevisao: Omit<Revisao, 'id' | 'createdAt' | 'updatedAt'> = {
+        questaoId: questaoId,
+        bucket: bucket,
+        proximaRevisao: new Date(now.setDate(now.getDate() + diasParaAdicionar)).toISOString(),
+      };
+      await this.create('revisao', novaRevisao as any);
+    }
+  }
 }
 
 let dataSource: IDataSource;
