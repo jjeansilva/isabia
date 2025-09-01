@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao } from '@/types';
+import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade } from '@/types';
 import PocketBase, { ListResult } from 'pocketbase';
 
 // Helper to get/set data from localStorage
@@ -19,6 +19,7 @@ export interface IDataSource {
   get<T>(collection: CollectionName, id: string): Promise<T | null>;
   create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T>;
   bulkCreate?<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]>;
+  bulkCreateFromCsv?(csvData: string): Promise<number>;
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
   gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado>;
@@ -404,6 +405,113 @@ class PocketBaseDataSource implements IDataSource {
       };
       await this.create('isabia_revisao', novaRevisao as any);
     }
+  }
+
+  async bulkCreateFromCsv(csvData: string): Promise<number> {
+    await this.ensureAuthenticated();
+
+    const lines = csvData.trim().split('\n');
+    const header = lines.shift()?.trim().replace(/"/g, '').split(',');
+    
+    if (!header || header.length < 7) {
+      throw new Error("Cabeçalho do CSV inválido ou ausente.");
+    }
+    
+    const colMap = {
+      tipo: header.indexOf('tipo'),
+      dificuldade: header.indexOf('dificuldade'),
+      disciplina: header.indexOf('disciplina'),
+      topico: header.indexOf('tópico da disciplina'),
+      subtopico: header.indexOf('subtópico da disciplina'), // Note: subtópico is merged into tópico
+      questao: header.indexOf('questão'),
+      resposta: header.indexOf('resposta'),
+      explicacao: header.indexOf('breve explicação'),
+    };
+    
+    // Cache for created disciplines and topics to avoid multiple lookups/creates
+    const disciplinasCache: Record<string, Disciplina> = {};
+    const topicosCache: Record<string, Topico> = {};
+
+    const questoesToCreate: Partial<Questao>[] = [];
+
+    for (const line of lines) {
+        if (!line.trim()) continue;
+        
+        const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/"/g, '').trim()) || [];
+        
+        const disciplinaNome = values[colMap.disciplina];
+        let topicoNome = values[colMap.topico];
+        const subtopicoNome = values[colMap.subtopico];
+
+        if (subtopicoNome && subtopicoNome.toLowerCase() !== 'n/a') {
+            topicoNome = `${topicoNome} - ${subtopicoNome}`;
+        }
+        
+        // --- Get or Create Disciplina ---
+        let disciplina = disciplinasCache[disciplinaNome];
+        if (!disciplina) {
+            try {
+                disciplina = await this.pb.collection('isabia_disciplinas').getFirstListItem<Disciplina>(`nome="${disciplinaNome}"`);
+            } catch(e) {
+                if ((e as any)?.status === 404) {
+                    disciplina = await this.create<Disciplina>('isabia_disciplinas', { nome: disciplinaNome });
+                } else {
+                    throw e; // Rethrow other errors
+                }
+            }
+            disciplinasCache[disciplinaNome] = disciplina;
+        }
+
+        // --- Get or Create Topico ---
+        const cacheKey = `${disciplina.id}-${topicoNome}`;
+        let topico = topicosCache[cacheKey];
+        if (!topico) {
+            try {
+                topico = await this.pb.collection('isabia_topicos').getFirstListItem<Topico>(`nome="${topicoNome}" AND disciplinaId="${disciplina.id}"`);
+            } catch(e) {
+                 if ((e as any)?.status === 404) {
+                    topico = await this.create<Topico>('isabia_topicos', { nome: topicoNome, disciplinaId: disciplina.id });
+                 } else {
+                    throw e; // Rethrow other errors
+                 }
+            }
+            topicosCache[cacheKey] = topico;
+        }
+
+        const tipo = values[colMap.tipo].toLowerCase() as QuestionTipo;
+        let respostaCorreta: any = values[colMap.resposta];
+        let alternativas: string[] | undefined;
+
+        if (tipo === 'multipla') {
+            alternativas = values.slice(colMap.resposta).filter(v => v.trim() !== '');
+            // Assuming the first alternative listed in the "resposta" columns is the correct one.
+            respostaCorreta = alternativas[0];
+        } else if (tipo === 'vf') {
+            respostaCorreta = respostaCorreta.toLowerCase() === 'verdadeiro';
+        }
+
+        const questao: Partial<Questao> = {
+            tipo: tipo,
+            dificuldade: values[colMap.dificuldade].toLowerCase() as QuestionDificuldade,
+            disciplinaId: disciplina.id,
+            topicoId: topico.id,
+            enunciado: values[colMap.questao],
+            respostaCorreta: respostaCorreta,
+            alternativas: alternativas,
+            explicacao: values[colMap.explicacao],
+            origem: 'importacao',
+            version: 1,
+            isActive: true,
+            hashConteudo: 'import-csv-' + uuidv4(),
+        };
+        questoesToCreate.push(questao);
+    }
+    
+    if (questoesToCreate.length > 0) {
+      await this.bulkCreate('isabia_questoes', questoesToCreate);
+    }
+
+    return questoesToCreate.length;
   }
 }
 

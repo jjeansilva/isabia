@@ -21,35 +21,13 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Questao } from "@/types";
 import { useData } from "@/hooks/use-data";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
-const questaoSchemaForImport = z.object({
-  disciplinaId: z.string(),
-  topicoId: z.string(),
-  tipo: z.enum(["multipla", "vf", "lacuna", "flashcard"]),
-  dificuldade: z.enum(["facil", "medio", "dificil"]),
-  origem: z.enum(["autoral", "banca", "importacao"]),
-  enunciado: z.string(),
-  alternativas: z.array(z.string()).optional(),
-  respostaCorreta: z.any(),
-  explicacao: z.string().optional(),
-});
-
 const formSchema = z.object({
-  json: z.string().refine((val) => {
-    try {
-      const parsed = JSON.parse(val);
-      return Array.isArray(parsed) && parsed.every(item => questaoSchemaForImport.safeParse(item).success);
-    } catch (e) {
-      return false;
-    }
-  }, {
-    message: "JSON inválido ou não corresponde ao schema de questões.",
-  }),
+  csv: z.string().min(1, "O conteúdo CSV não pode estar vazio."),
 });
 
 
@@ -61,79 +39,63 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      json: "",
+      csv: "",
     },
   });
 
   const mutation = useMutation({
-    mutationFn: (newQuestoes: Partial<Questao>[]) => {
-      // It's not on the interface, but it's implemented for PocketBase.
-      // A better approach would be to add it to the interface.
-      if (!('bulkCreate' in dataSource && typeof dataSource.bulkCreate === 'function')) {
-          toast({ variant: "destructive", title: "Erro!", description: "A importação em lote não é suportada pelo provedor de dados atual." });
-          return Promise.reject("Bulk create not supported");
+    mutationFn: (csvData: string) => {
+      if (!('bulkCreateFromCsv' in dataSource && typeof dataSource.bulkCreateFromCsv === 'function')) {
+          toast({ variant: "destructive", title: "Erro!", description: "A importação de CSV não é suportada pelo provedor de dados atual." });
+          return Promise.reject("Bulk create from CSV not supported");
       }
-      return dataSource.bulkCreate('isabia_questoes', newQuestoes);
+      return dataSource.bulkCreateFromCsv(csvData);
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['questoes'] });
-      toast({ title: "Sucesso!", description: `${result.length} questões importadas com sucesso.` });
+      queryClient.invalidateQueries({ queryKey: ['disciplinas'] });
+      queryClient.invalidateQueries({ queryKey: ['topicos'] });
+      toast({ title: "Sucesso!", description: `${result} questões importadas com sucesso.` });
       onOpenChange(false);
       form.reset();
     },
     onError: (error) => {
-      toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível importar as questões." });
+      toast({ variant: "destructive", title: "Erro na Importação!", description: error.message || "Não foi possível importar as questões." });
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const questoesToImport = JSON.parse(values.json).map((q: any) => ({
-      ...q,
-      version: 1,
-      isActive: true,
-      hashConteudo: 'import-' + new Date().getTime() + Math.random(),
-    }));
-    mutation.mutate(questoesToImport);
+    mutation.mutate(values.csv);
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] md:max-w-[700px]">
         <DialogHeader>
-          <DialogTitle>Importar Questões</DialogTitle>
-          <DialogDescription>Cole o array JSON de questões abaixo para importar em lote.</DialogDescription>
+          <DialogTitle>Importar Questões via CSV</DialogTitle>
+          <DialogDescription>Cole o conteúdo do seu arquivo CSV abaixo para importar em lote.</DialogDescription>
         </DialogHeader>
         <Alert>
-            <AlertTitle>Formato do JSON</AlertTitle>
+            <AlertTitle>Formato do CSV</AlertTitle>
             <AlertDescription>
+                <p>O CSV deve conter o seguinte cabeçalho na primeira linha:</p>
                 <pre className="mt-2 text-xs overflow-auto bg-muted p-2 rounded-md">
-{`[
-  {
-    "disciplinaId": "...",
-    "topicoId": "...",
-    "tipo": "multipla",
-    "dificuldade": "facil",
-    "origem": "importacao",
-    "enunciado": "...",
-    "alternativas": ["A", "B"],
-    "respostaCorreta": "A",
-    "explicacao": "..."
-  }
-]`}
+{`"tipo","dificuldade","disciplina","tópico da disciplina","subtópico da disciplina","questão","resposta","breve explicação"`}
                 </pre>
+                 <p className="mt-2 text-sm text-muted-foreground">Disciplinas e tópicos que não existirem serão criados automaticamente.</p>
             </AlertDescription>
         </Alert>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-1">
             <FormField
               control={form.control}
-              name="json"
+              name="csv"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>JSON das Questões</FormLabel>
+                  <FormLabel>Conteúdo CSV</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Cole o seu array de JSON aqui..."
+                      placeholder="Cole o seu conteúdo CSV aqui..."
                       {...field}
                       rows={10}
                     />
