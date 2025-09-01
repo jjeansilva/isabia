@@ -18,10 +18,11 @@ export interface IDataSource {
   list<T>(collection: CollectionName, filter?: any): Promise<T[]>;
   get<T>(collection: CollectionName, id: string): Promise<T | null>;
   create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T>;
-  bulkCreate?<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]>;
+  bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]>;
   bulkCreateFromCsv?(csvData: string, tipo: QuestionTipo): Promise<number>;
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
+  deleteAll(collection: CollectionName): Promise<void>;
   gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado>;
   getDashboardStats(): Promise<any>;
   getQuestoesParaRevisar(): Promise<Questao[]>;
@@ -59,6 +60,20 @@ class MockDataSource implements IDataSource {
     return Promise.resolve(newItem);
   }
 
+  async bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]> {
+    const allData = getFromStorage<any>(collection);
+    const now = new Date().toISOString();
+    const newItems = data.map(item => ({
+        ...item,
+        id: uuidv4(),
+        createdAt: now,
+        updatedAt: now,
+    }));
+    const updatedData = [...allData, ...newItems];
+    saveToStorage(collection, updatedData);
+    return Promise.resolve(newItems as T[]);
+  }
+
   async update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> {
     const allData = getFromStorage<T>(collection);
     const index = allData.findIndex(d => d.id === id);
@@ -74,6 +89,11 @@ class MockDataSource implements IDataSource {
     let allData = getFromStorage<any>(collection);
     allData = allData.filter(d => d.id !== id);
     saveToStorage(collection, allData);
+    return Promise.resolve();
+  }
+  
+  async deleteAll(collection: CollectionName): Promise<void> {
+    saveToStorage(collection, []);
     return Promise.resolve();
   }
 
@@ -257,8 +277,15 @@ class PocketBaseDataSource implements IDataSource {
 
   async bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]> {
       await this.ensureAuthenticated();
-      const promises = data.map(item => this.pb.collection(collection).create<T>(item));
-      return Promise.all(promises);
+      // PocketBase free plan has a rate limit, so we can't just spam requests.
+      // A small delay helps, but for larger imports, this might still be an issue.
+      const results: T[] = [];
+      for(const item of data) {
+          const result = await this.pb.collection(collection).create<T>(item);
+          results.push(result);
+          await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay
+      }
+      return results;
   }
   
   async update<T extends { id: string; }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> {
@@ -271,6 +298,16 @@ class PocketBaseDataSource implements IDataSource {
     await this.ensureAuthenticated();
     await this.pb.collection(collection).delete(id);
   }
+  
+  async deleteAll(collection: CollectionName): Promise<void> {
+    await this.ensureAuthenticated();
+    const records = await this.pb.collection(collection).getFullList({ fields: 'id' });
+    for (const record of records) {
+        await this.pb.collection(collection).delete(record.id);
+        await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay
+    }
+  }
+
 
   async gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado> {
     await this.ensureAuthenticated();

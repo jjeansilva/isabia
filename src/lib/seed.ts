@@ -1,30 +1,33 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Disciplina, Topico, Questao, Simulado, Resposta, Revisao, StatsDia } from '@/types';
+import { CollectionName, Disciplina, Topico, Questao, Simulado, Resposta, Revisao, StatsDia } from '@/types';
+import { IDataSource } from './data-adapter';
 
 function createMockData() {
-  const now = new Date().toISOString();
+  const now = new Date();
 
   // Disciplinas
-  const disciplinas: Disciplina[] = [
-    { id: 'd1', nome: 'Direito Constitucional', cor: '#00329C', ordem: 1, createdAt: now, updatedAt: now },
-    { id: 'd2', nome: 'Direito Administrativo', cor: '#32BAD9', ordem: 2, createdAt: now, updatedAt: now },
-    { id: 'd3', nome: 'Português', cor: '#03A688', ordem: 3, createdAt: now, updatedAt: now },
+  const disciplinas: Omit<Disciplina, 'id'|'createdAt'|'updatedAt'>[] = [
+    { nome: 'Direito Constitucional', cor: '#00329C', ordem: 1 },
+    { nome: 'Direito Administrativo', cor: '#32BAD9', ordem: 2 },
+    { nome: 'Português', cor: '#03A688', ordem: 3 },
+    { nome: 'Raciocínio Lógico', cor: '#F2B705', ordem: 4 },
+    { nome: 'Informática', cor: '#D95204', ordem: 5 },
   ];
 
-  // Tópicos
-  const topicos: Topico[] = [
-    { id: 't1', disciplinaId: 'd1', nome: 'Direitos Fundamentais', ordem: 1, createdAt: now, updatedAt: now },
-    { id: 't2', disciplinaId: 'd1', nome: 'Controle de Constitucionalidade', ordem: 2, createdAt: now, updatedAt: now },
-    { id: 't3', disciplinaId: 'd2', nome: 'Atos Administrativos', ordem: 1, createdAt: now, updatedAt: now },
-    { id: 't4', disciplinaId: 'd3', nome: 'Concordância Verbal', ordem: 1, createdAt: now, updatedAt: now },
+  // Tópicos - agora dependerão dos IDs das disciplinas criadas
+  const topicosData = [
+    { disciplina: 'Direito Constitucional', nome: 'Direitos Fundamentais', ordem: 1 },
+    { disciplina: 'Direito Constitucional', nome: 'Controle de Constitucionalidade', ordem: 2 },
+    { disciplina: 'Direito Administrativo', nome: 'Atos Administrativos', ordem: 1 },
+    { disciplina: 'Português', nome: 'Concordância Verbal', ordem: 1 },
+    { disciplina: 'Informática', nome: 'Segurança da Informação', ordem: 1 },
   ];
   
-  // Questões
-  const questoes: Questao[] = [
+  // Questões - agora dependerão dos IDs de disciplinas e tópicos
+  const questoesData = [
     {
-      id: 'q1',
-      disciplinaId: 'd1',
-      topicoId: 't1',
+      disciplina: 'Direito Constitucional',
+      topico: 'Direitos Fundamentais',
       tipo: 'multipla',
       dificuldade: 'facil',
       origem: 'banca',
@@ -36,13 +39,10 @@ function createMockData() {
       version: 1,
       isActive: true,
       hashConteudo: 'hash1',
-      createdAt: now,
-      updatedAt: now,
     },
     {
-      id: 'q2',
-      disciplinaId: 'd2',
-      topicoId: 't3',
+      disciplina: 'Direito Administrativo',
+      topico: 'Atos Administrativos',
       tipo: 'vf',
       dificuldade: 'medio',
       origem: 'autoral',
@@ -53,13 +53,10 @@ function createMockData() {
       version: 1,
       isActive: true,
       hashConteudo: 'hash2',
-      createdAt: now,
-      updatedAt: now,
     },
      {
-      id: 'q3',
-      disciplinaId: 'd3',
-      topicoId: 't4',
+      disciplina: 'Português',
+      topico: 'Concordância Verbal',
       tipo: 'lacuna',
       dificuldade: 'dificil',
       origem: 'importacao',
@@ -70,13 +67,10 @@ function createMockData() {
       version: 1,
       isActive: true,
       hashConteudo: 'hash3',
-      createdAt: now,
-      updatedAt: now,
     },
     {
-      id: 'q4',
-      disciplinaId: 'd1',
-      topicoId: 't2',
+      disciplina: 'Direito Constitucional',
+      topico: 'Controle de Constitucionalidade',
       tipo: 'flashcard',
       dificuldade: 'medio',
       origem: 'autoral',
@@ -85,114 +79,129 @@ function createMockData() {
       version: 1,
       isActive: true,
       hashConteudo: 'hash4',
-      createdAt: now,
-      updatedAt: now,
     },
-    ...Array.from({ length: 20 }, (_, i) => ({
-      id: `q${i + 5}`,
-      disciplinaId: `d${(i % 3) + 1}`,
-      topicoId: `t${(i % 4) + 1}`,
-      tipo: 'multipla' as const,
-      dificuldade: 'facil' as const,
-      origem: 'banca' as const,
-      enunciado: `Enunciado da questão de múltipla escolha número ${i + 5}.`,
-      alternativas: [`Alternativa A${i}`, `Alternativa B${i}`, `Alternativa C${i}`, `Alternativa D${i}`],
-      respostaCorreta: `Alternativa A${i}`,
-      explicacao: `Explicação detalhada para a questão ${i + 5}.`,
-      tags: ['mock'],
+     {
+      disciplina: 'Informática',
+      topico: 'Segurança da Informação',
+      tipo: 'vf',
+      dificuldade: 'facil',
+      origem: 'banca',
+      enunciado: 'Firewall é um software ou hardware que verifica informações provenientes da Internet ou de uma rede, e as bloqueia ou permite que cheguem ao seu computador.',
+      respostaCorreta: true,
+      explicacao: 'Essa é a definição básica de um firewall, que atua como uma barreira de proteção.',
+      tags: ['seguranca', 'redes'],
       version: 1,
       isActive: true,
-      hashConteudo: `hash${i + 5}`,
-      createdAt: now,
-      updatedAt: now,
-    })),
-  ];
-
-  // Simulados
-  const simulados: Simulado[] = [
-    {
-      id: 's1',
-      nome: 'Simulado de Revisão - Constitucional',
-      dificuldade: 'aleatorio',
-      status: 'concluido',
-      criadoEm: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      finalizadoEm: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      questoes: [
-        { id: 'sq1', simuladoId: 's1', questaoId: 'q1', ordem: 1, respostaUsuario: 'Habeas Corpus', correta: true, confianca: 'certeza' },
-        { id: 'sq2', simuladoId: 's1', questaoId: 'q4', ordem: 2, respostaUsuario: 'Resposta errada', correta: false, confianca: 'duvida' },
-      ],
+      hashConteudo: 'hash5',
     },
-    {
-      id: 's2',
-      nome: 'Diagnóstico Geral',
-      dificuldade: 'aleatorio',
-      status: 'andamento',
-      criadoEm: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      questoes: [
-        { id: 'sq3', simuladoId: 's2', questaoId: 'q2', ordem: 1, respostaUsuario: true, correta: true, confianca: 'chute' },
-        { id: 'sq4', simuladoId: 's2', questaoId: 'q3', ordem: 2 },
-      ],
-    },
-    {
-      id: 's3',
-      nome: 'Simulado de Português (Rascunho)',
-      dificuldade: 'facil',
-      status: 'rascunho',
-      criadoEm: now,
-      questoes: [],
-    },
-  ];
-  
-  // Respostas
-  const respostas: Resposta[] = [];
-  simulados.forEach(sim => {
-    sim.questoes.forEach(sq => {
-      if(sq.respostaUsuario !== undefined) {
-        respostas.push({
-          id: uuidv4(),
-          questaoId: sq.questaoId,
-          simuladoId: sim.id,
-          acertou: sq.correta ?? false,
-          respostaUsuario: sq.respostaUsuario,
-          confianca: sq.confianca ?? 'duvida',
-          tempoSegundos: Math.floor(Math.random() * 180) + 30,
-          respondedAt: sim.finalizadoEm || sim.criadoEm,
-        });
-      }
-    });
-  });
-
-
-  // Revisão
-  const revisao: Revisao[] = [
-    { id: 'r1', questaoId: 'q2', bucket: 2, proximaRevisao: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: 'r2', questaoId: 'q4', bucket: 1, proximaRevisao: new Date().toISOString() },
   ];
 
   // Stats
-  const stats: StatsDia[] = Array.from({ length: 7 }, (_, i) => ({
-    id: `stat${i}`,
-    data: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  const stats: Omit<StatsDia, 'id'>[] = Array.from({ length: 7 }, (_, i) => ({
+    data: new Date(new Date().setDate(now.getDate() - (6 - i))).toISOString().split('T')[0],
     totalQuestoes: Math.floor(Math.random() * 40) + 10,
     acertos: Math.floor(Math.random() * 30) + 5,
     erros: Math.floor(Math.random() * 10) + 2,
     tempoMedio: Math.floor(Math.random() * 120) + 60,
   }));
 
-  return { disciplinas, topicos, questoes, simulados, respostas, revisao, stats };
+  return { disciplinas, topicosData, questoesData, stats };
 }
+
+export async function seedPocketBase(dataSource: IDataSource) {
+    console.log("Seeding PocketBase with mock data...");
+    const { disciplinas, topicosData, questoesData, stats } = createMockData();
+
+    // Clear existing data
+    const collections: CollectionName[] = ['isabia_disciplinas', 'isabia_topicos', 'isabia_questoes', 'isabia_simulados', 'isabia_respostas', 'isabia_revisao', 'isabia_stats'];
+    for(const collection of collections) {
+      console.log(`Clearing ${collection}...`);
+      await dataSource.deleteAll(collection);
+    }
+    
+    // Seed Disciplinas
+    console.log("Seeding disciplinas...");
+    const createdDisciplinas = await dataSource.bulkCreate<Omit<Disciplina, 'id' | 'createdAt' | 'updatedAt'>>('isabia_disciplinas', disciplinas);
+    
+    // Map names to IDs for relation
+    const disciplinaMap = createdDisciplinas.reduce((acc, d) => {
+        acc[d.nome] = d.id;
+        return acc;
+    }, {} as Record<string, string>);
+
+    // Seed Tópicos
+    console.log("Seeding topicos...");
+    const topicosToCreate = topicosData.map(t => ({
+        ...t,
+        disciplinaId: disciplinaMap[t.disciplina],
+    }));
+    const createdTopicos = await dataSource.bulkCreate('isabia_topicos', topicosToCreate);
+
+    const topicoMap = createdTopicos.reduce((acc, t) => {
+        const key = `${t.disciplinaId}-${t.nome}`;
+        acc[key] = t.id;
+        return acc;
+    }, {} as Record<string, string>);
+    
+    // Seed Questões
+    console.log("Seeding questoes...");
+    const questoesToCreate = questoesData.map(q => {
+      const disciplinaId = disciplinaMap[q.disciplina];
+      const topicoId = topicoMap[`${disciplinaId}-${q.topico}`];
+      return { ...q, disciplinaId, topicoId };
+    });
+    await dataSource.bulkCreate('isabia_questoes', questoesToCreate);
+
+    // Seed Stats
+    console.log("Seeding stats...");
+    await dataSource.bulkCreate('isabia_stats', stats);
+
+    console.log("Seeding finished.");
+}
+
 
 export function seedLocalStorage() {
   if (typeof window !== 'undefined' && !localStorage.getItem('isab_seeded')) {
     console.log("Seeding local storage with mock data...");
-    const data = createMockData();
-    localStorage.setItem('isab_isabia_disciplinas', JSON.stringify(data.disciplinas));
-    localStorage.setItem('isab_isabia_topicos', JSON.stringify(data.topicos));
-    localStorage.setItem('isab_isabia_questoes', JSON.stringify(data.questoes));
-    localStorage.setItem('isab_isabia_simulados', JSON.stringify(data.simulados));
-    localStorage.setItem('isab_isabia_respostas', JSON.stringify(data.respostas));
-    localStorage.setItem('isab_isabia_revisao', JSON.stringify(data.revisao));
-    localStorage.setItem('isab_isabia_stats', JSON.stringify(data.stats));
+    const rawData = createMockData();
+    const now = new Date().toISOString();
+
+    const seededDisciplinas: Disciplina[] = rawData.disciplinas.map(d => ({...d, id: uuidv4(), createdAt: now, updatedAt: now}));
+    const disciplinaMap = seededDisciplinas.reduce((acc, d) => {
+        acc[d.nome] = d.id;
+        return acc;
+    }, {} as Record<string, string>);
+    
+    const seededTopicos: Topico[] = rawData.topicosData.map(t => ({...t, id: uuidv4(), disciplinaId: disciplinaMap[t.disciplina], createdAt: now, updatedAt: now}));
+     const topicoMap = seededTopicos.reduce((acc, t) => {
+        const key = `${t.disciplinaId}-${t.nome}`;
+        acc[key] = t.id;
+        return acc;
+    }, {} as Record<string, string>);
+    
+    const seededQuestoes: Questao[] = rawData.questoesData.map(q => {
+        const disciplinaId = disciplinaMap[q.disciplina];
+        const topicoId = topicoMap[`${disciplinaId}-${q.topico}`];
+        return {
+            ...q,
+            id: uuidv4(),
+            disciplinaId,
+            topicoId,
+            createdAt: now,
+            updatedAt: now,
+        } as Questao;
+    });
+
+    const seededStats: StatsDia[] = rawData.stats.map(s => ({...s, id: uuidv4()}));
+
+
+    localStorage.setItem('isab_isabia_disciplinas', JSON.stringify(seededDisciplinas));
+    localStorage.setItem('isab_isabia_topicos', JSON.stringify(seededTopicos));
+    localStorage.setItem('isab_isabia_questoes', JSON.stringify(seededQuestoes));
+    localStorage.setItem('isab_isabia_simulados', JSON.stringify([]));
+    localStorage.setItem('isab_isabia_respostas', JSON.stringify([]));
+    localStorage.setItem('isab_isabia_revisao', JSON.stringify([]));
+    localStorage.setItem('isab_isabia_stats', JSON.stringify(seededStats));
     localStorage.setItem('isab_seeded', 'true');
   }
 }

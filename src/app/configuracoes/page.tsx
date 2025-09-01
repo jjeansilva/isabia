@@ -3,7 +3,7 @@
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { resetLocalStorage } from "@/lib/seed";
+import { seedPocketBase, resetLocalStorage } from "@/lib/seed";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -16,16 +16,37 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useData } from "@/hooks/use-data";
+import { useState } from "react";
+
 
 export default function ConfiguracoesPage() {
   const { toast } = useToast();
+  const dataSource = useData();
+  const [isSeeding, setIsSeeding] = useState(false);
 
-  const handleReset = () => {
-    resetLocalStorage();
-    toast({ title: "Dados Resetados!", description: "Os dados de exemplo foram recarregados."});
-    // A simple reload to reflect changes everywhere.
-    // In a real app with better state management, this wouldn't be necessary.
-    window.location.reload();
+  const handleReset = async () => {
+    const usePocketBase = !!process.env.NEXT_PUBLIC_PB_URL;
+    
+    setIsSeeding(true);
+    toast({ title: "Resetando o ambiente...", description: "Por favor, aguarde."});
+
+    try {
+      if (usePocketBase) {
+        await seedPocketBase(dataSource);
+        toast({ title: "Sucesso!", description: "O banco de dados foi populado com dados de exemplo."});
+      } else {
+        resetLocalStorage();
+        toast({ title: "Dados Resetados!", description: "Os dados de exemplo foram recarregados."});
+      }
+       // A simple reload to reflect changes everywhere.
+      window.location.reload();
+    } catch (error: any) {
+      console.error("Failed to seed data:", error);
+      toast({ variant: "destructive", title: "Erro ao popular dados!", description: error.message || "Não foi possível completar a operação."});
+    } finally {
+      setIsSeeding(false);
+    }
   }
 
   return (
@@ -46,7 +67,9 @@ export default function ConfiguracoesPage() {
             <Button variant="outline" disabled>Exportar Dados</Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive">Resetar Ambiente</Button>
+                <Button variant="destructive" disabled={isSeeding}>
+                  {isSeeding ? "Resetando..." : "Resetar Ambiente"}
+                  </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
@@ -57,7 +80,7 @@ export default function ConfiguracoesPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleReset}>Sim, Resetar</AlertDialogAction>
+                  <AlertDialogAction onClick={handleReset} disabled={isSeeding}>Sim, Resetar</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
