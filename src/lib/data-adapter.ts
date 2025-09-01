@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Subtopico } from '@/types';
+import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico } from '@/types';
 
 // Helper to get/set data from localStorage
 const getFromStorage = <T>(key: string): T[] => {
@@ -19,7 +19,7 @@ export interface IDataSource {
   create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T>;
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
-  gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, subtopicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado>;
+  gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado>;
   getDashboardStats(): Promise<any>;
 }
 
@@ -72,16 +72,13 @@ class MockDataSource implements IDataSource {
     return Promise.resolve();
   }
 
-  async gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, subtopicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado> {
+  async gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado> {
       let allQuestoes = getFromStorage<Questao>('questoes');
       
       let filtered = allQuestoes.filter(q => q.isActive && q.disciplinaId === criteria.disciplinaId);
 
       if (criteria.topicoId) {
           filtered = filtered.filter(q => q.topicoId === criteria.topicoId);
-      }
-      if (criteria.subtopicoId) {
-          filtered = filtered.filter(q => q.subtopicoId === criteria.subtopicoId);
       }
       if (criteria.dificuldade !== 'aleatorio') {
           if (criteria.dificuldade === 'facil') {

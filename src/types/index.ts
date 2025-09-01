@@ -17,15 +17,6 @@ export interface Topico {
   updatedAt: string;
 }
 
-export interface Subtopico {
-  id: string;
-  topicoId: string;
-  nome: string;
-  ordem?: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export type QuestionTipo = 'multipla' | 'vf' | 'lacuna' | 'flashcard';
 export type QuestionDificuldade = 'facil' | 'medio' | 'dificil';
 export type QuestionOrigem = 'autoral' | 'banca' | 'importacao';
@@ -35,7 +26,6 @@ export interface Questao {
   id: string;
   disciplinaId: string;
   topicoId: string;
-  subtopicoId?: string;
   tipo: QuestionTipo;
   dificuldade: QuestionDificuldade;
   origem: QuestionOrigem;
@@ -104,4 +94,4 @@ export interface StatsDia {
   tempoMedio: number;
 }
 
-export type CollectionName = 'disciplinas' | 'topicos' | 'subtopicos' | 'questoes' | 'simulados' | 'respostas' | 'revisao' | 'stats';
+export type CollectionName = 'disciplinas' | 'topicos' | 'questoes' | 'simulados' | 'respostas' | 'revisao' | 'stats';

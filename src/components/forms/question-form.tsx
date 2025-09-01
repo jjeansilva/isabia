@@ -44,7 +44,6 @@ import { Skeleton } from "../ui/skeleton";
 const formSchema = z.object({
   disciplinaId: z.string().min(1, "Disciplina é obrigatória"),
   topicoId: z.string().min(1, "Tópico é obrigatório"),
-  subtopicoId: z.string().optional(),
   tipo: z.enum(["multipla", "vf", "lacuna", "flashcard"]),
   dificuldade: z.enum(["facil", "medio", "dificil"]),
   origem: z.enum(["autoral", "banca", "importacao"]),
@@ -146,7 +145,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-1">
             <div className="grid md:grid-cols-3 gap-4">
-               {/* Disciplina, Tópico, Subtópico */}
+               {/* Disciplina, Tópico */}
             </div>
             <div className="grid md:grid-cols-3 gap-4">
                 <FormField control={form.control} name="tipo" render={({ field }) => (

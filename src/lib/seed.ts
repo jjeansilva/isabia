@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Disciplina, Topico, Subtopico, Questao, Simulado, Resposta, Revisao, StatsDia } from '@/types';
+import { Disciplina, Topico, Questao, Simulado, Resposta, Revisao, StatsDia } from '@/types';
 
 function createMockData() {
   const now = new Date().toISOString();
@@ -17,21 +17,16 @@ function createMockData() {
     { id: 't2', disciplinaId: 'd1', nome: 'Controle de Constitucionalidade', ordem: 2, createdAt: now, updatedAt: now },
     { id: 't3', disciplinaId: 'd2', nome: 'Atos Administrativos', ordem: 1, createdAt: now, updatedAt: now },
     { id: 't4', disciplinaId: 'd3', nome: 'Concordância Verbal', ordem: 1, createdAt: now, updatedAt: now },
+    { id: 't5', topicoId: 't1', nome: 'Remédios Constitucionais', ordem: 1, createdAt: now, updatedAt: now },
+    { id: 't6', topicoId: 't3', nome: 'Atributos do Ato', ordem: 1, createdAt: now, updatedAt: now },
   ];
-
-  // Subtópicos
-  const subtopicos: Subtopico[] = [
-    { id: 'st1', topicoId: 't1', nome: 'Remédios Constitucionais', ordem: 1, createdAt: now, updatedAt: now },
-    { id: 'st2', topicoId: 't3', nome: 'Atributos do Ato', ordem: 1, createdAt: now, updatedAt: now },
-  ];
-
+  
   // Questões
   const questoes: Questao[] = [
     {
       id: 'q1',
       disciplinaId: 'd1',
       topicoId: 't1',
-      subtopicoId: 'st1',
       tipo: 'multipla',
       dificuldade: 'facil',
       origem: 'banca',
@@ -50,7 +45,6 @@ function createMockData() {
       id: 'q2',
       disciplinaId: 'd2',
       topicoId: 't3',
-      subtopicoId: 'st2',
       tipo: 'vf',
       dificuldade: 'medio',
       origem: 'autoral',
@@ -187,7 +181,7 @@ function createMockData() {
     tempoMedio: Math.floor(Math.random() * 120) + 60,
   }));
 
-  return { disciplinas, topicos, subtopicos, questoes, simulados, respostas, revisao, stats };
+  return { disciplinas, topicos, questoes, simulados, respostas, revisao, stats };
 }
 
 export function seedLocalStorage() {
@@ -196,7 +190,6 @@ export function seedLocalStorage() {
     const data = createMockData();
     localStorage.setItem('isab_disciplinas', JSON.stringify(data.disciplinas));
     localStorage.setItem('isab_topicos', JSON.stringify(data.topicos));
-    localStorage.setItem('isab_subtopicos', JSON.stringify(data.subtopicos));
     localStorage.setItem('isab_questoes', JSON.stringify(data.questoes));
     localStorage.setItem('isab_simulados', JSON.stringify(data.simulados));
     localStorage.setItem('isab_respostas', JSON.stringify(data.respostas));
