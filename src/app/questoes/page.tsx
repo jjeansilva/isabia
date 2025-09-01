@@ -76,9 +76,9 @@ function QuestoesTable() {
 
   const getDifficultyColor = (dificuldade: Questao['dificuldade']) => {
     switch (dificuldade) {
-      case 'facil': return 'bg-approval/20 text-approval-foreground border-approval/30';
-      case 'medio': return 'bg-yellow-400/20 text-yellow-600 border-yellow-400/30';
-      case 'dificil': return 'bg-destructive/10 text-destructive border-destructive/20';
+      case 'facil': return 'bg-green-100 text-green-800 border-green-200';
+      case 'medio': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'dificil': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-secondary';
     }
   };
