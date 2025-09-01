@@ -124,9 +124,9 @@
         "indexes": [],
         "listRule": "",
         "viewRule": "",
-        "createRule": "",
-        "updateRule": "",
-        "deleteRule": "",
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
         "options": {}
     },
     {
@@ -323,8 +323,8 @@
             }
         ],
         "indexes": [],
-        "listRule": null,
-        "viewRule": null,
+        "listRule": "",
+        "viewRule": "",
         "createRule": null,
         "updateRule": null,
         "deleteRule": null,
@@ -438,8 +438,8 @@
             }
         ],
         "indexes": [],
-        "listRule": null,
-        "viewRule": null,
+        "listRule": "",
+        "viewRule": "",
         "createRule": null,
         "updateRule": null,
         "deleteRule": null,
@@ -614,9 +614,9 @@
         "indexes": [],
         "listRule": "",
         "viewRule": "",
-        "createRule": "",
-        "updateRule": "",
-        "deleteRule": "",
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
         "options": {}
     },
     {
@@ -704,3 +704,5 @@
         "options": {}
     }
 ]
+
+    
