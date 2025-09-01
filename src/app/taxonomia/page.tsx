@@ -1,35 +1,84 @@
+
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { useData } from "@/hooks/use-data";
-import { Disciplina } from "@/types";
+import { Disciplina, Topico } from "@/types";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Edit2, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DisciplinaForm } from "@/components/forms/disciplina-form";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import { TopicoForm } from "@/components/forms/topico-form";
 
-function DisciplinaCard({ disciplina, onEdit }: { disciplina: Disciplina, onEdit: (d: Disciplina) => void }) {
+
+function TopicoItem({ topico }: { topico: Topico }) {
+    return (
+        <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
+            <span>{topico.nome}</span>
+            <div className="flex gap-2">
+                <Button variant="ghost" size="icon" className="h-8 w-8"><Edit2 className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
+            </div>
+        </div>
+    )
+}
+
+function DisciplinaAccordionItem({ disciplina, onEdit, onAddTopico }: { disciplina: Disciplina, onEdit: (d: Disciplina) => void, onAddTopico: (d: Disciplina) => void }) {
+  const dataSource = useData();
+  const { data: topicos, isLoading } = useQuery({
+      queryKey: ['topicos', disciplina.id],
+      queryFn: () => dataSource.list<Topico>('topicos', { disciplinaId: disciplina.id }),
+  });
+
   return (
-    <Card style={{ borderLeftColor: disciplina.cor, borderLeftWidth: 4 }}>
-      <CardHeader>
-        <CardTitle>{disciplina.nome}</CardTitle>
-        <CardDescription>{disciplina.descricao || "Nenhuma descrição"}</CardDescription>
-      </CardHeader>
-      <CardFooter className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={() => onEdit(disciplina)}>Editar</Button>
-      </CardFooter>
-    </Card>
+    <AccordionItem value={disciplina.id}>
+      <AccordionTrigger className="p-4 hover:no-underline" style={{ borderLeftColor: disciplina.cor, borderLeftWidth: 4, borderRadius: 'var(--radius)' }}>
+          <div className="flex items-center justify-between w-full">
+            <div className="text-left">
+                <h3 className="font-semibold text-lg">{disciplina.nome}</h3>
+                <p className="text-sm text-muted-foreground">{disciplina.descricao || "Nenhuma descrição"}</p>
+            </div>
+            <div className="flex items-center gap-2 pr-4">
+                 <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(disciplina)}}>Editar Disciplina</Button>
+            </div>
+          </div>
+      </AccordionTrigger>
+      <AccordionContent className="p-4">
+        {isLoading && <p>Carregando tópicos...</p>}
+        {topicos && topicos.length > 0 && (
+            <div className="space-y-2">
+                {topicos.map(t => <TopicoItem key={t.id} topico={t} />)}
+            </div>
+        )}
+         {topicos && topicos.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhum tópico encontrado.</p>
+        )}
+        <Button variant="outline" size="sm" className="mt-4" onClick={() => onAddTopico(disciplina)}>
+            <PlusCircle className="mr-2 h-4 w-4"/>
+            Adicionar Tópico
+        </Button>
+      </AccordionContent>
+    </AccordionItem>
   )
 }
 
 
 export default function TaxonomiaPage() {
   const dataSource = useData();
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDisciplinaFormOpen, setIsDisciplinaFormOpen] = useState(false);
+  const [isTopicoFormOpen, setIsTopicoFormOpen] = useState(false);
+
   const [selectedDisciplina, setSelectedDisciplina] = useState<Disciplina | undefined>(undefined);
+  const [parentDisciplina, setParentDisciplina] = useState<Disciplina | undefined>(undefined);
 
 
   const { data: disciplinas, isLoading } = useQuery({
@@ -37,19 +86,26 @@ export default function TaxonomiaPage() {
     queryFn: () => dataSource.list<Disciplina>("disciplinas"),
   });
   
-  const handleNew = () => {
+  const handleNewDisciplina = () => {
     setSelectedDisciplina(undefined);
-    setIsFormOpen(true);
+    setIsDisciplinaFormOpen(true);
   }
 
-  const handleEdit = (disciplina: Disciplina) => {
+  const handleEditDisciplina = (disciplina: Disciplina) => {
     setSelectedDisciplina(disciplina);
-    setIsFormOpen(true);
+    setIsDisciplinaFormOpen(true);
+  }
+  
+  const handleNewTopico = (disciplina: Disciplina) => {
+      setParentDisciplina(disciplina);
+      setIsTopicoFormOpen(true);
   }
 
   const handleFormClose = () => {
-    setIsFormOpen(false);
+    setIsDisciplinaFormOpen(false);
     setSelectedDisciplina(undefined);
+    setIsTopicoFormOpen(false);
+    setParentDisciplina(undefined);
   }
 
   return (
@@ -58,28 +114,37 @@ export default function TaxonomiaPage() {
         title="Taxonomia"
         description="Gerencie suas disciplinas, tópicos e subtópicos."
       >
-        <Button onClick={handleNew}>
+        <Button onClick={handleNewDisciplina}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Nova Disciplina
         </Button>
       </PageHeader>
 
-      {isFormOpen && (
+      {isDisciplinaFormOpen && (
         <DisciplinaForm
-          open={isFormOpen}
+          open={isDisciplinaFormOpen}
           onOpenChange={handleFormClose}
           disciplina={selectedDisciplina}
         />
       )}
+      
+      {isTopicoFormOpen && parentDisciplina && (
+          <TopicoForm 
+            open={isTopicoFormOpen}
+            onOpenChange={handleFormClose}
+            disciplina={parentDisciplina}
+          />
+      )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+
+      <div className="space-y-4">
         {isLoading && Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader>
-            <CardFooter><Skeleton className="h-10 w-24" /></CardFooter>
-          </Card>
+            <Skeleton key={i} className="h-24 w-full" />
         ))}
-        {disciplinas?.map((d) => <DisciplinaCard key={d.id} disciplina={d} onEdit={handleEdit} />)}
+        
+        <Accordion type="single" collapsible className="w-full space-y-2">
+            {disciplinas?.map((d) => <DisciplinaAccordionItem key={d.id} disciplina={d} onEdit={handleEditDisciplina} onAddTopico={handleNewTopico} />)}
+        </Accordion>
       </div>
 
        {!isLoading && disciplinas?.length === 0 && (
@@ -89,7 +154,7 @@ export default function TaxonomiaPage() {
                   <CardDescription>Comece adicionando sua primeira disciplina para organizar seus estudos.</CardDescription>
               </CardHeader>
               <CardContent>
-                  <Button onClick={handleNew}>
+                  <Button onClick={handleNewDisciplina}>
                       <PlusCircle className="mr-2 h-4 w-4" />
                       Criar primeira disciplina
                   </Button>
