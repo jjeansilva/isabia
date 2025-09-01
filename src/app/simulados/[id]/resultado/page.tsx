@@ -19,12 +19,12 @@ export default function ResultadoPage() {
 
     const { data: simulado, isLoading: isLoadingSimulado } = useQuery({
         queryKey: ['simuladoResultado', id],
-        queryFn: () => dataSource.get<Simulado>('simulados', id),
+        queryFn: () => dataSource.get<Simulado>('isabia_simulados', id),
     });
 
     const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
         queryKey: ['questoes', 'all'], // Use a distinct key
-        queryFn: () => dataSource.list<Questao>('questoes'),
+        queryFn: () => dataSource.list<Questao>('isabia_questoes'),
     });
     
     const getQuestaoById = (qid: string) => {

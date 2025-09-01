@@ -1,8 +1,8 @@
 
 [
     {
-        "id": "revisoes",
-        "name": "revisao",
+        "id": "revisoes_abcde1",
+        "name": "isabia_revisao",
         "type": "base",
         "system": false,
         "schema": [
@@ -15,7 +15,7 @@
                 "presentable": false,
                 "unique": true,
                 "options": {
-                    "collectionId": "questoes",
+                    "collectionId": "questoes_abcde1",
                     "cascadeDelete": true,
                     "minSelect": null,
                     "maxSelect": 1,
@@ -59,8 +59,8 @@
         "options": {}
     },
     {
-        "id": "disciplinas",
-        "name": "disciplinas",
+        "id": "disciplinas_abcde1",
+        "name": "isabia_disciplinas",
         "type": "base",
         "system": false,
         "schema": [
@@ -130,8 +130,8 @@
         "options": {}
     },
     {
-        "id": "questoes",
-        "name": "questoes",
+        "id": "questoes_abcde1",
+        "name": "isabia_questoes",
         "type": "base",
         "system": false,
         "schema": [
@@ -144,7 +144,7 @@
                 "presentable": false,
                 "unique": false,
                 "options": {
-                    "collectionId": "disciplinas",
+                    "collectionId": "disciplinas_abcde1",
                     "cascadeDelete": false,
                     "minSelect": null,
                     "maxSelect": 1,
@@ -162,7 +162,7 @@
                 "presentable": false,
                 "unique": false,
                 "options": {
-                    "collectionId": "topicos",
+                    "collectionId": "topicos_abcde1",
                     "cascadeDelete": false,
                     "minSelect": null,
                     "maxSelect": 1,
@@ -331,8 +331,8 @@
         "options": {}
     },
     {
-        "id": "simulados",
-        "name": "simulados",
+        "id": "simulados_abcde1",
+        "name": "isabia_simulados",
         "type": "base",
         "system": false,
         "schema": [
@@ -446,8 +446,8 @@
         "options": {}
     },
     {
-        "id": "respostas",
-        "name": "respostas",
+        "id": "respostas_abcde1",
+        "name": "isabia_respostas",
         "type": "base",
         "system": false,
         "schema": [
@@ -460,7 +460,7 @@
                 "presentable": false,
                 "unique": false,
                 "options": {
-                    "collectionId": "questoes",
+                    "collectionId": "questoes_abcde1",
                     "cascadeDelete": true,
                     "minSelect": null,
                     "maxSelect": 1,
@@ -476,7 +476,7 @@
                 "presentable": false,
                 "unique": false,
                 "options": {
-                    "collectionId": "simulados",
+                    "collectionId": "simulados_abcde1",
                     "cascadeDelete": true,
                     "minSelect": null,
                     "maxSelect": 1,
@@ -559,8 +559,8 @@
         "options": {}
     },
     {
-        "id": "topicos",
-        "name": "topicos",
+        "id": "topicos_abcde1",
+        "name": "isabia_topicos",
         "type": "base",
         "system": false,
         "schema": [
@@ -573,7 +573,7 @@
                 "presentable": false,
                 "unique": false,
                 "options": {
-                    "collectionId": "disciplinas",
+                    "collectionId": "disciplinas_abcde1",
                     "cascadeDelete": true,
                     "minSelect": null,
                     "maxSelect": 1,
@@ -620,8 +620,8 @@
         "options": {}
     },
     {
-        "id": "stats",
-        "name": "stats",
+        "id": "stats_abcde1",
+        "name": "isabia_stats",
         "type": "base",
         "system": false,
         "schema": [

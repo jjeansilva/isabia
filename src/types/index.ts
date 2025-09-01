@@ -93,4 +93,4 @@ export interface StatsDia {
   tempoMedio: number;
 }
 
-export type CollectionName = 'disciplinas' | 'topicos' | 'questoes' | 'simulados' | 'respostas' | 'revisao' | 'stats';
+export type CollectionName = 'isabia_disciplinas' | 'isabia_topicos' | 'isabia_questoes' | 'isabia_simulados' | 'isabia_respostas' | 'isabia_revisao' | 'isabia_stats';

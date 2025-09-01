@@ -51,8 +51,8 @@ export function TopicoForm({ open, onOpenChange, disciplina, topico }: { open: b
     mutationFn: (values: z.infer<typeof formSchema>) => {
       const dataToSave = { ...topico, ...values };
       return topico
-        ? dataSource.update("topicos", topico.id, dataToSave)
-        : dataSource.create("topicos", dataToSave);
+        ? dataSource.update("isabia_topicos", topico.id, dataToSave)
+        : dataSource.create("isabia_topicos", dataToSave);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["topicos", disciplina.id] });

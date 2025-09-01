@@ -70,7 +70,7 @@ function DisciplinaAccordionItem({ disciplina, onEdit, onAddTopico, onEditTopico
   const dataSource = useData();
   const { data: topicos, isLoading } = useQuery({
       queryKey: ['topicos', disciplina.id],
-      queryFn: () => dataSource.list<Topico>('topicos', { disciplinaId: disciplina.id }),
+      queryFn: () => dataSource.list<Topico>('isabia_topicos', { disciplinaId: disciplina.id }),
   });
 
   return (
@@ -121,7 +121,7 @@ export default function TaxonomiaPage() {
 
   const { data: disciplinas, isLoading } = useQuery({
     queryKey: ["disciplinas"],
-    queryFn: () => dataSource.list<Disciplina>("disciplinas"),
+    queryFn: () => dataSource.list<Disciplina>("isabia_disciplinas"),
   });
   
   const handleNewDisciplina = () => {
@@ -147,7 +147,7 @@ export default function TaxonomiaPage() {
   }
 
   const deleteMutation = useMutation({
-    mutationFn: (topicoId: string) => dataSource.delete('topicos', topicoId),
+    mutationFn: (topicoId: string) => dataSource.delete('isabia_topicos', topicoId),
     onSuccess: (_, variables) => {
       toast({ title: "Tópico Excluído!", description: "O tópico foi removido com sucesso." });
       queryClient.invalidateQueries({ queryKey: ["topicos", selectedTopico?.disciplinaId] });

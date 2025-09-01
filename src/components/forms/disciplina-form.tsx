@@ -56,8 +56,8 @@ export function DisciplinaForm({ open, onOpenChange, disciplina }: { open: boole
     mutationFn: (values: z.infer<typeof formSchema>) => {
       const dataToSave = { ...disciplina, ...values };
       return disciplina
-        ? dataSource.update("disciplinas", disciplina.id, dataToSave)
-        : dataSource.create("disciplinas", dataToSave);
+        ? dataSource.update("isabia_disciplinas", disciplina.id, dataToSave)
+        : dataSource.create("isabia_disciplinas", dataToSave);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["disciplinas"] });

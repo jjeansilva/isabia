@@ -38,22 +38,22 @@ function QuestoesTable() {
 
   const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
     queryKey: ["questoes"],
-    queryFn: () => dataSource.list<Questao>("questoes"),
+    queryFn: () => dataSource.list<Questao>("isabia_questoes"),
   });
   
   // Fetching disciplinas and topicos to display their names
   const { data: disciplinas, isLoading: isLoadingDisciplinas } = useQuery({
     queryKey: ['disciplinas'],
-    queryFn: () => dataSource.list<Disciplina>('disciplinas')
+    queryFn: () => dataSource.list<Disciplina>('isabia_disciplinas')
   });
 
   const { data: topicos, isLoading: isLoadingTopicos } = useQuery({
     queryKey: ['topicos'],
-    queryFn: () => dataSource.list<Topico>('topicos')
+    queryFn: () => dataSource.list<Topico>('isabia_topicos')
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => dataSource.delete('questoes', id),
+    mutationFn: (id: string) => dataSource.delete('isabia_questoes', id),
     onSuccess: () => {
       toast({ title: "Sucesso!", description: "Questão excluída com sucesso." });
       queryClient.invalidateQueries({ queryKey: ["questoes"] });
