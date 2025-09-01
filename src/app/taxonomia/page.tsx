@@ -41,7 +41,7 @@ function DisciplinaAccordionItem({ disciplina, onEdit, onAddTopico }: { discipli
 
   return (
     <AccordionItem value={disciplina.id}>
-      <AccordionTrigger className="p-4 hover:no-underline" style={{ borderLeftColor: disciplina.cor, borderLeftWidth: 4, borderRadius: 'var(--radius)' }}>
+      <AccordionTrigger className="p-4 hover:no-underline rounded-lg" style={{ borderLeftColor: disciplina.cor, borderLeftWidth: 4 }}>
           <div className="flex items-center justify-between w-full">
             <div className="text-left">
                 <h3 className="font-semibold text-lg">{disciplina.nome}</h3>

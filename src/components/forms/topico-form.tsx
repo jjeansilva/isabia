@@ -104,4 +104,3 @@ export function TopicoForm({ open, onOpenChange, disciplina, topico }: { open: b
     </Dialog>
   );
 }
-
