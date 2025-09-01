@@ -55,20 +55,23 @@ export function DisciplinaForm({ open, onOpenChange, disciplina }: { open: boole
   });
 
   useEffect(() => {
-    if (disciplina) {
-      form.reset({
-        nome: disciplina.nome || "",
-        descricao: disciplina.descricao || "",
-        cor: disciplina.cor || colors[0],
-      });
-    } else {
-      form.reset({
-        nome: "",
-        descricao: "",
-        cor: colors[0],
-      });
+    if (open) {
+      if (disciplina) {
+        form.reset({
+          nome: disciplina.nome || "",
+          descricao: disciplina.descricao || "",
+          cor: disciplina.cor || colors[0],
+        });
+      } else {
+        form.reset({
+          nome: "",
+          descricao: "",
+          cor: colors[Math.floor(Math.random() * colors.length)],
+        });
+      }
     }
-  }, [disciplina, form, open]);
+  }, [disciplina, open, form]);
+
 
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
