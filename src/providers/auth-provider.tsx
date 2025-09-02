@@ -30,17 +30,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // This effect runs once on mount to check the initial auth state
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model);
-        // Important: Re-initialize the data source with the new auth state
-        if (pb.authStore.isValid && token && model) {
-            dataSource.pb.authStore.save(token, model);
-        }
         setIsLoading(false);
     }, true); // `true` calls the handler immediately with the current state
 
     return () => {
       unsubscribe();
     };
-  }, [pb, dataSource]);
+  }, [pb]);
 
   useEffect(() => {
     // This effect handles route protection after the initial auth check is complete
@@ -76,14 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login');
   };
   
-  if (isLoading && !PUBLIC_ROUTES.includes(pathname)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div>Loading...</div>
-      </div>
-    );
-  }
-
+  // Render children immediately to avoid hydration errors.
+  // The useEffect hook will handle redirection.
   return (
     <AuthContext.Provider value={{ user, login, logout, signup }}>
       {children}
