@@ -57,7 +57,7 @@ export default function SimuladosPage() {
   const dataSource = useData();
   const { data: simulados, isLoading } = useQuery({
     queryKey: ["simulados"],
-    queryFn: () => dataSource.list<Simulado>("simulados"),
+    queryFn: () => dataSource.list<Simulado>("simulados", { filter: 'user = @request.auth.id' }),
   });
 
   return (

@@ -253,13 +253,7 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async list<T>(collection: CollectionName, options?: any): Promise<T[]> {
-     const finalOptions = { ...options };
-    if (finalOptions.filter) {
-        finalOptions.filter = `(${finalOptions.filter}) && user = @request.auth.id`;
-    } else {
-        finalOptions.filter = `user = @request.auth.id`;
-    }
-    const records = await this.pb.collection(collection).getFullList<T>(finalOptions);
+    const records = await this.pb.collection(collection).getFullList<T>(options);
     return records;
   }
 
@@ -306,6 +300,7 @@ class PocketBaseDataSource implements IDataSource {
         const filterParts: string[] = [];
         filterParts.push(`isActive=true`);
         filterParts.push(`disciplinaId="${criteria.disciplinaId}"`);
+        filterParts.push(`user = @request.auth.id`);
         
         if (criteria.topicoId && criteria.topicoId !== 'all') {
           filterParts.push(`topicoId="${criteria.topicoId}"`);
@@ -353,11 +348,13 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async getDashboardStats(): Promise<any> {
-    const statsDia = await this.list('stats');
-    const simulados = await this.list<Simulado>('simulados');
-    const questoes = await this.list<Questao>('questoes');
-    const respostas = await this.list('respostas');
-    const revisao = await this.list<Revisao>('revisoes');
+    const userFilter = { filter: 'user = @request.auth.id' };
+
+    const statsDia = await this.list('stats', userFilter);
+    const simulados = await this.list<Simulado>('simulados', userFilter);
+    const questoes = await this.list<Questao>('questoes', userFilter);
+    const respostas = await this.list('respostas', userFilter);
+    const revisao = await this.list<Revisao>('revisoes', userFilter);
 
     const totalAcertos = respostas.filter((r: any) => r.acertou).length;
     const acertoGeral = respostas.length > 0 ? (totalAcertos / respostas.length) * 100 : 0;
@@ -365,7 +362,7 @@ class PocketBaseDataSource implements IDataSource {
     const simuladoEmAndamento = simulados.find(s => s.status === 'andamento');
     const questoesParaRevisarHoje = revisao.filter((r: any) => new Date(r.proximaRevisao) <= new Date()).length;
 
-    const allDisciplinas = await this.list<Disciplina>('disciplinas');
+    const allDisciplinas = await this.list<Disciplina>('disciplinas', userFilter);
     const distribution = allDisciplinas.map(d => {
         const total = questoes.filter(q => q.disciplinaId === d.id).length;
         return { name: d.nome, total };
@@ -388,14 +385,14 @@ class PocketBaseDataSource implements IDataSource {
   async getQuestoesParaRevisar(): Promise<Questao[]> {
     const hoje = new Date().toISOString().split('T')[0];
     const revisoesHoje = await this.list<Revisao>('revisoes',{
-        filter: `proximaRevisao <= "${hoje}"`
+        filter: `proximaRevisao <= "${hoje}" && user = @request.auth.id`
     });
     const revisoesHojeIds = revisoesHoje.map(r => r.questaoId);
 
     if (revisoesHojeIds.length === 0) return [];
     
     const filterString = revisoesHojeIds.map(id => `id="${id}"`).join(" || ");
-    const questoes = await this.list<Questao>('questoes', { filter: filterString });
+    const questoes = await this.list<Questao>('questoes', { filter: `(${filterString}) && user = @request.auth.id` });
     
     return questoes;
   }

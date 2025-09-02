@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -98,7 +99,7 @@ function DisciplinaAccordionItem({
   const dataSource = useData();
   const { data: allTopicos, isLoading } = useQuery({
       queryKey: ['topicos', disciplina.id],
-      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}"`, sort: 'ordem' }),
+      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}" && user = @request.auth.id`, sort: 'ordem' }),
   });
 
   const topicosPrincipais = allTopicos?.filter(t => !t.topicoPaiId) || [];
@@ -182,7 +183,7 @@ export default function TaxonomiaPage() {
 
   const { data: disciplinas, isLoading } = useQuery({
     queryKey: ["disciplinas"],
-    queryFn: () => dataSource.list<Disciplina>("disciplinas"),
+    queryFn: () => dataSource.list<Disciplina>("disciplinas", { filter: 'user = @request.auth.id' }),
   });
   
   const handleNewDisciplina = () => {

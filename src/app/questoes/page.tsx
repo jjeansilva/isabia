@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -36,21 +37,22 @@ function QuestoesTable() {
   const [selectedQuestao, setSelectedQuestao] = useState<Questao | undefined>(undefined);
   const [questaoToDelete, setQuestaoToDelete] = useState<Questao | undefined>(undefined);
 
+  const userFilter = { filter: 'user = @request.auth.id' };
 
   const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
     queryKey: ["questoes"],
-    queryFn: () => dataSource.list<Questao>("questoes"),
+    queryFn: () => dataSource.list<Questao>("questoes", userFilter),
   });
   
   // Fetching disciplinas and topicos to display their names
   const { data: disciplinas, isLoading: isLoadingDisciplinas } = useQuery({
     queryKey: ['disciplinas'],
-    queryFn: () => dataSource.list<Disciplina>('disciplinas')
+    queryFn: () => dataSource.list<Disciplina>('disciplinas', userFilter)
   });
 
   const { data: topicos, isLoading: isLoadingTopicos } = useQuery({
     queryKey: ['topicos'],
-    queryFn: () => dataSource.list<Topico>('topicos')
+    queryFn: () => dataSource.list<Topico>('topicos', userFilter)
   });
 
   const deleteMutation = useMutation({
@@ -203,3 +205,4 @@ export default function QuestoesPage() {
     </>
   );
 }
+
