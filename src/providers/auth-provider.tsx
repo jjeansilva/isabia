@@ -35,7 +35,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       seedLocalStorage();
       const dsInstance = new MockDataSource();
-      // Provide a mock pb object for type consistency if needed, but it won't be used.
       return { pb: null as any, dataSource: dsInstance };
     }
   }, [usePocketBase]);
@@ -47,15 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // This handles auth changes, including login, logout, and token refresh.
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model);
-        // Important: Ensure the dataSource's pb instance is always current with the auth state
-        if (dataSource instanceof PocketBaseDataSource) {
-            dataSource.pb.authStore.loadFromCookie(pb.authStore.exportToCookie());
-        }
-        setIsLoading(false); // Stop loading once we have an auth state.
-    }, true); // `true` calls the callback immediately with the initial state.
+        setIsLoading(false); 
+    }, true);
     
     return () => {
       unsubscribe();
@@ -77,7 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pathname, router, user, isLoading, usePocketBase, pb?.authStore?.isValid]);
 
   const login = async (email:string, pass:string) => {
-    // The pb.authStore.onChange will handle setting the user and updating the datasource
     return await pb.collection('users').authWithPassword(email, pass);
   };
 
@@ -94,15 +87,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (usePocketBase) {
         pb.authStore.clear();
     }
-    // For mock, setting user to null will trigger redirect logic
     setUser(null); 
   };
   
-  if (isLoading && !user) {
+  const value = { user, login, logout, signup, isLoading, dataSource };
+  
+  if (isLoading && !user && !PUBLIC_ROUTES.includes(pathname)) {
      return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
   }
-  
-  const value = { user, login, logout, signup, isLoading, dataSource };
   
   return (
     <AuthContext.Provider value={value}>
