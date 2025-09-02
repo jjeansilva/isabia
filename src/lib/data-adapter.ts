@@ -233,6 +233,8 @@ class PocketBaseDataSource implements IDataSource {
     } else {
         this.pb = new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
     }
+    // This is the key change: ensure the instance loads auth state from cookies on creation.
+    this.pb.authStore.loadFromCookie(this.pb.authStore.exportToCookie());
   }
   
   private addUserData(data: any): any {

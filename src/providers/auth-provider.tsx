@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Use useMemo to ensure that pb and dataSource instances are stable
   const { pb, dataSource } = useMemo(() => {
     if (usePocketBase) {
       const pbInstance = new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
@@ -46,17 +47,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // This effect runs once on mount to check the initial auth state
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model);
-        setIsLoading(false); 
-    }, true);
+        // Important: Ensure the dataSource's pb instance is always current with the auth state
+        if (dataSource instanceof PocketBaseDataSource) {
+            dataSource.pb.authStore.loadFromCookie(pb.authStore.exportToCookie());
+        }
+        setIsLoading(false); // Stop loading once we have an auth state.
+    }, true); // `true` calls the callback immediately with the initial state.
     
     return () => {
       unsubscribe();
     };
   }, [pb, dataSource, usePocketBase]);
   
-
   useEffect(() => {
     if (isLoading) return;
 
@@ -92,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const value = { user, login, logout, signup, isLoading, dataSource };
   
-  if (isLoading && !user && !PUBLIC_ROUTES.includes(pathname)) {
+  if (isLoading && !PUBLIC_ROUTES.includes(pathname)) {
      return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
   }
   
