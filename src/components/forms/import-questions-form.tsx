@@ -93,67 +93,71 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px] h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Importar Questões via CSV</DialogTitle>
           <DialogDescription>Selecione o tipo, escolha o arquivo CSV e importe em lote.</DialogDescription>
         </DialogHeader>
-        <Alert>
-            <AlertTitle>Formato do CSV</AlertTitle>
-            <AlertDescription>
-                <p>O CSV deve conter o seguinte cabeçalho na primeira linha:</p>
-                <pre className="mt-2 text-xs bg-muted p-2 rounded-md whitespace-pre-wrap">
-{`"dificuldade","disciplina","tópico da disciplina","subtópico","questão","resposta","alternativa_2","alternativa_3","...","explicação"`}
-                </pre>
-                 <p className="mt-2 text-sm text-muted-foreground">
-                   Para questões de <span className="font-bold">Múltipla Escolha</span>, a resposta correta vai na coluna "resposta", e as demais nas colunas "alternativa_x". <br/>
-                   Para <span className="font-bold">Verdadeiro/Falso</span>, a resposta é "Verdadeiro" ou "Falso". <br/>
-                   Disciplinas e tópicos que não existirem serão criados.
-                 </p>
-            </AlertDescription>
-        </Alert>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-1">
-            <FormField
-              control={form.control}
-              name="tipo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo de Questão</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
-                        <SelectContent>
-                            {(["Certo ou Errado", "Múltipla Escolha", "Completar Lacuna", "Flashcard"] as QuestionTipo[]).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="csvFile"
-              render={({ field: { onChange, value, ...rest } }) => (
-                <FormItem>
-                  <FormLabel>Arquivo CSV</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="file"
-                      accept=".csv"
-                      onChange={(e) => onChange(e.target.files)}
-                      {...rest}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Importando...' : 'Importar'}</Button>
-            </DialogFooter>
-          </form>
-        </Form>
+        
+        <div className="flex-1 overflow-y-auto pr-6 pl-1 space-y-4">
+            <Alert>
+                <AlertTitle>Formato do CSV</AlertTitle>
+                <AlertDescription>
+                    <p>O CSV deve conter o seguinte cabeçalho na primeira linha:</p>
+                    <pre className="mt-2 text-xs bg-muted p-2 rounded-md whitespace-pre-wrap">
+    {`"dificuldade","disciplina","tópico da disciplina","subtópico","questão","resposta","alternativa_2","alternativa_3","...","explicação"`}
+                    </pre>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                    Para questões de <span className="font-bold">Múltipla Escolha</span>, a resposta correta vai na coluna "resposta", e as demais nas colunas "alternativa_x". <br/>
+                    Para <span className="font-bold">Verdadeiro/Falso</span>, a resposta é "Verdadeiro" ou "Falso". <br/>
+                    Disciplinas e tópicos que não existirem serão criados.
+                    </p>
+                </AlertDescription>
+            </Alert>
+            <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-2">
+                <FormField
+                control={form.control}
+                name="tipo"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Tipo de Questão</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {((["Certo ou Errado", "Múltipla Escolha", "Completar Lacuna", "Flashcard"] as QuestionTipo[])).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="csvFile"
+                render={({ field: { onChange, value, ...rest } }) => (
+                    <FormItem>
+                    <FormLabel>Arquivo CSV</FormLabel>
+                    <FormControl>
+                        <Input
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => onChange(e.target.files)}
+                        {...rest}
+                        />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </form>
+            </Form>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button type="button" onClick={form.handleSubmit(onSubmit)} disabled={mutation.isPending}>{mutation.isPending ? 'Importando...' : 'Importar'}</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
