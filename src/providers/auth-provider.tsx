@@ -24,49 +24,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const usePocketBase = !!process.env.NEXT_PUBLIC_PB_URL;
 
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Use useMemo to ensure that pb and dataSource instances are stable
-  const { pb, dataSource } = useMemo(() => {
+  const dataSource = useMemo<IDataSource>(() => {
     if (usePocketBase) {
       const pbInstance = new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
-      const dsInstance = new PocketBaseDataSource(pbInstance);
-      return { pb: pbInstance, dataSource: dsInstance };
+      return new PocketBaseDataSource(pbInstance);
     } else {
       seedLocalStorage();
-      const dsInstance = new MockDataSource();
-      return { pb: null as any, dataSource: dsInstance };
+      return new MockDataSource();
     }
   }, [usePocketBase]);
 
+  const pb = usePocketBase ? (dataSource as PocketBaseDataSource).pb : null;
+  
+  const [user, setUser] = useState<any>(pb ? pb.authStore.model : { name: "Usuário Mock" });
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    if (!usePocketBase) {
-      setUser({ name: "Usuário Mock" }); // Mock user
+    if (!usePocketBase || !pb) {
       setIsLoading(false);
       return;
     }
 
-    // This effect runs once on mount to check the initial auth state
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model);
-        // Important: Ensure the dataSource's pb instance is always current with the auth state
-        if (dataSource instanceof PocketBaseDataSource) {
-            dataSource.pb.authStore.loadFromCookie(pb.authStore.exportToCookie());
-        }
-        setIsLoading(false); // Stop loading once we have an auth state.
-    }, true); // `true` calls the callback immediately with the initial state.
+        setIsLoading(false);
+    }, true); 
     
     return () => {
       unsubscribe();
     };
-  }, [pb, dataSource, usePocketBase]);
+  }, [pb, usePocketBase]);
   
   useEffect(() => {
     if (isLoading) return;
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-    const isAuthenticated = usePocketBase ? pb.authStore.isValid : !!user;
+    const isAuthenticated = usePocketBase ? pb?.authStore.isValid : !!user;
     
     if (!isAuthenticated && !isPublicRoute) {
       router.push('/login');
@@ -76,10 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pathname, router, user, isLoading, usePocketBase, pb?.authStore?.isValid]);
 
   const login = async (email:string, pass:string) => {
+    if (!pb) throw new Error("PocketBase is not initialized.");
     return await pb.collection('users').authWithPassword(email, pass);
   };
 
   const signup = async (email:string, pass:string, passConfirm:string, name:string) => {
+    if (!pb) throw new Error("PocketBase is not initialized.");
     return pb.collection('users').create({
       email,
       password: pass,
@@ -89,17 +84,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    if (usePocketBase) {
+    if (usePocketBase && pb) {
         pb.authStore.clear();
     }
     setUser(null); 
   };
   
   const value = { user, login, logout, signup, isLoading, dataSource };
-  
-  if (isLoading && !PUBLIC_ROUTES.includes(pathname)) {
-     return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
-  }
   
   return (
     <AuthContext.Provider value={value}>

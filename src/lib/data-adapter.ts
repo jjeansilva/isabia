@@ -227,12 +227,8 @@ class MockDataSource implements IDataSource {
 class PocketBaseDataSource implements IDataSource {
   public pb: PocketBase;
   
-  constructor(pocketbaseInstance?: PocketBase) {
-    if (pocketbaseInstance) {
-        this.pb = pocketbaseInstance;
-    } else {
-        this.pb = new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
-    }
+  constructor(pocketbaseInstance: PocketBase) {
+    this.pb = pocketbaseInstance;
     // This is the key change: ensure the instance loads auth state from cookies on creation.
     this.pb.authStore.loadFromCookie(this.pb.authStore.exportToCookie());
   }
