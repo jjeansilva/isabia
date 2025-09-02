@@ -16,7 +16,7 @@ const saveToStorage = <T>(key: string, data: T[]): void => {
 
 export interface IDataSource {
   pb?: PocketBase;
-  list<T>(collection: CollectionName, filter?: any): Promise<T[]>;
+  list<T>(collection: CollectionName, options?: any): Promise<T[]>;
   get<T>(collection: CollectionName, id: string): Promise<T | null>;
   create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'user'>): Promise<T>;
   bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]>;
@@ -30,12 +30,13 @@ export interface IDataSource {
 }
 
 class MockDataSource implements IDataSource {
-  async list<T>(collection: CollectionName, filter?: any): Promise<T[]> {
+  async list<T>(collection: CollectionName, options?: any): Promise<T[]> {
     let data = getFromStorage<T>(collection);
-    if (filter) {
-      data = data.filter(item => 
-        Object.entries(filter).every(([key, value]) => (item as any)[key] === value)
-      );
+    if (options && options.filter) {
+       // Super basic mock filter, needs improvement for complex queries
+      const filterKey = options.filter.split('=')[0].trim();
+      const filterValue = options.filter.split('=')[1].trim().replace(/"/g, '');
+      data = data.filter(item => (item as any)[filterKey] === filterValue);
     }
     return Promise.resolve(data);
   }
@@ -103,9 +104,9 @@ class MockDataSource implements IDataSource {
 
       if (criteria.dificuldade !== 'aleatorio') {
           if (criteria.dificuldade === 'facil') {
-            filtered = filtered.filter(q => q.dificuldade === 'facil' || q.dificuldade === 'medio');
+            filtered = filtered.filter(q => q.dificuldade === 'Fácil' || q.dificuldade === 'Médio');
           } else { // dificil
-            filtered = filtered.filter(q => q.dificuldade === 'medio' || q.dificuldade === 'dificil');
+            filtered = filtered.filter(q => q.dificuldade === 'Médio' || q.dificuldade === 'Difícil');
           }
       }
 
@@ -116,7 +117,7 @@ class MockDataSource implements IDataSource {
           throw new Error(`Não foram encontradas questões suficientes para os critérios selecionados. Encontradas: ${selectedQuestoes.length}, Pedidas: ${criteria.quantidade}`);
       }
 
-      const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt'> = {
+      const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt' | 'user'> = {
           nome: criteria.nome,
           dificuldade: criteria.dificuldade,
           status: 'rascunho',
@@ -243,9 +244,8 @@ class PocketBaseDataSource implements IDataSource {
     return data;
   }
 
-  async list<T>(collection: CollectionName, filter?: any): Promise<T[]> {
-    const filterString = filter ? Object.entries(filter).map(([key, value]) => `${key}="${value}"`).join(' && ') : '';
-    const records = await this.pb.collection(collection).getFullList<T>({ filter: filterString });
+  async list<T>(collection: CollectionName, options?: any): Promise<T[]> {
+    const records = await this.pb.collection(collection).getFullList<T>(options);
     return records;
   }
 
@@ -296,9 +296,9 @@ class PocketBaseDataSource implements IDataSource {
 
     if (criteria.dificuldade !== 'aleatorio') {
         if (criteria.dificuldade === 'facil') {
-            filterParts.push(`(dificuldade="facil" || dificuldade="medio")`);
+            filterParts.push(`(dificuldade="Fácil" || dificuldade="Médio")`);
         } else { // dificil
-            filterParts.push(`(dificuldade="medio" || dificuldade="dificil")`);
+            filterParts.push(`(dificuldade="Médio" || dificuldade="Difícil")`);
         }
     }
     
@@ -489,25 +489,25 @@ class PocketBaseDataSource implements IDataSource {
         let respostaCorreta: any = values[colMap.resposta];
         let alternativas: string[] | undefined;
 
-        if (tipo === 'multipla') {
+        if (tipo === 'Múltipla Escolha') {
              const resp = values[colMap.resposta];
              const outrasAlternativas = header.filter(h => h.startsWith('alternativa_')).map(key => values[colMap[key]]).filter(Boolean);
              alternativas = [resp, ...outrasAlternativas].sort(() => Math.random() - 0.5); // Randomize order
              respostaCorreta = resp;
-        } else if (tipo === 'vf') {
+        } else if (tipo === 'Certo ou Errado') {
             respostaCorreta = ['verdadeiro', 'certo', 'v'].includes(respostaCorreta.toLowerCase());
         }
 
         const questao: Partial<Questao> = {
             tipo: tipo,
-            dificuldade: values[colMap.dificuldade].toLowerCase() as QuestionDificuldade,
+            dificuldade: values[colMap.dificuldade] as QuestionDificuldade,
             disciplinaId: disciplina.id,
             topicoId: topico.id,
             enunciado: values[colMap.questao],
             respostaCorreta: respostaCorreta,
             alternativas: alternativas,
             explicacao: values[colMap.explicacao],
-            origem: 'importacao',
+            origem: 'importacao' as any,
             version: 1,
             isActive: true,
             hashConteudo: 'import-csv-' + uuidv4(),

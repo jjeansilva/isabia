@@ -63,15 +63,15 @@ export function TopicoForm({ open, onOpenChange, disciplina, topico, topicoPai }
   });
 
   const { data: topicosDaDisciplina } = useQuery({
-      queryKey: ['topicos', disciplina.id],
+      queryKey: ['topicos', disciplina.id, 'principais'],
       queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}" && topicoPaiId = ""` }),
       enabled: open, // only fetch when dialog is open
   });
 
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
-      const dataToSave = { ...topico, ...values };
-      if (!dataToSave.topicoPaiId) {
+      let dataToSave = { ...topico, ...values };
+       if (dataToSave.topicoPaiId === 'none' || !dataToSave.topicoPaiId) {
           dataToSave.topicoPaiId = "";
       }
       return topico
@@ -79,7 +79,7 @@ export function TopicoForm({ open, onOpenChange, disciplina, topico, topicoPai }
         : dataSource.create("topicos", dataToSave);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["topicos", disciplina.id] });
+      queryClient.invalidateQueries({ queryKey: ["topicos"] });
       toast({ title: "Sucesso!", description: `Tópico ${topico ? 'atualizado' : 'criado'} com sucesso.` });
       onOpenChange(false);
     },
@@ -126,10 +126,10 @@ export function TopicoForm({ open, onOpenChange, disciplina, topico, topicoPai }
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Tópico Pai (Opcional)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ""}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || "none"}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Nenhum (Tópico Principal)"/></SelectTrigger></FormControl>
                             <SelectContent>
-                                <SelectItem value="">Nenhum (Tópico Principal)</SelectItem>
+                                <SelectItem value="none">Nenhum (Tópico Principal)</SelectItem>
                                 {topicosDaDisciplina?.filter(t => t.id !== topico?.id).map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
                             </SelectContent>
                         </Select>
