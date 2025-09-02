@@ -1,4 +1,5 @@
 
+
 export interface User {
     id: string;
     email: string;
@@ -27,10 +28,10 @@ export interface Topico {
   updatedAt: string;
 }
 
-export type QuestionTipo = 'multipla' | 'vf' | 'lacuna' | 'flashcard';
-export type QuestionDificuldade = 'facil' | 'medio' | 'dificil';
-export type QuestionOrigem = 'autoral' | 'banca' | 'importacao';
-export type RespostaConfianca = 'certeza' | 'duvida' | 'chute';
+export type QuestionTipo = 'Múltipla Escolha' | 'Certo ou Errado' | 'Completar Lacuna' | 'Flashcard';
+export type QuestionDificuldade = 'Fácil' | 'Médio' | 'Difícil';
+export type QuestionOrigem = 'Autoral' | 'Conteúdo' | 'Legislação' | 'Jurisprudência' | 'Já caiu';
+export type RespostaConfianca = 'Certeza' | 'Dúvida' | 'Chute';
 
 export interface Questao {
   id: string;
@@ -53,7 +54,7 @@ export interface Questao {
 }
 
 export type SimuladoStatus = 'rascunho' | 'andamento' | 'concluido';
-export type SimuladoDificuldade = 'facil' | 'dificil' | 'aleatorio';
+export type SimuladoDificuldade = 'aleatorio' | 'facil' | 'dificil';
 
 export interface Simulado {
   id: string;
@@ -109,3 +110,5 @@ export interface StatsDia {
 }
 
 export type CollectionName = 'users' | 'disciplinas' | 'topicos' | 'questoes' | 'simulados' | 'respostas' | 'revisoes' | 'stats';
+
+    

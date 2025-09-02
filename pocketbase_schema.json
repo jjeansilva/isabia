@@ -8,168 +8,113 @@
         "deleteRule": null,
         "name": "_superusers",
         "type": "auth",
-        "fields": [
+        "system": true,
+        "schema": [
             {
-                "autogeneratePattern": "[a-z0-9]{15}",
-                "hidden": false,
                 "id": "text3208210256",
-                "max": 15,
-                "min": 15,
                 "name": "id",
-                "pattern": "^[a-z0-9]+$",
-                "presentable": false,
-                "primaryKey": true,
-                "required": true,
+                "type": "text",
                 "system": true,
-                "type": "text"
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 15,
+                    "max": 15,
+                    "pattern": "^[a-z0-9]+$"
+                }
             },
             {
-                "cost": 0,
-                "hidden": true,
                 "id": "password901924565",
-                "max": 0,
-                "min": 8,
                 "name": "password",
-                "pattern": "",
-                "presentable": false,
-                "required": true,
+                "type": "password",
                 "system": true,
-                "type": "password"
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 8,
+                    "max": 0
+                }
             },
             {
-                "autogeneratePattern": "[a-zA-Z0-9]{50}",
-                "hidden": true,
                 "id": "text2504183744",
-                "max": 60,
-                "min": 30,
                 "name": "tokenKey",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
+                "type": "text",
                 "system": true,
-                "type": "text"
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 30,
+                    "max": 60,
+                    "pattern": ""
+                }
             },
             {
-                "exceptDomains": null,
-                "hidden": false,
                 "id": "email3885137012",
                 "name": "email",
-                "onlyDomains": null,
-                "presentable": false,
-                "required": true,
+                "type": "email",
                 "system": true,
-                "type": "email"
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "exceptDomains": null,
+                    "onlyDomains": null
+                }
             },
             {
-                "hidden": false,
                 "id": "bool1547992806",
                 "name": "emailVisibility",
-                "presentable": false,
-                "required": false,
+                "type": "bool",
                 "system": true,
-                "type": "bool"
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {}
             },
             {
-                "hidden": false,
                 "id": "bool256245529",
                 "name": "verified",
-                "presentable": false,
-                "required": false,
+                "type": "bool",
                 "system": true,
-                "type": "bool"
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {}
             },
             {
-                "hidden": false,
                 "id": "autodate2990389176",
                 "name": "created",
-                "onCreate": true,
-                "onUpdate": false,
-                "presentable": false,
+                "type": "autodate",
                 "system": true,
-                "type": "autodate"
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "onCreate": true,
+                    "onUpdate": false
+                }
             },
             {
-                "hidden": false,
                 "id": "autodate3332085495",
                 "name": "updated",
-                "onCreate": true,
-                "onUpdate": true,
-                "presentable": false,
+                "type": "autodate",
                 "system": true,
-                "type": "autodate"
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "onCreate": true,
+                    "onUpdate": true
+                }
             }
         ],
         "indexes": [
             "CREATE UNIQUE INDEX `idx_tokenKey_pbc_3142635823` ON `_superusers` (`tokenKey`)",
             "CREATE UNIQUE INDEX `idx_email_pbc_3142635823` ON `_superusers` (`email`) WHERE `email` != ''"
-        ],
-        "system": true,
-        "authRule": "",
-        "manageRule": null,
-        "authAlert": {
-            "enabled": true,
-            "emailTemplate": {
-                "subject": "Login from a new location",
-                "body": "<p>Hello,</p>\n<p>We noticed a login to your {APP_NAME} account from a new location.</p>\n<p>If this was you, you may disregard this email.</p>\n<p><strong>If this wasn't you, you should immediately change your {APP_NAME} account password to revoke access from all other locations.</strong></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
-            }
-        },
-        "oauth2": {
-            "mappedFields": {
-                "id": "",
-                "name": "",
-                "username": "",
-                "avatarURL": ""
-            },
-            "enabled": false
-        },
-        "passwordAuth": {
-            "enabled": true,
-            "identityFields": [
-                "email"
-            ]
-        },
-        "mfa": {
-            "enabled": false,
-            "duration": 1800,
-            "rule": ""
-        },
-        "otp": {
-            "enabled": false,
-            "duration": 180,
-            "length": 8,
-            "emailTemplate": {
-                "subject": "OTP for {APP_NAME}",
-                "body": "<p>Hello,</p>\n<p>Your one-time password is: <strong>{OTP}</strong></p>\n<p><i>If you didn't ask for the one-time password, you can ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
-            }
-        },
-        "authToken": {
-            "duration": 86400
-        },
-        "passwordResetToken": {
-            "duration": 1800
-        },
-        "emailChangeToken": {
-            "duration": 1800
-        },
-        "verificationToken": {
-            "duration": 259200
-        },
-        "fileToken": {
-            "duration": 180
-        },
-        "verificationTemplate": {
-            "subject": "Verify your {APP_NAME} email",
-            "body": "<p>Hello,</p>\n<p>Thank you for joining us at {APP_NAME}.</p>\n<p>Click on the button below to verify your email address.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-verification/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Verify</a>\n</p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
-        },
-        "resetPasswordTemplate": {
-            "subject": "Reset your {APP_NAME} password",
-            "body": "<p>Hello,</p>\n<p>Click on the button below to reset your password.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Reset password</a>\n</p>\n<p><i>If you didn't ask to reset your password, you can ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
-        },
-        "confirmEmailChangeTemplate": {
-            "subject": "Confirm your {APP_NAME} new email address",
-            "body": "<p>Hello,</p>\n<p>Click on the button below to confirm your new email address.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-email-change/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Confirm new email</a>\n</p>\n<p><i>If you didn't ask to change your email address, you can ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
-        }
+        ]
     },
     {
         "id": "_pb_users_auth_",
@@ -180,1392 +125,441 @@
         "deleteRule": "id = @request.auth.id",
         "name": "users",
         "type": "auth",
-        "fields": [
-            {
-                "autogeneratePattern": "[a-z0-9]{15}",
-                "hidden": false,
-                "id": "text3208210256",
-                "max": 15,
-                "min": 15,
-                "name": "id",
-                "pattern": "^[a-z0-9]+$",
-                "presentable": false,
-                "primaryKey": true,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "cost": 0,
-                "hidden": true,
-                "id": "password901924565",
-                "max": 0,
-                "min": 8,
-                "name": "password",
-                "pattern": "",
-                "presentable": false,
-                "required": true,
-                "system": true,
-                "type": "password"
-            },
-            {
-                "autogeneratePattern": "[a-zA-Z0-9]{50}",
-                "hidden": true,
-                "id": "text2504183744",
-                "max": 60,
-                "min": 30,
-                "name": "tokenKey",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "exceptDomains": null,
-                "hidden": false,
-                "id": "email3885137012",
-                "name": "email",
-                "onlyDomains": null,
-                "presentable": false,
-                "required": true,
-                "system": true,
-                "type": "email"
-            },
-            {
-                "hidden": false,
-                "id": "bool1547992806",
-                "name": "emailVisibility",
-                "presentable": false,
-                "required": false,
-                "system": true,
-                "type": "bool"
-            },
-            {
-                "hidden": false,
-                "id": "bool256245529",
-                "name": "verified",
-                "presentable": false,
-                "required": false,
-                "system": true,
-                "type": "bool"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "text_name_001",
-                "max": 100,
-                "min": 0,
-                "name": "name",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": false,
-                "system": false,
-                "type": "text"
-            },
-            {
-                "hidden": false,
-                "id": "file_avatar_001",
-                "maxSelect": 1,
-                "maxSize": 5242880,
-                "mimeTypes": [
-                    "image/jpeg",
-                    "image/png",
-                    "image/svg+xml",
-                    "image/gif",
-                    "image/webp"
-                ],
-                "name": "avatar",
-                "presentable": false,
-                "protected": false,
-                "required": false,
-                "system": false,
-                "thumbs": [
-                    "100x100"
-                ],
-                "type": "file"
-            }
-        ],
-        "indexes": [
-            "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
-            "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
-        ],
         "system": false,
-        "authRule": "",
-        "manageRule": null,
-        "authAlert": {
-            "enabled": true,
-            "emailTemplate": {
-                "subject": "Login from a new location",
-                "body": "<p>Hello,</p>\n<p>We noticed a login to your {APP_NAME} account from a new location.</p>\n<p>If this was you, you may disregard this email.</p>\n<p><strong>If this wasn't you, you should immediately change your {APP_NAME} account password to revoke access from all other locations.</strong></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
-            }
-        },
-        "oauth2": {
-            "mappedFields": {
-                "id": "",
-                "name": "",
-                "username": "",
-                "avatarURL": ""
-            },
-            "enabled": false
-        },
-        "passwordAuth": {
-            "enabled": true,
-            "identityFields": [
-                "email"
-            ]
-        },
-        "mfa": {
-            "enabled": false,
-            "duration": 1800,
-            "rule": ""
-        },
-        "otp": {
-            "enabled": false,
-            "duration": 180,
-            "length": 8,
-            "emailTemplate": {
-                "subject": "OTP for {APP_NAME}",
-                "body": "<p>Hello,</p>\n<p>Your one-time password is: <strong>{OTP}</strong></p>\n<p><i>If you didn't ask for the one-time password, you can ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
-            }
-        },
-        "authToken": {
-            "duration": 604800
-        },
-        "passwordResetToken": {
-            "duration": 1800
-        },
-        "emailChangeToken": {
-            "duration": 1800
-        },
-        "verificationToken": {
-            "duration": 259200
-        },
-        "fileToken": {
-            "duration": 180
-        },
-        "verificationTemplate": {
-            "subject": "Verify your {APP_NAME} email",
-            "body": "<p>Hello,</p>\n<p>Thank you for joining us at {APP_NAME}.</p>\n<p>Click on the button below to verify your email address.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-verification/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Verify</a>\n</p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
-        },
-        "resetPasswordTemplate": {
-            "subject": "Reset your {APP_NAME} password",
-            "body": "<p>Hello,</p>\n<p>Click on the button below to reset your password.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Reset password</a>\n</p>\n<p><i>If you didn't ask to reset your password, you can ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
-        },
-        "confirmEmailChangeTemplate": {
-            "subject": "Confirm your {APP_NAME} new email address",
-            "body": "<p>Hello,</p>\n<p>Click on the button below to confirm your new email address.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-email-change/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Confirm new email</a>\n</p>\n<p><i>If you didn't ask to change your email address, you can ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
-        }
-    },
-    {
-        "id": "pbc_4275539003",
-        "listRule": "@request.auth.id != '' && recordRef = @request.auth.id && collectionRef = @request.auth.collectionId",
-        "viewRule": "@request.auth.id != '' && recordRef = @request.auth.id && collectionRef = @request.auth.collectionId",
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": "@request.auth.id != '' && recordRef = @request.auth.id && collectionRef = @request.auth.collectionId",
-        "name": "_authOrigins",
-        "type": "base",
-        "fields": [
+        "schema": [
             {
-                "autogeneratePattern": "[a-z0-9]{15}",
-                "hidden": false,
-                "id": "text3208210256",
-                "max": 15,
-                "min": 15,
-                "name": "id",
-                "pattern": "^[a-z0-9]+$",
-                "presentable": false,
-                "primaryKey": true,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "text455797646",
-                "max": 0,
-                "min": 0,
-                "name": "collectionRef",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "text127846527",
-                "max": 0,
-                "min": 0,
-                "name": "recordRef",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "text4228609354",
-                "max": 0,
-                "min": 0,
-                "name": "fingerprint",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "hidden": false,
-                "id": "autodate2990389176",
-                "name": "created",
-                "onCreate": true,
-                "onUpdate": false,
-                "presentable": false,
-                "system": true,
-                "type": "autodate"
-            },
-            {
-                "hidden": false,
-                "id": "autodate3332085495",
-                "name": "updated",
-                "onCreate": true,
-                "onUpdate": true,
-                "presentable": false,
-                "system": true,
-                "type": "autodate"
-            }
-        ],
-        "indexes": [
-            "CREATE UNIQUE INDEX `idx_authOrigins_unique_pairs` ON `_authOrigins` (collectionRef, recordRef, fingerprint)"
-        ],
-        "system": true
-    },
-    {
-        "id": "pbc_2281828961",
-        "listRule": "@request.auth.id != '' && recordRef = @request.auth.id && collectionRef = @request.auth.collectionId",
-        "viewRule": "@request.auth.id != '' && recordRef = @request.auth.id && collectionRef = @request.auth.collectionId",
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": "@request.auth.id != '' && recordRef = @request.auth.id && collectionRef = @request.auth.collectionId",
-        "name": "_externalAuths",
-        "type": "base",
-        "fields": [
-            {
-                "autogeneratePattern": "[a-z0-9]{15}",
-                "hidden": false,
-                "id": "text3208210256",
-                "max": 15,
-                "min": 15,
-                "name": "id",
-                "pattern": "^[a-z0-9]+$",
-                "presentable": false,
-                "primaryKey": true,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "text455797646",
-                "max": 0,
-                "min": 0,
-                "name": "collectionRef",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "text127846527",
-                "max": 0,
-                "min": 0,
-                "name": "recordRef",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "text2462348188",
-                "max": 0,
-                "min": 0,
-                "name": "provider",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "text1044722854",
-                "max": 0,
-                "min": 0,
-                "name": "providerId",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "hidden": false,
-                "id": "autodate2990389176",
-                "name": "created",
-                "onCreate": true,
-                "onUpdate": false,
-                "presentable": false,
-                "system": true,
-                "type": "autodate"
-            },
-            {
-                "hidden": false,
-                "id": "autodate3332085495",
-                "name": "updated",
-                "onCreate": true,
-                "onUpdate": true,
-                "presentable": false,
-                "system": true,
-                "type": "autodate"
-            }
-        ],
-        "indexes": [
-            "CREATE UNIQUE INDEX `idx_externalAuths_record_provider` ON `_externalAuths` (collectionRef, recordRef, provider)",
-            "CREATE UNIQUE INDEX `idx_externalAuths_collection_provider` ON `_externalAuths` (collectionRef, provider, providerId)"
-        ],
-        "system": true
-    },
-    {
-        "id": "pbc_2279338944",
-        "listRule": "@request.auth.id != '' && recordRef = @request.auth.id && collectionRef = @request.auth.collectionId",
-        "viewRule": "@request.auth.id != '' && recordRef = @request.auth.id && collectionRef = @request.auth.collectionId",
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "name": "_mfas",
-        "type": "base",
-        "fields": [
-            {
-                "autogeneratePattern": "[a-z0-9]{15}",
-                "hidden": false,
-                "id": "text3208210256",
-                "max": 15,
-                "min": 15,
-                "name": "id",
-                "pattern": "^[a-z0-9]+$",
-                "presentable": false,
-                "primaryKey": true,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "text455797646",
-                "max": 0,
-                "min": 0,
-                "name": "collectionRef",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "text127846527",
-                "max": 0,
-                "min": 0,
-                "name": "recordRef",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "text1582905952",
-                "max": 0,
-                "min": 0,
-                "name": "method",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "hidden": false,
-                "id": "autodate2990389176",
-                "name": "created",
-                "onCreate": true,
-                "onUpdate": false,
-                "presentable": false,
-                "system": true,
-                "type": "autodate"
-            },
-            {
-                "hidden": false,
-                "id": "autodate3332085495",
-                "name": "updated",
-                "onCreate": true,
-                "onUpdate": true,
-                "presentable": false,
-                "system": true,
-                "type": "autodate"
-            }
-        ],
-        "indexes": [
-            "CREATE INDEX `idx_mfas_collectionRef_recordRef` ON `_mfas` (collectionRef,recordRef)"
-        ],
-        "system": true
-    },
-    {
-        "id": "pbc_1638494021",
-        "listRule": "@request.auth.id != '' && recordRef = @request.auth.id && collectionRef = @request.auth.collectionId",
-        "viewRule": "@request.auth.id != '' && recordRef = @request.auth.id && collectionRef = @request.auth.collectionId",
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "name": "_otps",
-        "type": "base",
-        "fields": [
-            {
-                "autogeneratePattern": "[a-z0-9]{15}",
-                "hidden": false,
-                "id": "text3208210256",
-                "max": 15,
-                "min": 15,
-                "name": "id",
-                "pattern": "^[a-z0-9]+$",
-                "presentable": false,
-                "primaryKey": true,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "text455797646",
-                "max": 0,
-                "min": 0,
-                "name": "collectionRef",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "text127846527",
-                "max": 0,
-                "min": 0,
-                "name": "recordRef",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "cost": 8,
-                "hidden": true,
-                "id": "password901924565",
-                "max": 0,
-                "min": 0,
-                "name": "password",
-                "pattern": "",
-                "presentable": false,
-                "required": true,
-                "system": true,
-                "type": "password"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": true,
-                "id": "text3866985172",
-                "max": 0,
-                "min": 0,
-                "name": "sentTo",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
+                "id": "text_name_001",
+                "name": "name",
+                "type": "text",
+                "system": false,
                 "required": false,
-                "system": true,
-                "type": "text"
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 0,
+                    "max": 100,
+                    "pattern": ""
+                }
             },
             {
-                "hidden": false,
-                "id": "autodate2990389176",
-                "name": "created",
-                "onCreate": true,
-                "onUpdate": false,
+                "id": "file_avatar_001",
+                "name": "avatar",
+                "type": "file",
+                "system": false,
+                "required": false,
                 "presentable": false,
-                "system": true,
-                "type": "autodate"
-            },
-            {
-                "hidden": false,
-                "id": "autodate3332085495",
-                "name": "updated",
-                "onCreate": true,
-                "onUpdate": true,
-                "presentable": false,
-                "system": true,
-                "type": "autodate"
+                "unique": false,
+                "options": {
+                    "maxSelect": 1,
+                    "maxSize": 5242880,
+                    "mimeTypes": [
+                        "image/jpeg",
+                        "image/png",
+                        "image/svg+xml",
+                        "image/gif",
+                        "image/webp"
+                    ],
+                    "thumbs": [
+                        "100x100"
+                    ],
+                    "protected": false
+                }
             }
-        ],
-        "indexes": [
-            "CREATE INDEX `idx_otps_collectionRef_recordRef` ON `otps` (collectionRef, recordRef)"
-        ],
-        "system": true
+        ]
     },
     {
         "id": "disciplinas_abcde1",
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
         "name": "disciplinas",
         "type": "base",
-        "fields": [
+        "system": false,
+        "listRule": "user = @request.auth.id",
+        "viewRule": "user = @request.auth.id",
+        "createRule": "user = @request.auth.id",
+        "updateRule": "user = @request.auth.id",
+        "deleteRule": "user = @request.auth.id",
+        "schema": [
             {
-                "autogeneratePattern": "[a-z0-9]{15}",
-                "hidden": false,
-                "id": "text3208210256",
-                "max": 15,
-                "min": 15,
-                "name": "id",
-                "pattern": "^[a-z0-9]+$",
-                "presentable": false,
-                "primaryKey": true,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
                 "id": "k7vjgz9w",
-                "max": 0,
-                "min": 0,
                 "name": "nome",
-                "pattern": "",
-                "presentable": true,
-                "primaryKey": false,
+                "type": "text",
                 "required": true,
-                "system": false,
-                "type": "text"
+                "presentable": true,
+                "options": {}
             },
             {
-                "autogeneratePattern": "",
-                "hidden": false,
                 "id": "yecxmm3d",
-                "max": 0,
-                "min": 0,
                 "name": "descricao",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": false,
-                "system": false,
-                "type": "text"
+                "type": "text",
+                "options": {}
             },
             {
-                "autogeneratePattern": "",
-                "hidden": false,
                 "id": "a5yuyk5g",
-                "max": 0,
-                "min": 0,
                 "name": "cor",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": false,
-                "system": false,
-                "type": "text"
+                "type": "text",
+                "options": {}
             },
             {
-                "hidden": false,
                 "id": "bcfu7pqs",
-                "max": null,
-                "min": null,
                 "name": "ordem",
-                "onlyInt": false,
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "number"
+                "type": "number",
+                "options": {}
             },
             {
-                "cascadeDelete": false,
-                "collectionId": "_pb_users_auth_",
-                "hidden": false,
                 "id": "relation2375276105",
-                "maxSelect": 1,
-                "minSelect": 0,
                 "name": "user",
-                "presentable": false,
+                "type": "relation",
                 "required": true,
-                "system": false,
-                "type": "relation"
+                "options": {
+                    "collectionId": "_pb_users_auth_",
+                    "cascadeDelete": false,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": []
+                }
             }
-        ],
-        "indexes": [],
-        "system": false
-    },
-    {
-        "id": "questoes_abcde1",
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "name": "questoes",
-        "type": "base",
-        "fields": [
-            {
-                "autogeneratePattern": "[a-z0-9]{15}",
-                "hidden": false,
-                "id": "text3208210256",
-                "max": 15,
-                "min": 15,
-                "name": "id",
-                "pattern": "^[a-z0-9]+$",
-                "presentable": false,
-                "primaryKey": true,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "hidden": false,
-                "id": "select1882004807",
-                "maxSelect": 1,
-                "name": "tipo",
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "select",
-                "values": [
-                    "multipla",
-                    "vf",
-                    "lacuna",
-                    "flashcard"
-                ]
-            },
-            {
-                "hidden": false,
-                "id": "select986616355",
-                "maxSelect": 1,
-                "name": "dificuldade",
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "select",
-                "values": [
-                    "facil",
-                    "medio",
-                    "dificil"
-                ]
-            },
-            {
-                "hidden": false,
-                "id": "select3947710632",
-                "maxSelect": 5,
-                "name": "origem",
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "select",
-                "values": [
-                    "autoral",
-                    "banca",
-                    "importacao"
-                ]
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "s8iqlc0i",
-                "max": 0,
-                "min": 0,
-                "name": "enunciado",
-                "pattern": "",
-                "presentable": true,
-                "primaryKey": false,
-                "required": true,
-                "system": false,
-                "type": "text"
-            },
-            {
-                "hidden": false,
-                "id": "bczqg58z",
-                "maxSize": 5242880,
-                "name": "alternativas",
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "json"
-            },
-            {
-                "hidden": false,
-                "id": "g0d64hfb",
-                "maxSize": 5242880,
-                "name": "respostaCorreta",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "json"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "f5k6cwqu",
-                "max": 0,
-                "min": 0,
-                "name": "explicacao",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": false,
-                "system": false,
-                "type": "text"
-            },
-            {
-                "hidden": false,
-                "id": "q0g0udgt",
-                "maxSize": 5242880,
-                "name": "tags",
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "json"
-            },
-            {
-                "hidden": false,
-                "id": "9gq8wlnx",
-                "max": null,
-                "min": null,
-                "name": "version",
-                "onlyInt": false,
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "number"
-            },
-            {
-                "hidden": false,
-                "id": "d0n8k3lq",
-                "name": "isActive",
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "bool"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "4gczwz9j",
-                "max": 0,
-                "min": 0,
-                "name": "hashConteudo",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": true,
-                "system": false,
-                "type": "text"
-            },
-            {
-                "cascadeDelete": false,
-                "collectionId": "disciplinas_abcde1",
-                "hidden": false,
-                "id": "relation853048275",
-                "maxSelect": 1,
-                "minSelect": 0,
-                "name": "disciplinaId",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "relation"
-            },
-            {
-                "cascadeDelete": false,
-                "collectionId": "topicos_abcde1",
-                "hidden": false,
-                "id": "relation2931482895",
-                "maxSelect": 1,
-                "minSelect": 0,
-                "name": "topicoId",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "relation"
-            },
-            {
-                "cascadeDelete": false,
-                "collectionId": "_pb_users_auth_",
-                "hidden": false,
-                "id": "relation2375276105",
-                "maxSelect": 1,
-                "minSelect": 0,
-                "name": "user",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "relation"
-            }
-        ],
-        "indexes": [],
-        "system": false
-    },
-    {
-        "id": "respostas_abcde1",
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "name": "respostas",
-        "type": "base",
-        "fields": [
-            {
-                "autogeneratePattern": "[a-z0-9]{15}",
-                "hidden": false,
-                "id": "text3208210256",
-                "max": 15,
-                "min": 15,
-                "name": "id",
-                "pattern": "^[a-z0-9]+$",
-                "presentable": false,
-                "primaryKey": true,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "hidden": false,
-                "id": "d0n8k3lq",
-                "name": "acertou",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "bool"
-            },
-            {
-                "hidden": false,
-                "id": "g0d64hfb",
-                "maxSize": 5242880,
-                "name": "respostaUsuario",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "json"
-            },
-            {
-                "hidden": false,
-                "id": "select2929511165",
-                "maxSelect": 1,
-                "name": "confianca",
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "select",
-                "values": [
-                    "certeza",
-                    "duvida",
-                    "chute"
-                ]
-            },
-            {
-                "hidden": false,
-                "id": "jph7t0b7",
-                "max": null,
-                "min": null,
-                "name": "tempoSegundos",
-                "onlyInt": false,
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "number"
-            },
-            {
-                "hidden": false,
-                "id": "f5k6cwqu",
-                "max": "",
-                "min": "",
-                "name": "respondedAt",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "date"
-            },
-            {
-                "cascadeDelete": false,
-                "collectionId": "questoes_abcde1",
-                "hidden": false,
-                "id": "relation377375640",
-                "maxSelect": 1,
-                "minSelect": 0,
-                "name": "questaoId",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "relation"
-            },
-            {
-                "cascadeDelete": false,
-                "collectionId": "simulados_abcde1",
-                "hidden": false,
-                "id": "relation3158640492",
-                "maxSelect": 1,
-                "minSelect": 0,
-                "name": "simuladoId",
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "relation"
-            },
-            {
-                "cascadeDelete": false,
-                "collectionId": "_pb_users_auth_",
-                "hidden": false,
-                "id": "relation2375276105",
-                "maxSelect": 1,
-                "minSelect": 0,
-                "name": "user",
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "relation"
-            }
-        ],
-        "indexes": [],
-        "system": false
-    },
-    {
-        "id": "revisoes_abcde1",
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "name": "revisoes",
-        "type": "base",
-        "fields": [
-            {
-                "autogeneratePattern": "[a-z0-9]{15}",
-                "hidden": false,
-                "id": "text3208210256",
-                "max": 15,
-                "min": 15,
-                "name": "id",
-                "pattern": "^[a-z0-9]+$",
-                "presentable": false,
-                "primaryKey": true,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "hidden": false,
-                "id": "jph7t0b7",
-                "max": null,
-                "min": null,
-                "name": "bucket",
-                "onlyInt": false,
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "number"
-            },
-            {
-                "hidden": false,
-                "id": "w3f5wct5",
-                "max": "",
-                "min": "",
-                "name": "proximaRevisao",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "date"
-            },
-            {
-                "cascadeDelete": false,
-                "collectionId": "questoes_abcde1",
-                "hidden": false,
-                "id": "relation377375640",
-                "maxSelect": 1,
-                "minSelect": 0,
-                "name": "questaoId",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "relation"
-            },
-            {
-                "cascadeDelete": false,
-                "collectionId": "_pb_users_auth_",
-                "hidden": false,
-                "id": "relation2375276105",
-                "maxSelect": 1,
-                "minSelect": 0,
-                "name": "user",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "relation"
-            }
-        ],
-        "indexes": [],
-        "system": false
-    },
-    {
-        "id": "simulados_abcde1",
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "name": "simulados",
-        "type": "base",
-        "fields": [
-            {
-                "autogeneratePattern": "[a-z0-9]{15}",
-                "hidden": false,
-                "id": "text3208210256",
-                "max": 15,
-                "min": 15,
-                "name": "id",
-                "pattern": "^[a-z0-9]+$",
-                "presentable": false,
-                "primaryKey": true,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "gqg3t1yq",
-                "max": 0,
-                "min": 0,
-                "name": "nome",
-                "pattern": "",
-                "presentable": true,
-                "primaryKey": false,
-                "required": true,
-                "system": false,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
-                "id": "7vwnp0je",
-                "max": 0,
-                "min": 0,
-                "name": "descricao",
-                "pattern": "",
-                "presentable": false,
-                "primaryKey": false,
-                "required": false,
-                "system": false,
-                "type": "text"
-            },
-            {
-                "hidden": false,
-                "id": "select986616355",
-                "maxSelect": 1,
-                "name": "dificuldade",
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "select",
-                "values": [
-                    "aleatorio",
-                    "facil",
-                    "dificil"
-                ]
-            },
-            {
-                "hidden": false,
-                "id": "select2063623452",
-                "maxSelect": 1,
-                "name": "status",
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "select",
-                "values": [
-                    "rascunho",
-                    "andamento",
-                    "concluido"
-                ]
-            },
-            {
-                "hidden": false,
-                "id": "f5k6cwqu",
-                "max": "",
-                "min": "",
-                "name": "criadoEm",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "date"
-            },
-            {
-                "hidden": false,
-                "id": "f5k6cwqv",
-                "max": "",
-                "min": "",
-                "name": "finalizadoEm",
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "date"
-            },
-            {
-                "hidden": false,
-                "id": "w3f5wct5",
-                "maxSize": 5242880,
-                "name": "questoes",
-                "presentable": false,
-                "required": false,
-                "system": false,
-                "type": "json"
-            },
-            {
-                "cascadeDelete": false,
-                "collectionId": "_pb_users_auth_",
-                "hidden": false,
-                "id": "relation2375276105",
-                "maxSelect": 1,
-                "minSelect": 0,
-                "name": "user",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "relation"
-            }
-        ],
-        "indexes": [],
-        "system": false
-    },
-    {
-        "id": "stats_abcde1",
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "name": "stats",
-        "type": "base",
-        "fields": [
-            {
-                "autogeneratePattern": "[a-z0-9]{15}",
-                "hidden": false,
-                "id": "text3208210256",
-                "max": 15,
-                "min": 15,
-                "name": "id",
-                "pattern": "^[a-z0-9]+$",
-                "presentable": false,
-                "primaryKey": true,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "hidden": false,
-                "id": "f5k6cwqu",
-                "max": "",
-                "min": "",
-                "name": "data",
-                "presentable": true,
-                "required": true,
-                "system": false,
-                "type": "date"
-            },
-            {
-                "hidden": false,
-                "id": "jph7t0b7",
-                "max": null,
-                "min": null,
-                "name": "totalQuestoes",
-                "onlyInt": false,
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "number"
-            },
-            {
-                "hidden": false,
-                "id": "bcfu7pqs",
-                "max": null,
-                "min": null,
-                "name": "acertos",
-                "onlyInt": false,
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "number"
-            },
-            {
-                "hidden": false,
-                "id": "a5yuyk5g",
-                "max": null,
-                "min": null,
-                "name": "erros",
-                "onlyInt": false,
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "number"
-            },
-            {
-                "hidden": false,
-                "id": "yecxmm3d",
-                "max": null,
-                "min": null,
-                "name": "tempoMedio",
-                "onlyInt": false,
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "number"
-            },
-            {
-                "cascadeDelete": false,
-                "collectionId": "_pb_users_auth_",
-                "hidden": false,
-                "id": "relation2375276105",
-                "maxSelect": 1,
-                "minSelect": 0,
-                "name": "user",
-                "presentable": false,
-                "required": true,
-                "system": false,
-                "type": "relation"
-            }
-        ],
-        "indexes": [],
-        "system": false
+        ]
     },
     {
         "id": "topicos_abcde1",
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
         "name": "topicos",
         "type": "base",
-        "fields": [
+        "system": false,
+        "listRule": "user = @request.auth.id",
+        "viewRule": "user = @request.auth.id",
+        "createRule": "user = @request.auth.id",
+        "updateRule": "user = @request.auth.id",
+        "deleteRule": "user = @request.auth.id",
+        "schema": [
             {
-                "autogeneratePattern": "[a-z0-9]{15}",
-                "hidden": false,
-                "id": "text3208210256",
-                "max": 15,
-                "min": 15,
-                "name": "id",
-                "pattern": "^[a-z0-9]+$",
-                "presentable": false,
-                "primaryKey": true,
-                "required": true,
-                "system": true,
-                "type": "text"
-            },
-            {
-                "autogeneratePattern": "",
-                "hidden": false,
                 "id": "k7vjgz9w",
-                "max": 0,
-                "min": 0,
                 "name": "nome",
-                "pattern": "",
-                "presentable": true,
-                "primaryKey": false,
+                "type": "text",
                 "required": true,
-                "system": false,
-                "type": "text"
+                "presentable": true
             },
             {
-                "hidden": false,
                 "id": "bcfu7pqs",
-                "max": null,
-                "min": null,
                 "name": "ordem",
-                "onlyInt": false,
-                "presentable": false,
-                "required": false,
-                "system": false,
                 "type": "number"
             },
             {
-                "cascadeDelete": false,
-                "collectionId": "disciplinas_abcde1",
-                "hidden": false,
                 "id": "relation2807848817",
-                "maxSelect": 1,
-                "minSelect": 0,
                 "name": "disciplinaId",
-                "presentable": false,
+                "type": "relation",
                 "required": true,
-                "system": false,
-                "type": "relation"
+                "options": {
+                    "collectionId": "disciplinas_abcde1",
+                    "cascadeDelete": false,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": []
+                }
             },
             {
-                "cascadeDelete": false,
-                "collectionId": "_pb_users_auth_",
-                "hidden": false,
                 "id": "relation2375276105",
-                "maxSelect": 1,
-                "minSelect": 0,
                 "name": "user",
-                "presentable": false,
+                "type": "relation",
                 "required": true,
-                "system": false,
-                "type": "relation"
+                "options": {
+                    "collectionId": "_pb_users_auth_",
+                    "cascadeDelete": false,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": []
+                }
             }
-        ],
-        "indexes": [],
-        "system": false
+        ]
+    },
+    {
+        "id": "questoes_abcde1",
+        "name": "questoes",
+        "type": "base",
+        "system": false,
+        "listRule": "user = @request.auth.id",
+        "viewRule": "user = @request.auth.id",
+        "createRule": "user = @request.auth.id",
+        "updateRule": "user = @request.auth.id",
+        "deleteRule": "user = @request.auth.id",
+        "schema": [
+            {
+                "id": "select1882004807",
+                "name": "tipo",
+                "type": "select",
+                "options": {
+                    "maxSelect": 1,
+                    "values": [ "Múltipla Escolha", "Certo ou Errado", "Completar Lacuna", "Flashcard" ]
+                }
+            },
+            {
+                "id": "select986616355",
+                "name": "dificuldade",
+                "type": "select",
+                "options": {
+                    "maxSelect": 1,
+                    "values": [ "Fácil", "Médio", "Difícil" ]
+                }
+            },
+            {
+                "id": "select3947710632",
+                "name": "origem",
+                "type": "select",
+                "options": {
+                    "maxSelect": 5,
+                    "values": [ "Autoral", "Conteúdo", "Legislação", "Jurisprudência", "Já caiu" ]
+                }
+            },
+            {
+                "id": "s8iqlc0i",
+                "name": "enunciado",
+                "type": "text",
+                "required": true,
+                "presentable": true
+            },
+            {
+                "id": "bczqg58z",
+                "name": "alternativas",
+                "type": "json"
+            },
+            {
+                "id": "g0d64hfb",
+                "name": "respostaCorreta",
+                "type": "json",
+                "required": true
+            },
+            {
+                "id": "f5k6cwqu",
+                "name": "explicacao",
+                "type": "text"
+            },
+            {
+                "id": "q0g0udgt",
+                "name": "tags",
+                "type": "json"
+            },
+            {
+                "id": "9gq8wlnx",
+                "name": "version",
+                "type": "number",
+                "required": true
+            },
+            {
+                "id": "d0n8k3lq",
+                "name": "isActive",
+                "type": "bool"
+            },
+            {
+                "id": "4gczwz9j",
+                "name": "hashConteudo",
+                "type": "text",
+                "required": true
+            },
+            {
+                "id": "relation853048275",
+                "name": "disciplinaId",
+                "type": "relation",
+                "required": true,
+                "options": {
+                    "collectionId": "disciplinas_abcde1",
+                    "cascadeDelete": false,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": []
+                }
+            },
+            {
+                "id": "relation2931482895",
+                "name": "topicoId",
+                "type": "relation",
+                "required": true,
+                "options": {
+                    "collectionId": "topicos_abcde1",
+                    "cascadeDelete": false,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": []
+                }
+            },
+            {
+                "id": "relation2375276105",
+                "name": "user",
+                "type": "relation",
+                "required": true,
+                "options": {
+                    "collectionId": "_pb_users_auth_",
+                    "cascadeDelete": false,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": []
+                }
+            }
+        ]
+    },
+    {
+        "id": "simulados_abcde1",
+        "name": "simulados",
+        "type": "base",
+        "system": false,
+        "listRule": "user = @request.auth.id",
+        "viewRule": "user = @request.auth.id",
+        "createRule": "user = @request.auth.id",
+        "updateRule": "user = @request.auth.id",
+        "deleteRule": "user = @request.auth.id",
+        "schema": [
+            { "id": "gqg3t1yq", "name": "nome", "type": "text", "required": true, "presentable": true },
+            { "id": "7vwnp0je", "name": "descricao", "type": "text" },
+            {
+                "id": "select986616355",
+                "name": "dificuldade",
+                "type": "select",
+                "options": {
+                    "maxSelect": 1,
+                    "values": [ "aleatorio", "facil", "dificil" ]
+                }
+            },
+            {
+                "id": "select2063623452",
+                "name": "status",
+                "type": "select",
+                "options": {
+                    "maxSelect": 1,
+                    "values": [ "rascunho", "andamento", "concluido" ]
+                }
+            },
+            { "id": "f5k6cwqu", "name": "criadoEm", "type": "date", "required": true },
+            { "id": "f5k6cwqv", "name": "finalizadoEm", "type": "date" },
+            { "id": "w3f5wct5", "name": "questoes", "type": "json" },
+            {
+                "id": "relation2375276105",
+                "name": "user",
+                "type": "relation",
+                "required": true,
+                "options": {
+                    "collectionId": "_pb_users_auth_",
+                    "cascadeDelete": false,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": []
+                }
+            }
+        ]
+    },
+    {
+        "id": "respostas_abcde1",
+        "name": "respostas",
+        "type": "base",
+        "system": false,
+        "listRule": "user = @request.auth.id",
+        "viewRule": "user = @request.auth.id",
+        "createRule": "user = @request.auth.id",
+        "updateRule": "user = @request.auth.id",
+        "deleteRule": "user = @request.auth.id",
+        "schema": [
+            { "id": "d0n8k3lq", "name": "acertou", "type": "bool", "required": true },
+            { "id": "g0d64hfb", "name": "respostaUsuario", "type": "json", "required": true },
+            {
+                "id": "select2929511165",
+                "name": "confianca",
+                "type": "select",
+                "options": {
+                    "maxSelect": 1,
+                    "values": [ "certeza", "duvida", "chute" ]
+                }
+            },
+            { "id": "jph7t0b7", "name": "tempoSegundos", "type": "number", "required": true },
+            { "id": "f5k6cwqu", "name": "respondedAt", "type": "date", "required": true },
+            {
+                "id": "relation377375640",
+                "name": "questaoId",
+                "type": "relation",
+                "required": true,
+                "options": {
+                    "collectionId": "questoes_abcde1",
+                    "maxSelect": 1
+                }
+            },
+            {
+                "id": "relation3158640492",
+                "name": "simuladoId",
+                "type": "relation",
+                "options": {
+                    "collectionId": "simulados_abcde1",
+                    "maxSelect": 1
+                }
+            },
+            {
+                "id": "relation2375276105",
+                "name": "user",
+                "type": "relation",
+                "options": {
+                    "collectionId": "_pb_users_auth_",
+                    "maxSelect": 1
+                }
+            }
+        ]
+    },
+    {
+        "id": "revisoes_abcde1",
+        "name": "revisoes",
+        "type": "base",
+        "system": false,
+        "listRule": "user = @request.auth.id",
+        "viewRule": "user = @request.auth.id",
+        "createRule": "user = @request.auth.id",
+        "updateRule": "user = @request.auth.id",
+        "deleteRule": "user = @request.auth.id",
+        "schema": [
+            { "id": "jph7t0b7", "name": "bucket", "type": "number", "required": true },
+            { "id": "w3f5wct5", "name": "proximaRevisao", "type": "date", "required": true },
+            {
+                "id": "relation377375640",
+                "name": "questaoId",
+                "type": "relation",
+                "required": true,
+                "options": {
+                    "collectionId": "questoes_abcde1",
+                    "maxSelect": 1
+                }
+            },
+            {
+                "id": "relation2375276105",
+                "name": "user",
+                "type": "relation",
+                "required": true,
+                "options": {
+                    "collectionId": "_pb_users_auth_",
+                    "maxSelect": 1
+                }
+            }
+        ]
+    },
+    {
+        "id": "stats_abcde1",
+        "name": "stats",
+        "type": "base",
+        "system": false,
+        "listRule": "user = @request.auth.id",
+        "viewRule": "user = @request.auth.id",
+        "createRule": "user = @request.auth.id",
+        "updateRule": "user = @request.auth.id",
+        "deleteRule": "user = @request.auth.id",
+        "schema": [
+            { "id": "f5k6cwqu", "name": "data", "type": "date", "required": true, "presentable": true },
+            { "id": "jph7t0b7", "name": "totalQuestoes", "type": "number", "required": true },
+            { "id": "bcfu7pqs", "name": "acertos", "type": "number", "required": true },
+            { "id": "a5yuyk5g", "name": "erros", "type": "number", "required": true },
+            { "id": "yecxmm3d", "name": "tempoMedio", "type": "number", "required": true },
+            {
+                "id": "relation2375276105",
+                "name": "user",
+                "type": "relation",
+                "required": true,
+                "options": {
+                    "collectionId": "_pb_users_auth_",
+                    "maxSelect": 1
+                }
+            }
+        ]
     }
 ]
+
+    
