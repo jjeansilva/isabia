@@ -295,12 +295,14 @@ class PocketBaseDataSource implements IDataSource {
   async gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado> {
       let combinedQuestoes: Questao[] = [];
       let totalQuestoesPedidas = 0;
+      const userFilter = `user = "${this.pb.authStore.model?.id}"`;
+
 
       for(const criteria of formValues.criterios) {
         const filterParts: string[] = [];
         filterParts.push(`isActive=true`);
         filterParts.push(`disciplinaId="${criteria.disciplinaId}"`);
-        filterParts.push(`user = @request.auth.id`);
+        filterParts.push(userFilter);
         
         if (criteria.topicoId && criteria.topicoId !== 'all') {
           filterParts.push(`topicoId="${criteria.topicoId}"`);
@@ -348,15 +350,15 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async getDashboardStats(): Promise<any> {
-    const userFilter = { filter: 'user = @request.auth.id' };
+    const userFilter = `user = "${this.pb.authStore.model?.id}"`;
 
     const [statsDia, simulados, questoes, respostas, revisao, allDisciplinas] = await Promise.all([
-        this.list('stats', userFilter),
-        this.list<Simulado>('simulados', userFilter),
-        this.list<Questao>('questoes', userFilter),
-        this.list('respostas', userFilter),
-        this.list<Revisao>('revisoes', userFilter),
-        this.list<Disciplina>('disciplinas', userFilter)
+        this.list('stats', { filter: userFilter }),
+        this.list<Simulado>('simulados', { filter: userFilter }),
+        this.list<Questao>('questoes', { filter: userFilter }),
+        this.list('respostas', { filter: userFilter }),
+        this.list<Revisao>('revisoes', { filter: userFilter }),
+        this.list<Disciplina>('disciplinas', { filter: userFilter })
     ]);
     
     const totalAcertos = respostas.filter((r: any) => r.acertou).length;
@@ -386,23 +388,26 @@ class PocketBaseDataSource implements IDataSource {
 
   async getQuestoesParaRevisar(): Promise<Questao[]> {
     const hoje = new Date().toISOString().split('T')[0];
+    const userFilter = `user = "${this.pb.authStore.model?.id}"`;
     const revisoesHoje = await this.list<Revisao>('revisoes',{
-        filter: `proximaRevisao <= "${hoje}" && user = @request.auth.id`
+        filter: `proximaRevisao <= "${hoje}" && ${userFilter}`
     });
     const revisoesHojeIds = revisoesHoje.map(r => r.questaoId);
 
     if (revisoesHojeIds.length === 0) return [];
     
-    const filterString = revisoesHojeIds.map(id => `id="${id}"`).join(" || ");
-    const questoes = await this.list<Questao>('questoes', { filter: `(${filterString}) && user = @request.auth.id` });
+    const idFilter = revisoesHojeIds.map(id => `id="${id}"`).join(" || ");
+    const questoes = await this.list<Questao>('questoes', { filter: `(${idFilter}) && ${userFilter}` });
     
     return questoes;
   }
 
   async registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> {
     let revisao: Revisao | undefined;
+    const userFilter = `user = "${this.pb.authStore.model?.id}"`;
+
     try {
-        revisao = await this.pb.collection('revisoes').getFirstListItem<Revisao>(`questaoId="${questaoId}" && user = @request.auth.id`);
+        revisao = await this.pb.collection('revisoes').getFirstListItem<Revisao>(`questaoId="${questaoId}" && ${userFilter}`);
     } catch (e) {
         // Not found, will create new one
     }
@@ -436,6 +441,9 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem): Promise<number> {
+    if (!this.pb.authStore.model?.id) throw new Error("Usuário não autenticado.");
+    const userId = this.pb.authStore.model.id;
+
     const lines = csvData.trim().split('\n');
     const headerLine = lines.shift()?.trim().replace(/"/g, '');
     
@@ -476,7 +484,7 @@ class PocketBaseDataSource implements IDataSource {
         let disciplina = disciplinasCache[disciplinaNome];
         if (!disciplina) {
             try {
-                const filter = `nome="${disciplinaNome}" && user = @request.auth.id`;
+                const filter = `nome="${disciplinaNome}" && user = "${userId}"`;
                 disciplina = await this.pb.collection('disciplinas').getFirstListItem<Disciplina>(filter);
             } catch(e) {
                 if ((e as any)?.status === 404) {
@@ -493,7 +501,7 @@ class PocketBaseDataSource implements IDataSource {
         let topico = topicosCache[cacheKey];
         if (!topico) {
             try {
-                const filter = `nome="${topicoNome}" AND disciplinaId="${disciplina.id}" && user = @request.auth.id`;
+                const filter = `nome="${topicoNome}" AND disciplinaId="${disciplina.id}" && user = "${userId}"`;
                 topico = await this.pb.collection('topicos').getFirstListItem<Topico>(filter);
             } catch(e) {
                  if ((e as any)?.status === 404) {
