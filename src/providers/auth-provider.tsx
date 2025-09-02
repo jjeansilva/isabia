@@ -6,7 +6,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { IDataSource, PocketBaseDataSource, MockDataSource } from '@/lib/data-adapter';
 import PocketBase from 'pocketbase';
 import { seedLocalStorage } from '@/lib/seed';
-import { DataProvider } from './data-provider';
 
 interface AuthContextType {
   user: any; 
@@ -14,10 +13,10 @@ interface AuthContextType {
   logout: () => void;
   signup: (email:string, pass:string, passConfirm:string, name:string) => Promise<any>;
   isLoading: boolean;
+  dataSource: IDataSource;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 const PUBLIC_ROUTES = ['/login', '/signup'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -50,9 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model);
     }, true);
-
+    
     // Initial check
-    setUser(pb.authStore.model);
+    if (pb.authStore.isValid) {
+        setUser(pb.authStore.model);
+    }
     setIsLoading(false);
 
     return () => {
@@ -82,6 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email:string, pass:string) => {
     const authData = await pb.collection('users').authWithPassword(email, pass);
+    if (dataSource && 'pb' in dataSource) {
+        (dataSource.pb as any).authStore.loadFromCookie(pb.authStore.exportToCookie());
+    }
     return authData;
   };
 
@@ -106,13 +110,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
      return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
   
-  const value = { user, login, logout, signup, isLoading };
+  const value = { user, login, logout, signup, isLoading, dataSource };
   
   return (
     <AuthContext.Provider value={value}>
-      <DataProvider dataSource={dataSource}>
         {children}
-      </DataProvider>
     </AuthContext.Provider>
   );
 }
@@ -123,4 +125,12 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+export function useData(): IDataSource {
+  const context = useContext(AuthContext);
+  if (context === undefined || !context.dataSource) {
+    throw new Error('useData must be used within an AuthProvider and dataSource must be available');
+  }
+  return context.dataSource;
 }

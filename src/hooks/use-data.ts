@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useContext } from 'react';
-import { DataContext } from '@/providers/data-provider';
+import { useAuth } from '@/providers/auth-provider';
 import { IDataSource } from '@/lib/data-adapter';
 
 export function useData(): IDataSource {
-  const context = useContext(DataContext);
-  if (context === undefined) {
-    throw new Error('useData must be used within a DataProvider');
+  const { dataSource } = useAuth();
+  if (!dataSource) {
+      // This should technically not happen if useAuth is used within AuthProvider
+      throw new Error('DataSource not found in AuthContext');
   }
-  return context;
+  return dataSource;
 }
