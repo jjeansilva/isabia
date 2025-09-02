@@ -64,7 +64,7 @@ export function TopicoForm({ open, onOpenChange, disciplina, topico, topicoPai }
 
   const { data: topicosDaDisciplina } = useQuery({
       queryKey: ['topicos', disciplina.id],
-      queryFn: () => dataSource.list<Topico>('isabia_topicos', { filter: `disciplinaId = "${disciplina.id}" && topicoPaiId = ""` }),
+      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}" && topicoPaiId = ""` }),
       enabled: open, // only fetch when dialog is open
   });
 
@@ -75,8 +75,8 @@ export function TopicoForm({ open, onOpenChange, disciplina, topico, topicoPai }
           dataToSave.topicoPaiId = "";
       }
       return topico
-        ? dataSource.update("isabia_topicos", topico.id, dataToSave)
-        : dataSource.create("isabia_topicos", dataToSave);
+        ? dataSource.update("topicos", topico.id, dataToSave)
+        : dataSource.create("topicos", dataToSave);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["topicos", disciplina.id] });

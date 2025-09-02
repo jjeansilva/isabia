@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -141,7 +142,7 @@ export default function SimuladoExecutionPage() {
 
     const { data: simulado, isLoading: isLoadingSimulado } = useQuery({
         queryKey: ['simulado', id],
-        queryFn: () => dataSource.get<Simulado>('isabia_simulados', id),
+        queryFn: () => dataSource.get<Simulado>('simulados', id),
         onSuccess: (data) => {
           if (data && data.status === 'rascunho') {
               // Start the exam
@@ -156,12 +157,12 @@ export default function SimuladoExecutionPage() {
 
     const { data: questao, isLoading: isLoadingQuestao } = useQuery({
         queryKey: ['questao', currentSimuladoQuestao?.questaoId],
-        queryFn: () => dataSource.get<Questao>('isabia_questoes', currentSimuladoQuestao!.questaoId),
+        queryFn: () => dataSource.get<Questao>('questoes', currentSimuladoQuestao!.questaoId),
         enabled: !!currentSimuladoQuestao,
     });
     
     const mutation = useMutation({
-        mutationFn: (data: Partial<Simulado>) => dataSource.update<Simulado>('isabia_simulados', id, data),
+        mutationFn: (data: Partial<Simulado>) => dataSource.update<Simulado>('simulados', id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['simulado', id] });
         }

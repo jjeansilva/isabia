@@ -108,4 +108,4 @@ export interface StatsDia {
   user: string;
 }
 
-export type CollectionName = 'users' | 'isabia_disciplinas' | 'isabia_topicos' | 'isabia_questoes' | 'isabia_simulados' | 'isabia_respostas' | 'isabia_revisao' | 'isabia_stats';
+export type CollectionName = 'users' | 'disciplinas' | 'topicos' | 'questoes' | 'simulados' | 'respostas' | 'revisoes' | 'stats';

@@ -65,7 +65,7 @@
     },
     {
         "id": "revisoes_abcde1",
-        "name": "isabia_revisao",
+        "name": "revisoes",
         "type": "base",
         "system": false,
         "schema": [
@@ -130,16 +130,16 @@
             }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id",
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
         "options": {}
     },
     {
         "id": "disciplinas_abcde1",
-        "name": "isabia_disciplinas",
+        "name": "disciplinas",
         "type": "base",
         "system": false,
         "schema": [
@@ -217,16 +217,16 @@
             }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id",
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
         "options": {}
     },
     {
         "id": "questoes_abcde1",
-        "name": "isabia_questoes",
+        "name": "questoes",
         "type": "base",
         "system": false,
         "schema": [
@@ -434,16 +434,16 @@
             }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id",
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
         "options": {}
     },
     {
         "id": "simulados_abcde1",
-        "name": "isabia_simulados",
+        "name": "simulados",
         "type": "base",
         "system": false,
         "schema": [
@@ -565,16 +565,16 @@
             }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id",
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
         "options": {}
     },
     {
         "id": "respostas_abcde1",
-        "name": "isabia_respostas",
+        "name": "respostas",
         "type": "base",
         "system": false,
         "schema": [
@@ -694,16 +694,16 @@
             }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id",
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
         "options": {}
     },
     {
         "id": "topicos_abcde1",
-        "name": "isabia_topicos",
+        "name": "topicos",
         "type": "base",
         "system": false,
         "schema": [
@@ -771,16 +771,16 @@
             }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id",
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
         "options": {}
     },
     {
         "id": "stats_abcde1",
-        "name": "isabia_stats",
+        "name": "stats",
         "type": "base",
         "system": false,
         "schema": [
@@ -871,11 +871,11 @@
             }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id",
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
         "options": {}
     }
 ]

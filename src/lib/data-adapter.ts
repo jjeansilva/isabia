@@ -93,7 +93,7 @@ class MockDataSource implements IDataSource {
   }
   
   async gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado> {
-      let allQuestoes = getFromStorage<Questao>('isabia_questoes');
+      let allQuestoes = getFromStorage<Questao>('questoes');
       
       let filtered = allQuestoes.filter(q => q.isActive && q.disciplinaId === criteria.disciplinaId);
       
@@ -129,19 +129,19 @@ class MockDataSource implements IDataSource {
           })),
       };
 
-      const createdSimulado = await this.create<Simulado>('isabia_simulados', novoSimulado as any);
+      const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
       
       createdSimulado.questoes.forEach(q => q.simuladoId = createdSimulado.id);
       
-      return await this.update<Simulado>('isabia_simulados', createdSimulado.id, { questoes: createdSimulado.questoes });
+      return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: createdSimulado.questoes });
   }
 
   async getDashboardStats(): Promise<any> {
-    const statsDia = await this.list('isabia_stats');
-    const simulados = await this.list<Simulado>('isabia_simulados');
-    const questoes = await this.list<Questao>('isabia_questoes');
-    const respostas = await this.list('isabia_respostas');
-    const revisao = await this.list<Revisao>('isabia_revisao');
+    const statsDia = await this.list('stats');
+    const simulados = await this.list<Simulado>('simulados');
+    const questoes = await this.list<Questao>('questoes');
+    const respostas = await this.list('respostas');
+    const revisao = await this.list<Revisao>('revisoes');
 
     const totalAcertos = respostas.filter((r: any) => r.acertou).length;
     const acertoGeral = respostas.length > 0 ? (totalAcertos / respostas.length) * 100 : 0;
@@ -149,7 +149,7 @@ class MockDataSource implements IDataSource {
     const simuladoEmAndamento = simulados.find(s => s.status === 'andamento');
     const questoesParaRevisarHoje = revisao.filter((r: any) => new Date(r.proximaRevisao) <= new Date()).length;
 
-    const allDisciplinas = await this.list<Disciplina>('isabia_disciplinas');
+    const allDisciplinas = await this.list<Disciplina>('disciplinas');
     const distribution = allDisciplinas.map(d => {
         const total = questoes.filter(q => q.disciplinaId === d.id).length;
         return { name: d.nome, total };
@@ -170,21 +170,21 @@ class MockDataSource implements IDataSource {
   }
 
   async getQuestoesParaRevisar(): Promise<Questao[]> {
-    const revisoes = getFromStorage<Revisao>('isabia_revisao');
+    const revisoes = getFromStorage<Revisao>('revisoes');
     const hoje = new Date();
     const revisoesHojeIds = revisoes
         .filter(r => new Date(r.proximaRevisao) <= hoje)
         .map(r => r.questaoId);
 
-    const todasQuestoes = getFromStorage<Questao>('isabia_questoes');
+    const todasQuestoes = getFromStorage<Questao>('questoes');
     const questoesParaRevisar = todasQuestoes.filter(q => revisoesHojeIds.includes(q.id));
     
     return Promise.resolve(questoesParaRevisar);
   }
 
   async registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> {
-    const revisoes = getFromStorage<Revisao>('isabia_revisao');
-    const questoes = getFromStorage<Questao>('isabia_questoes');
+    const revisoes = getFromStorage<Revisao>('revisoes');
+    const questoes = getFromStorage<Questao>('questoes');
     const questao = questoes.find(q => q.id === questaoId);
     if(!questao) throw new Error("Questão não encontrada para registrar revisão.");
     
@@ -219,7 +219,7 @@ class MockDataSource implements IDataSource {
       revisoes.push(revisao as any);
     }
     
-    saveToStorage('isabia_revisao', revisoes);
+    saveToStorage('revisoes', revisoes);
     return Promise.resolve();
   }
 }
@@ -303,7 +303,7 @@ class PocketBaseDataSource implements IDataSource {
     }
     
     const filterString = filterParts.join(" && ");
-    const allQuestoes = await this.pb.collection('isabia_questoes').getFullList<Questao>({ filter: filterString });
+    const allQuestoes = await this.pb.collection('questoes').getFullList<Questao>({ filter: filterString });
 
     const shuffled = allQuestoes.sort(() => 0.5 - Math.random());
     const selectedQuestoes = shuffled.slice(0, criteria.quantidade);
@@ -325,19 +325,19 @@ class PocketBaseDataSource implements IDataSource {
         })),
     };
 
-    const createdSimulado = await this.create<Simulado>('isabia_simulados', novoSimulado as any);
+    const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
       
     createdSimulado.questoes.forEach(q => q.simuladoId = createdSimulado.id);
       
-    return await this.update<Simulado>('isabia_simulados', createdSimulado.id, { questoes: createdSimulado.questoes });
+    return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: createdSimulado.questoes });
   }
 
   async getDashboardStats(): Promise<any> {
-    const statsDia = await this.list('isabia_stats');
-    const simulados = await this.list<Simulado>('isabia_simulados');
-    const questoes = await this.list<Questao>('isabia_questoes');
-    const respostas = await this.list('isabia_respostas');
-    const revisao = await this.list<Revisao>('isabia_revisao');
+    const statsDia = await this.list('stats');
+    const simulados = await this.list<Simulado>('simulados');
+    const questoes = await this.list<Questao>('questoes');
+    const respostas = await this.list('respostas');
+    const revisao = await this.list<Revisao>('revisoes');
 
     const totalAcertos = respostas.filter((r: any) => r.acertou).length;
     const acertoGeral = respostas.length > 0 ? (totalAcertos / respostas.length) * 100 : 0;
@@ -345,7 +345,7 @@ class PocketBaseDataSource implements IDataSource {
     const simuladoEmAndamento = simulados.find(s => s.status === 'andamento');
     const questoesParaRevisarHoje = revisao.filter((r: any) => new Date(r.proximaRevisao) <= new Date()).length;
 
-    const allDisciplinas = await this.list<Disciplina>('isabia_disciplinas');
+    const allDisciplinas = await this.list<Disciplina>('disciplinas');
     const distribution = allDisciplinas.map(d => {
         const total = questoes.filter(q => q.disciplinaId === d.id).length;
         return { name: d.nome, total };
@@ -367,7 +367,7 @@ class PocketBaseDataSource implements IDataSource {
 
   async getQuestoesParaRevisar(): Promise<Questao[]> {
     const hoje = new Date().toISOString().split('T')[0];
-    const revisoesHoje = await this.pb.collection('isabia_revisao').getFullList<Revisao>({
+    const revisoesHoje = await this.pb.collection('revisoes').getFullList<Revisao>({
         filter: `proximaRevisao <= "${hoje}"`
     });
     const revisoesHojeIds = revisoesHoje.map(r => r.questaoId);
@@ -375,7 +375,7 @@ class PocketBaseDataSource implements IDataSource {
     if (revisoesHojeIds.length === 0) return [];
     
     const filterString = revisoesHojeIds.map(id => `id="${id}"`).join(" || ");
-    const questoes = await this.pb.collection('isabia_questoes').getFullList<Questao>({ filter: filterString });
+    const questoes = await this.pb.collection('questoes').getFullList<Questao>({ filter: filterString });
     
     return questoes;
   }
@@ -383,7 +383,7 @@ class PocketBaseDataSource implements IDataSource {
   async registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> {
     let revisao: Revisao | undefined;
     try {
-        revisao = await this.pb.collection('isabia_revisao').getFirstListItem<Revisao>(`questaoId="${questaoId}"`);
+        revisao = await this.pb.collection('revisoes').getFirstListItem<Revisao>(`questaoId="${questaoId}"`);
     } catch (e) {
         // Not found, will create new one
     }
@@ -403,7 +403,7 @@ class PocketBaseDataSource implements IDataSource {
       }
       const diasParaAdicionar = intervalos[performance][revisao.bucket];
       revisao.proximaRevisao = new Date(new Date().setDate(now.getDate() + diasParaAdicionar)).toISOString();
-      await this.update('isabia_revisao', revisao.id, { bucket: revisao.bucket, proximaRevisao: revisao.proximaRevisao });
+      await this.update('revisoes', revisao.id, { bucket: revisao.bucket, proximaRevisao: revisao.proximaRevisao });
     } else {
       const bucket = performance === 'dificil' ? 0 : 1;
       const diasParaAdicionar = intervalos[performance][bucket];
@@ -412,7 +412,7 @@ class PocketBaseDataSource implements IDataSource {
         bucket: bucket,
         proximaRevisao: new Date(new Date().setDate(now.getDate() + diasParaAdicionar)).toISOString(),
       };
-      await this.create('isabia_revisao', novaRevisao as any);
+      await this.create('revisoes', novaRevisao as any);
     }
   }
 
@@ -459,10 +459,10 @@ class PocketBaseDataSource implements IDataSource {
         let disciplina = disciplinasCache[disciplinaNome];
         if (!disciplina) {
             try {
-                disciplina = await this.pb.collection('isabia_disciplinas').getFirstListItem<Disciplina>(`nome="${disciplinaNome}"`);
+                disciplina = await this.pb.collection('disciplinas').getFirstListItem<Disciplina>(`nome="${disciplinaNome}"`);
             } catch(e) {
                 if ((e as any)?.status === 404) {
-                    disciplina = await this.create<Disciplina>('isabia_disciplinas', { nome: disciplinaNome } as any);
+                    disciplina = await this.create<Disciplina>('disciplinas', { nome: disciplinaNome } as any);
                 } else {
                     throw e; // Rethrow other errors
                 }
@@ -475,10 +475,10 @@ class PocketBaseDataSource implements IDataSource {
         let topico = topicosCache[cacheKey];
         if (!topico) {
             try {
-                topico = await this.pb.collection('isabia_topicos').getFirstListItem<Topico>(`nome="${topicoNome}" AND disciplinaId="${disciplina.id}"`);
+                topico = await this.pb.collection('topicos').getFirstListItem<Topico>(`nome="${topicoNome}" AND disciplinaId="${disciplina.id}"`);
             } catch(e) {
                  if ((e as any)?.status === 404) {
-                    topico = await this.create<Topico>('isabia_topicos', { nome: topicoNome, disciplinaId: disciplina.id } as any);
+                    topico = await this.create<Topico>('topicos', { nome: topicoNome, disciplinaId: disciplina.id } as any);
                  } else {
                     throw e; // Rethrow other errors
                  }
@@ -516,7 +516,7 @@ class PocketBaseDataSource implements IDataSource {
     }
     
     if (questoesToCreate.length > 0) {
-      await this.bulkCreate('isabia_questoes', questoesToCreate);
+      await this.bulkCreate('questoes', questoesToCreate);
     }
 
     return questoesToCreate.length;

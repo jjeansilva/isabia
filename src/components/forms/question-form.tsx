@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -81,12 +82,12 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
     name: "alternativas",
   });
   
-  const { data: disciplinas } = useQuery({ queryKey: ['disciplinas'], queryFn: () => dataSource.list('isabia_disciplinas') });
+  const { data: disciplinas } = useQuery({ queryKey: ['disciplinas'], queryFn: () => dataSource.list('disciplinas') });
   
   const selectedDisciplinaId = form.watch("disciplinaId");
   const { data: topicos } = useQuery({ 
       queryKey: ['topicos', selectedDisciplinaId], 
-      queryFn: () => dataSource.list<Topico>('isabia_topicos', { disciplinaId: selectedDisciplinaId }),
+      queryFn: () => dataSource.list<Topico>('topicos', { disciplinaId: selectedDisciplinaId }),
       enabled: !!selectedDisciplinaId, // Only fetch if disciplina is selected
   });
 
@@ -101,8 +102,8 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
         hashConteudo: 'temp-hash'
       };
       return questao
-        ? dataSource.update('isabia_questoes', questao.id, finalData as Partial<Questao>)
-        : dataSource.create('isabia_questoes', finalData as any);
+        ? dataSource.update('questoes', questao.id, finalData as Partial<Questao>)
+        : dataSource.create('questoes', finalData as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['questoes'] });

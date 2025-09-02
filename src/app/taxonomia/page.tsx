@@ -98,7 +98,7 @@ function DisciplinaAccordionItem({
   const dataSource = useData();
   const { data: allTopicos, isLoading } = useQuery({
       queryKey: ['topicos', disciplina.id],
-      queryFn: () => dataSource.list<Topico>('isabia_topicos', { filter: `disciplinaId = "${disciplina.id}"`, sort: 'ordem' }),
+      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}"`, sort: 'ordem' }),
   });
 
   const topicosPrincipais = allTopicos?.filter(t => !t.topicoPaiId) || [];
@@ -182,7 +182,7 @@ export default function TaxonomiaPage() {
 
   const { data: disciplinas, isLoading } = useQuery({
     queryKey: ["disciplinas"],
-    queryFn: () => dataSource.list<Disciplina>("isabia_disciplinas"),
+    queryFn: () => dataSource.list<Disciplina>("disciplinas"),
   });
   
   const handleNewDisciplina = () => {
@@ -217,7 +217,7 @@ export default function TaxonomiaPage() {
   }
 
   const deleteDisciplinaMutation = useMutation({
-      mutationFn: (disciplinaId: string) => dataSource.delete('isabia_disciplinas', disciplinaId),
+      mutationFn: (disciplinaId: string) => dataSource.delete('disciplinas', disciplinaId),
       onSuccess: () => {
           toast({ title: "Disciplina Excluída!", description: "A disciplina e todos os seus dados foram removidos." });
           queryClient.invalidateQueries({ queryKey: ["disciplinas"] });
@@ -229,7 +229,7 @@ export default function TaxonomiaPage() {
   });
 
   const deleteTopicoMutation = useMutation({
-    mutationFn: (topicoId: string) => dataSource.delete('isabia_topicos', topicoId),
+    mutationFn: (topicoId: string) => dataSource.delete('topicos', topicoId),
     onSuccess: (_, topicoId) => {
       toast({ title: "Tópico Excluído!", description: "O tópico foi removido com sucesso." });
       queryClient.invalidateQueries({ queryKey: ["topicos"] });

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
@@ -57,7 +58,7 @@ export default function SimuladosPage() {
   const dataSource = useData();
   const { data: simulados, isLoading } = useQuery({
     queryKey: ["simulados"],
-    queryFn: () => dataSource.list<Simulado>("isabia_simulados"),
+    queryFn: () => dataSource.list<Simulado>("simulados"),
   });
 
   return (

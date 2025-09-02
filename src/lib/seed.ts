@@ -118,7 +118,7 @@ export async function seedPocketBase(dataSource: IDataSource) {
     
     // Seed Disciplinas
     console.log("Seeding disciplinas...");
-    const createdDisciplinas = await dataSource.bulkCreate<Omit<Disciplina, 'id' | 'createdAt' | 'updatedAt'| 'user'>>('isabia_disciplinas', disciplinas);
+    const createdDisciplinas = await dataSource.bulkCreate<Omit<Disciplina, 'id' | 'createdAt' | 'updatedAt'| 'user'>>('disciplinas', disciplinas);
     
     // Map names to IDs for relation
     const disciplinaMap = createdDisciplinas.reduce((acc, d) => {
@@ -132,7 +132,7 @@ export async function seedPocketBase(dataSource: IDataSource) {
         ...t,
         disciplinaId: disciplinaMap[t.disciplina],
     }));
-    const createdTopicos = await dataSource.bulkCreate('isabia_topicos', topicosToCreate);
+    const createdTopicos = await dataSource.bulkCreate('topicos', topicosToCreate);
 
     const topicoMap = createdTopicos.reduce((acc, t) => {
         const key = `${t.disciplinaId}-${t.nome}`;
@@ -147,11 +147,11 @@ export async function seedPocketBase(dataSource: IDataSource) {
       const topicoId = topicoMap[`${disciplinaId}-${q.topico}`];
       return { ...q, disciplinaId, topicoId };
     });
-    await dataSource.bulkCreate('isabia_questoes', questoesToCreate);
+    await dataSource.bulkCreate('questoes', questoesToCreate);
 
     // Seed Stats
     console.log("Seeding stats...");
-    await dataSource.bulkCreate('isabia_stats', stats);
+    await dataSource.bulkCreate('stats', stats);
 
     console.log("Seeding finished.");
 }
@@ -194,13 +194,13 @@ export function seedLocalStorage() {
     const seededStats: StatsDia[] = rawData.stats.map(s => ({...s, id: uuidv4(), user }));
 
 
-    localStorage.setItem('isab_isabia_disciplinas', JSON.stringify(seededDisciplinas));
-    localStorage.setItem('isab_isabia_topicos', JSON.stringify(seededTopicos));
-    localStorage.setItem('isab_isabia_questoes', JSON.stringify(seededQuestoes));
-    localStorage.setItem('isab_isabia_simulados', JSON.stringify([]));
-    localStorage.setItem('isab_isabia_respostas', JSON.stringify([]));
-    localStorage.setItem('isab_isabia_revisao', JSON.stringify([]));
-    localStorage.setItem('isab_isabia_stats', JSON.stringify(seededStats));
+    localStorage.setItem('isab_disciplinas', JSON.stringify(seededDisciplinas));
+    localStorage.setItem('isab_topicos', JSON.stringify(seededTopicos));
+    localStorage.setItem('isab_questoes', JSON.stringify(seededQuestoes));
+    localStorage.setItem('isab_simulados', JSON.stringify([]));
+    localStorage.setItem('isab_respostas', JSON.stringify([]));
+    localStorage.setItem('isab_revisoes', JSON.stringify([]));
+    localStorage.setItem('isab_stats', JSON.stringify(seededStats));
     localStorage.setItem('isab_seeded', 'true');
   }
 }
