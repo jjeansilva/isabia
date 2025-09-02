@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       seedLocalStorage();
       const dsInstance = new MockDataSource();
+      // Provide a mock pb object for type consistency if needed, but it won't be used.
       return { pb: null as any, dataSource: dsInstance };
     }
   }, [usePocketBase]);
@@ -46,16 +47,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // This handles auth changes, including login, logout, and token refresh.
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model);
-    }, true);
+        // Important: Ensure the dataSource's pb instance is always current with the auth state
+        if (dataSource instanceof PocketBaseDataSource) {
+            dataSource.pb.authStore.loadFromCookie(pb.authStore.exportToCookie());
+        }
+        setIsLoading(false); // Stop loading once we have an auth state.
+    }, true); // `true` calls the callback immediately with the initial state.
     
-    // Initial check
-    if (pb.authStore.isValid) {
-        setUser(pb.authStore.model);
-    }
-    setIsLoading(false);
-
     return () => {
       unsubscribe();
     };
@@ -66,13 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isLoading) return;
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-    
-    let isAuthenticated = false;
-    if(usePocketBase) {
-        isAuthenticated = pb.authStore.isValid;
-    } else {
-        isAuthenticated = !!user;
-    }
+    const isAuthenticated = usePocketBase ? pb.authStore.isValid : !!user;
     
     if (!isAuthenticated && !isPublicRoute) {
       router.push('/login');
@@ -82,11 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pathname, router, user, isLoading, usePocketBase, pb?.authStore?.isValid]);
 
   const login = async (email:string, pass:string) => {
-    const authData = await pb.collection('users').authWithPassword(email, pass);
-    if (dataSource && 'pb' in dataSource) {
-        (dataSource.pb as any).authStore.loadFromCookie(pb.authStore.exportToCookie());
-    }
-    return authData;
+    // The pb.authStore.onChange will handle setting the user and updating the datasource
+    return await pb.collection('users').authWithPassword(email, pass);
   };
 
   const signup = async (email:string, pass:string, passConfirm:string, name:string) => {
@@ -101,13 +93,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     if (usePocketBase) {
         pb.authStore.clear();
-    } else {
-        setUser(null);
     }
+    // For mock, setting user to null will trigger redirect logic
+    setUser(null); 
   };
   
-  if (isLoading) {
-     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  if (isLoading && !user) {
+     return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
   }
   
   const value = { user, login, logout, signup, isLoading, dataSource };
@@ -125,12 +117,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
-
-export function useData(): IDataSource {
-  const context = useContext(AuthContext);
-  if (context === undefined || !context.dataSource) {
-    throw new Error('useData must be used within an AuthProvider and dataSource must be available');
-  }
-  return context.dataSource;
 }
