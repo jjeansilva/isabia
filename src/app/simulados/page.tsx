@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Simulado, SimuladoStatus } from "@/types";
-import { PlusCircle, Play, CircleCheck, Eye } from "lucide-react";
+import { PlusCircle, Play, Eye } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function SimuladoCard({ simulado }: { simulado: Simulado }) {
@@ -44,7 +44,6 @@ function SimuladoCard({ simulado }: { simulado: Simulado }) {
       <CardContent>
         <div className="flex gap-4 text-sm text-muted-foreground">
             <span>{simulado.questoes.length > 0 ? `${simulado.questoes.length} questões` : 'Critérios a definir'}</span>
-            <Badge variant="outline">{simulado.dificuldade}</Badge>
         </div>
       </CardContent>
       <CardFooter>

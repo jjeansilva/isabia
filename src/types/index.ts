@@ -41,7 +41,7 @@ export interface Questao {
   dificuldade: QuestionDificuldade;
   origem: QuestionOrigem;
   enunciado: string;
-  alternativas?: string[];
+  alternativas?: string; // Stored as JSON string
   respostaCorreta: any;
   explicacao?: string;
   tags?: string[];
@@ -54,14 +54,21 @@ export interface Questao {
 }
 
 export type SimuladoStatus = 'rascunho' | 'andamento' | 'concluido';
-export type SimuladoDificuldade = 'aleatorio' | 'facil' | 'dificil';
+export type SimuladoDificuldade = 'aleatorio' | 'Fácil' | 'Médio' | 'Difícil';
+
+export interface CriterioSimulado {
+  disciplinaId: string;
+  topicoId?: string;
+  quantidade: number;
+  dificuldade: SimuladoDificuldade;
+}
 
 export interface Simulado {
   id: string;
   nome: string;
   descricao?: string;
-  dificuldade: SimuladoDificuldade;
   status: SimuladoStatus;
+  criterios: CriterioSimulado[]; // Changed from 'dificuldade'
   criadoEm: string;
   finalizadoEm?: string;
   questoes: SimuladoQuestao[];
@@ -110,5 +117,3 @@ export interface StatsDia {
 }
 
 export type CollectionName = 'users' | 'disciplinas' | 'topicos' | 'questoes' | 'simulados' | 'respostas' | 'revisoes' | 'stats';
-
-    

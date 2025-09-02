@@ -1,7 +1,8 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade } from '@/types';
+import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado } from '@/types';
 import PocketBase, { ListResult } from 'pocketbase';
+import { SimuladoFormValues } from '@/components/forms/simulado-form';
 
 // Helper to get/set data from localStorage
 const getFromStorage = <T>(key: string): T[] => {
@@ -24,7 +25,7 @@ export interface IDataSource {
   bulkCreateFromCsv?(csvData: string, tipo: QuestionTipo): Promise<number>;
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
-  gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado>;
+  gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado>;
   getDashboardStats(): Promise<any>;
   getQuestoesParaRevisar(): Promise<Questao[]>;
   registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void>;
@@ -94,36 +95,42 @@ class MockDataSource implements IDataSource {
     return Promise.resolve();
   }
   
-  async gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado> {
+  async gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado> {
       let allQuestoes = getFromStorage<Questao>('questoes');
+      let combinedQuestoes: Questao[] = [];
+      let totalQuestoesPedidas = 0;
+
+      for(const criteria of formValues.criterios) {
+        let filtered = allQuestoes.filter(q => q.isActive && q.disciplinaId === criteria.disciplinaId);
+        
+        if (criteria.topicoId && criteria.topicoId !== 'all') {
+          filtered = filtered.filter(q => q.topicoId === criteria.topicoId);
+        }
+
+        if (criteria.dificuldade !== 'aleatorio') {
+            filtered = filtered.filter(q => q.dificuldade === criteria.dificuldade);
+        }
+
+        const shuffled = filtered.sort(() => 0.5 - Math.random());
+        const selectedQuestoes = shuffled.slice(0, criteria.quantidade);
+        
+        totalQuestoesPedidas += criteria.quantidade;
+        combinedQuestoes.push(...selectedQuestoes);
+      }
       
-      let filtered = allQuestoes.filter(q => q.isActive && q.disciplinaId === criteria.disciplinaId);
-      
-      if (criteria.topicoId) {
-        filtered = filtered.filter(q => q.topicoId === criteria.topicoId);
+      if (combinedQuestoes.length < totalQuestoesPedidas) {
+          throw new Error(`Não foram encontradas questões suficientes para todos os critérios. Encontradas: ${combinedQuestoes.length}, Pedidas: ${totalQuestoesPedidas}`);
       }
 
-      if (criteria.dificuldade !== 'aleatorio') {
-          if (criteria.dificuldade === 'Fácil') {
-            filtered = filtered.filter(q => q.dificuldade === 'Fácil' || q.dificuldade === 'Médio');
-          } else { // dificil
-            filtered = filtered.filter(q => q.dificuldade === 'Médio' || q.dificuldade === 'Difícil');
-          }
-      }
+      const finalQuestoes = combinedQuestoes.sort(() => 0.5 - Math.random());
 
-      const shuffled = filtered.sort(() => 0.5 - Math.random());
-      const selectedQuestoes = shuffled.slice(0, criteria.quantidade);
-      
-      if (selectedQuestoes.length < criteria.quantidade) {
-          throw new Error(`Não foram encontradas questões suficientes para os critérios selecionados. Encontradas: ${selectedQuestoes.length}, Pedidas: ${criteria.quantidade}`);
-      }
 
       const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt' | 'user'> = {
-          nome: criteria.nome,
-          dificuldade: criteria.dificuldade,
+          nome: formValues.nome,
+          criterios: formValues.criterios,
           status: 'rascunho',
           criadoEm: new Date().toISOString(),
-          questoes: selectedQuestoes.map((q, index) => ({
+          questoes: finalQuestoes.map((q, index) => ({
               id: uuidv4(),
               simuladoId: '', // will be set after simulado is created
               questaoId: q.id,
@@ -244,8 +251,12 @@ class PocketBaseDataSource implements IDataSource {
     return data;
   }
 
-  async list<T>(collection: CollectionName, options?: any): Promise<T[]> {
-    const records = await this.pb.collection(collection).getFullList<T>(options);
+  async list<T>(collection: CollectionName, options?: {filter?: string, [key:string]:any}): Promise<T[]> {
+    const finalOptions = {
+        ...options,
+        filter: options?.filter || ''
+    }
+    const records = await this.pb.collection(collection).getFullList<T>(finalOptions);
     return records;
   }
 
@@ -284,54 +295,66 @@ class PocketBaseDataSource implements IDataSource {
     await this.pb.collection(collection).delete(id);
   }
 
-  async gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade | QuestionDificuldade, nome: string }): Promise<Simulado> {
-    const filterParts: string[] = [];
-    filterParts.push(`isActive=true`);
-    filterParts.push(`disciplinaId="${criteria.disciplinaId}"`);
-    if(criteria.topicoId) {
-        filterParts.push(`topicoId="${criteria.topicoId}"`);
-    }
+  async gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado> {
+      let combinedQuestoes: Questao[] = [];
+      let totalQuestoesPedidas = 0;
 
-    if (criteria.dificuldade !== 'aleatorio') {
-       filterParts.push(`dificuldade="${criteria.dificuldade}"`);
-    }
-    
-    const filterString = filterParts.join(" && ");
-    const allQuestoes = await this.pb.collection('questoes').getFullList<Questao>({ filter: filterString });
+      for(const criteria of formValues.criterios) {
+        const filterParts: string[] = [];
+        filterParts.push(`isActive=true`);
+        filterParts.push(`disciplinaId="${criteria.disciplinaId}"`);
+        
+        if (criteria.topicoId && criteria.topicoId !== 'all') {
+          filterParts.push(`topicoId="${criteria.topicoId}"`);
+        }
 
-    const shuffled = allQuestoes.sort(() => 0.5 - Math.random());
-    const selectedQuestoes = shuffled.slice(0, criteria.quantidade);
+        if (criteria.dificuldade !== 'aleatorio') {
+          filterParts.push(`dificuldade="${criteria.dificuldade}"`);
+        }
+        
+        const filterString = filterParts.join(" && ");
+        const availableQuestoes = await this.list<Questao>('questoes', { filter: filterString });
+
+        const shuffled = availableQuestoes.sort(() => 0.5 - Math.random());
+        const selectedQuestoes = shuffled.slice(0, criteria.quantidade);
+        
+        if (selectedQuestoes.length < criteria.quantidade) {
+            const disciplina = await this.get<Disciplina>('disciplinas', criteria.disciplinaId);
+            throw new Error(`Questões insuficientes para a disciplina ${disciplina?.nome}. Pedidas: ${criteria.quantidade}, Encontradas: ${selectedQuestoes.length}.`);
+        }
+
+        combinedQuestoes.push(...selectedQuestoes);
+        totalQuestoesPedidas += criteria.quantidade;
+      }
+
+      const finalQuestoes = combinedQuestoes.sort(() => 0.5 - Math.random());
+
+      const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt' | 'user'> = {
+          nome: formValues.nome,
+          criterios: formValues.criterios,
+          status: 'rascunho',
+          criadoEm: new Date().toISOString(),
+          questoes: finalQuestoes.map((q, index) => ({
+              id: '', 
+              simuladoId: '', 
+              questaoId: q.id,
+              ordem: index + 1,
+          })),
+      };
+
+      const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
       
-    if (selectedQuestoes.length < criteria.quantidade) {
-        throw new Error(`Não foram encontradas questões suficientes para os critérios selecionados. Encontradas: ${selectedQuestoes.length}, Pedidas: ${criteria.quantidade}`);
-    }
-
-    const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt' | 'user'> = {
-        nome: criteria.nome,
-        dificuldade: criteria.dificuldade as SimuladoDificuldade,
-        status: 'rascunho',
-        criadoEm: new Date().toISOString(),
-        questoes: selectedQuestoes.map((q, index) => ({
-            id: '', 
-            simuladoId: '', 
-            questaoId: q.id,
-            ordem: index + 1,
-        })),
-    };
-
-    const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
+      const updatedQuestoes = createdSimulado.questoes.map(q => ({...q, simuladoId: createdSimulado.id}));
       
-    createdSimulado.questoes.forEach(q => q.simuladoId = createdSimulado.id);
-      
-    return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: createdSimulado.questoes as any });
+      return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: updatedQuestoes as any });
   }
 
   async getDashboardStats(): Promise<any> {
-    const statsDia = await this.list('stats');
-    const simulados = await this.list<Simulado>('simulados');
-    const questoes = await this.list<Questao>('questoes');
-    const respostas = await this.list('respostas');
-    const revisao = await this.list<Revisao>('revisoes');
+    const statsDia = await this.list('stats', {filter: 'user = @request.auth.id'});
+    const simulados = await this.list<Simulado>('simulados', {filter: 'user = @request.auth.id'});
+    const questoes = await this.list<Questao>('questoes', {filter: 'user = @request.auth.id'});
+    const respostas = await this.list('respostas', {filter: 'user = @request.auth.id'});
+    const revisao = await this.list<Revisao>('revisoes', {filter: 'user = @request.auth.id'});
 
     const totalAcertos = respostas.filter((r: any) => r.acertou).length;
     const acertoGeral = respostas.length > 0 ? (totalAcertos / respostas.length) * 100 : 0;
@@ -339,7 +362,7 @@ class PocketBaseDataSource implements IDataSource {
     const simuladoEmAndamento = simulados.find(s => s.status === 'andamento');
     const questoesParaRevisarHoje = revisao.filter((r: any) => new Date(r.proximaRevisao) <= new Date()).length;
 
-    const allDisciplinas = await this.list<Disciplina>('disciplinas');
+    const allDisciplinas = await this.list<Disciplina>('disciplinas', {filter: 'user = @request.auth.id'});
     const distribution = allDisciplinas.map(d => {
         const total = questoes.filter(q => q.disciplinaId === d.id).length;
         return { name: d.nome, total };
@@ -361,15 +384,15 @@ class PocketBaseDataSource implements IDataSource {
 
   async getQuestoesParaRevisar(): Promise<Questao[]> {
     const hoje = new Date().toISOString().split('T')[0];
-    const revisoesHoje = await this.pb.collection('revisoes').getFullList<Revisao>({
-        filter: `proximaRevisao <= "${hoje}"`
+    const revisoesHoje = await this.list<Revisao>('revisoes',{
+        filter: `proximaRevisao <= "${hoje}" && user = @request.auth.id`
     });
     const revisoesHojeIds = revisoesHoje.map(r => r.questaoId);
 
     if (revisoesHojeIds.length === 0) return [];
     
     const filterString = revisoesHojeIds.map(id => `id="${id}"`).join(" || ");
-    const questoes = await this.pb.collection('questoes').getFullList<Questao>({ filter: filterString });
+    const questoes = await this.list<Questao>('questoes', { filter: filterString });
     
     return questoes;
   }
@@ -377,7 +400,7 @@ class PocketBaseDataSource implements IDataSource {
   async registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> {
     let revisao: Revisao | undefined;
     try {
-        revisao = await this.pb.collection('revisoes').getFirstListItem<Revisao>(`questaoId="${questaoId}"`);
+        revisao = await this.pb.collection('revisoes').getFirstListItem<Revisao>(`questaoId="${questaoId}" && user = @request.auth.id`);
     } catch (e) {
         // Not found, will create new one
     }
@@ -451,7 +474,7 @@ class PocketBaseDataSource implements IDataSource {
         let disciplina = disciplinasCache[disciplinaNome];
         if (!disciplina) {
             try {
-                disciplina = await this.pb.collection('disciplinas').getFirstListItem<Disciplina>(`nome="${disciplinaNome}"`);
+                disciplina = await this.pb.collection('disciplinas').getFirstListItem<Disciplina>(`nome="${disciplinaNome}" && user = @request.auth.id`);
             } catch(e) {
                 if ((e as any)?.status === 404) {
                     disciplina = await this.create<Disciplina>('disciplinas', { nome: disciplinaNome } as any);
@@ -466,7 +489,7 @@ class PocketBaseDataSource implements IDataSource {
         let topico = topicosCache[cacheKey];
         if (!topico) {
             try {
-                topico = await this.pb.collection('topicos').getFirstListItem<Topico>(`nome="${topicoNome}" AND disciplinaId="${disciplina.id}"`);
+                topico = await this.pb.collection('topicos').getFirstListItem<Topico>(`nome="${topicoNome}" AND disciplinaId="${disciplina.id}" && user = @request.auth.id`);
             } catch(e) {
                  if ((e as any)?.status === 404) {
                     topico = await this.create<Topico>('topicos', { nome: topicoNome, disciplinaId: disciplina.id } as any);
