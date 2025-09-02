@@ -501,7 +501,7 @@ class PocketBaseDataSource implements IDataSource {
         let topico = topicosCache[cacheKey];
         if (!topico) {
             try {
-                const filter = `nome="${topicoNome}" AND disciplinaId="${disciplina.id}" && user = "${userId}"`;
+                const filter = `nome="${topicoNome}" && disciplinaId="${disciplina.id}" && user = "${userId}"`;
                 topico = await this.pb.collection('topicos').getFirstListItem<Topico>(filter);
             } catch(e) {
                  if ((e as any)?.status === 404) {
@@ -552,3 +552,5 @@ class PocketBaseDataSource implements IDataSource {
 }
 
 export { PocketBaseDataSource, MockDataSource };
+
+    
