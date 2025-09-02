@@ -13,7 +13,9 @@
         "options": {
             "allowEmailAuth": true,
             "allowOAuth2Auth": true,
-...
+            "allowUsernameAuth": true,
+            "exceptEmailDomains": null,
+            "manageRule": null,
             "minPasswordLength": 8,
             "onlyEmailDomains": null,
             "onlyVerified": false,
