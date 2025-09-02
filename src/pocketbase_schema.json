@@ -5,7 +5,7 @@
         "name": "users",
         "type": "auth",
         "system": false,
-        "schema": [
+        "fields": [
             {
                 "system": false,
                 "id": "users_name",
@@ -64,85 +64,11 @@
         }
     },
     {
-        "id": "revisoes_abcde1",
-        "name": "revisoes",
-        "type": "base",
-        "system": false,
-        "schema": [
-            {
-                "system": false,
-                "id": "nplxjzdr",
-                "name": "questaoId",
-                "type": "relation",
-                "required": true,
-                "presentable": false,
-                "unique": true,
-                "options": {
-                    "collectionId": "questoes_abcde1",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": null
-                }
-            },
-            {
-                "system": false,
-                "id": "jph7t0b7",
-                "name": "bucket",
-                "type": "number",
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": 0,
-                    "max": null,
-                    "noDecimal": true
-                }
-            },
-            {
-                "system": false,
-                "id": "w3f5wct5",
-                "name": "proximaRevisao",
-                "type": "date",
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": "",
-                    "max": ""
-                }
-            },
-            {
-                "system": false,
-                "id": "user_id",
-                "name": "user",
-                "type": "relation",
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "_pb_users_auth_",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": null
-                }
-            }
-        ],
-        "indexes": [],
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {}
-    },
-    {
         "id": "disciplinas_abcde1",
         "name": "disciplinas",
         "type": "base",
         "system": false,
-        "schema": [
+        "fields": [
             {
                 "system": false,
                 "id": "k7vjgz9w",
@@ -225,11 +151,88 @@
         "options": {}
     },
     {
+        "id": "topicos_abcde1",
+        "name": "topicos",
+        "type": "base",
+        "system": false,
+        "fields": [
+            {
+                "system": false,
+                "id": "h7xzkqiy",
+                "name": "disciplinaId",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "collectionId": "disciplinas_abcde1",
+                    "cascadeDelete": true,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": [
+                        "nome"
+                    ]
+                }
+            },
+            {
+                "system": false,
+                "id": "k7vjgz9w",
+                "name": "nome",
+                "type": "text",
+                "required": true,
+                "presentable": true,
+                "unique": false,
+                "options": {
+                    "min": 3,
+                    "max": 150,
+                    "pattern": ""
+                }
+            },
+            {
+                "system": false,
+                "id": "bcfu7pqs",
+                "name": "ordem",
+                "type": "number",
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "noDecimal": true
+                }
+            },
+            {
+                "system": false,
+                "id": "user_id",
+                "name": "user",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "collectionId": "_pb_users_auth_",
+                    "cascadeDelete": true,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": null
+                }
+            }
+        ],
+        "indexes": [],
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {}
+    },
+    {
         "id": "questoes_abcde1",
         "name": "questoes",
         "type": "base",
         "system": false,
-        "schema": [
+        "fields": [
             {
                 "system": false,
                 "id": "h7xzkqiy",
@@ -446,7 +449,7 @@
         "name": "simulados",
         "type": "base",
         "system": false,
-        "schema": [
+        "fields": [
             {
                 "system": false,
                 "id": "gqg3t1yq",
@@ -573,11 +576,85 @@
         "options": {}
     },
     {
+        "id": "revisoes_abcde1",
+        "name": "revisoes",
+        "type": "base",
+        "system": false,
+        "fields": [
+            {
+                "system": false,
+                "id": "nplxjzdr",
+                "name": "questaoId",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "unique": true,
+                "options": {
+                    "collectionId": "questoes_abcde1",
+                    "cascadeDelete": true,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": null
+                }
+            },
+            {
+                "system": false,
+                "id": "jph7t0b7",
+                "name": "bucket",
+                "type": "number",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 0,
+                    "max": null,
+                    "noDecimal": true
+                }
+            },
+            {
+                "system": false,
+                "id": "w3f5wct5",
+                "name": "proximaRevisao",
+                "type": "date",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": "",
+                    "max": ""
+                }
+            },
+            {
+                "system": false,
+                "id": "user_id",
+                "name": "user",
+                "type": "relation",
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "collectionId": "_pb_users_auth_",
+                    "cascadeDelete": true,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": null
+                }
+            }
+        ],
+        "indexes": [],
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {}
+    },
+    {
         "id": "respostas_abcde1",
         "name": "respostas",
         "type": "base",
         "system": false,
-        "schema": [
+        "fields": [
             {
                 "system": false,
                 "id": "h7xzkqiy",
@@ -702,88 +779,11 @@
         "options": {}
     },
     {
-        "id": "topicos_abcde1",
-        "name": "topicos",
-        "type": "base",
-        "system": false,
-        "schema": [
-            {
-                "system": false,
-                "id": "h7xzkqiy",
-                "name": "disciplinaId",
-                "type": "relation",
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "disciplinas_abcde1",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": [
-                        "nome"
-                    ]
-                }
-            },
-            {
-                "system": false,
-                "id": "k7vjgz9w",
-                "name": "nome",
-                "type": "text",
-                "required": true,
-                "presentable": true,
-                "unique": false,
-                "options": {
-                    "min": 3,
-                    "max": 150,
-                    "pattern": ""
-                }
-            },
-            {
-                "system": false,
-                "id": "bcfu7pqs",
-                "name": "ordem",
-                "type": "number",
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": true
-                }
-            },
-            {
-                "system": false,
-                "id": "user_id",
-                "name": "user",
-                "type": "relation",
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "_pb_users_auth_",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": null
-                }
-            }
-        ],
-        "indexes": [],
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {}
-    },
-    {
         "id": "stats_abcde1",
         "name": "stats",
         "type": "base",
         "system": false,
-        "schema": [
+        "fields": [
             {
                 "system": false,
                 "id": "f5k6cwqu",
