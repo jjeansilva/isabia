@@ -1,6 +1,6 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado } from '@/types';
+import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado, QuestionOrigem } from '@/types';
 import PocketBase, { ListResult } from 'pocketbase';
 import { SimuladoFormValues } from '@/components/forms/simulado-form';
 
@@ -251,12 +251,8 @@ class PocketBaseDataSource implements IDataSource {
     return data;
   }
 
-  async list<T>(collection: CollectionName, options?: {filter?: string, [key:string]:any}): Promise<T[]> {
-    const finalOptions = {
-        ...options,
-        filter: options?.filter || ''
-    }
-    const records = await this.pb.collection(collection).getFullList<T>(finalOptions);
+  async list<T>(collection: CollectionName, options?: any): Promise<T[]> {
+    const records = await this.pb.collection(collection).getFullList<T>(options);
     return records;
   }
 
@@ -522,7 +518,7 @@ class PocketBaseDataSource implements IDataSource {
             respostaCorreta: respostaCorreta,
             alternativas: alternativas,
             explicacao: values[colMap.explicacao],
-            origem: 'Já caiu',
+            origem: (values[colMap.origem] as QuestionOrigem) || 'Conteúdo',
             version: 1,
             isActive: true,
             hashConteudo: 'import-csv-' + uuidv4(),

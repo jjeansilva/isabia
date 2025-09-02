@@ -105,7 +105,7 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
                 <AlertDescription>
                     <p>O CSV deve conter o seguinte cabeçalho na primeira linha:</p>
                     <pre className="mt-2 text-xs bg-muted p-2 rounded-md whitespace-pre-wrap break-all">
-    {`"dificuldade","disciplina","tópico da disciplina","subtópico","questão","resposta","alternativa_2","alternativa_3","...","explicação"`}
+    {`"dificuldade","disciplina","tópico da disciplina","subtópico","origem","questão","resposta","alternativa_2","alternativa_3","...","explicação"`}
                     </pre>
                     <p className="mt-2 text-sm text-muted-foreground">
                     Para questões de <span className="font-bold">Múltipla Escolha</span>, a resposta correta vai na coluna "resposta", e as demais nas colunas "alternativa_x". <br/>
