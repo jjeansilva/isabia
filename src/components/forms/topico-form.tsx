@@ -58,7 +58,7 @@ export function TopicoForm({ open, onOpenChange, disciplina, topico, topicoPai }
     defaultValues: topico || {
       nome: "",
       disciplinaId: disciplina.id,
-      topicoPaiId: topicoPai?.id,
+      topicoPaiId: topicoPai?.id || "",
     },
   });
 
@@ -70,10 +70,12 @@ export function TopicoForm({ open, onOpenChange, disciplina, topico, topicoPai }
 
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
-      let dataToSave = { ...topico, ...values };
-       if (dataToSave.topicoPaiId === 'none' || !dataToSave.topicoPaiId) {
-          dataToSave.topicoPaiId = "";
-      }
+      const dataToSave = { 
+          ...topico, 
+          ...values,
+          topicoPaiId: values.topicoPaiId === 'none' ? '' : values.topicoPaiId,
+      };
+      
       return topico
         ? dataSource.update("topicos", topico.id, dataToSave)
         : dataSource.create("topicos", dataToSave);
