@@ -1,13 +1,15 @@
 
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { getDataSource, IDataSource } from '@/lib/data-adapter';
-import PocketBase, { BaseAuthStore } from 'pocketbase';
+import { IDataSource, PocketBaseDataSource } from '@/lib/data-adapter';
+import PocketBase from 'pocketbase';
 
 interface AuthContextType {
-  user: any; // You might want to type this more strictly
+  user: any; 
+  pb: PocketBase;
+  dataSource: IDataSource;
   login: (email:string, pass:string) => Promise<any>;
   logout: () => void;
   signup: (email:string, pass:string, passConfirm:string, name:string) => Promise<any>;
@@ -18,28 +20,37 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const PUBLIC_ROUTES = ['/login', '/signup'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const dataSource = getDataSource() as any; 
-  const pb = dataSource.pb as PocketBase;
+  
+  // Create a single PocketBase instance to be used throughout the app.
+  const pb = useMemo(() => new PocketBase(process.env.NEXT_PUBLIC_PB_URL), []);
+  const dataSource = useMemo(() => new PocketBaseDataSource(pb), [pb]);
 
+  const [user, setUser] = useState<any>(pb.authStore.model);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // This effect runs once on mount to check the initial auth state
+    // This effect runs once on mount to check the initial auth state from the cookie
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model);
-        setIsLoading(false);
-    }, true); // `true` calls the handler immediately with the current state
+    }, true); 
 
     return () => {
       unsubscribe();
     };
   }, [pb]);
-
+  
   useEffect(() => {
     // This effect handles route protection after the initial auth check is complete
+    // We set loading to false only after the first auth check (from the cookie) is done.
+    if(user !== undefined) {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+
+  useEffect(() => {
     if (isLoading) return;
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
@@ -68,14 +79,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     pb.authStore.clear();
-    // setUser(null) will be triggered by the onChange listener
     router.push('/login');
   };
   
-  // Render children immediately to avoid hydration errors.
-  // The useEffect hook will handle redirection.
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  const value = { user, pb, dataSource, login, logout, signup };
+  
   return (
-    <AuthContext.Provider value={{ user, login, logout, signup }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

@@ -227,8 +227,12 @@ class MockDataSource implements IDataSource {
 class PocketBaseDataSource implements IDataSource {
   public pb: PocketBase;
   
-  constructor() {
-    this.pb = new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
+  constructor(pocketbaseInstance?: PocketBase) {
+    if (pocketbaseInstance) {
+        this.pb = pocketbaseInstance;
+    } else {
+        this.pb = new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
+    }
   }
   
   private addUserData(data: any): any {
@@ -521,20 +525,4 @@ class PocketBaseDataSource implements IDataSource {
   }
 }
 
-let dataSource: IDataSource;
-
-export function getDataSource(): IDataSource {
-  if (dataSource) {
-    return dataSource;
-  }
-  
-  const usePocketBase = process.env.NEXT_PUBLIC_PB_URL;
-
-  if (usePocketBase) {
-    dataSource = new PocketBaseDataSource();
-  } else {
-    dataSource = new MockDataSource();
-  }
-
-  return dataSource;
-}
+export { PocketBaseDataSource, MockDataSource };

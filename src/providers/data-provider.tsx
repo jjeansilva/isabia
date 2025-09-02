@@ -1,21 +1,31 @@
+
 "use client";
 
 import React, { createContext, ReactNode, useMemo } from 'react';
-import { getDataSource, IDataSource } from '@/lib/data-adapter';
-// We are no longer seeding by default. The user will reset data from the settings page.
+import { IDataSource, MockDataSource } from '@/lib/data-adapter';
 import { seedLocalStorage } from '@/lib/seed';
+import { useAuth } from './auth-provider';
 
 export const DataContext = createContext<IDataSource | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
+  const authContext = useAuth();
+
   const dataSource = useMemo(() => {
-    // Seed data on first load only if there is no backend configured
-    // AND if it has never been seeded before.
-    if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_PB_URL && !localStorage.getItem('isab_seeded')) {
+    const usePocketBase = !!process.env.NEXT_PUBLIC_PB_URL;
+
+    if (usePocketBase) {
+      // We get the authenticated dataSource from the AuthContext
+      return authContext.dataSource;
+    }
+    
+    // Fallback to mock data source if PocketBase is not configured
+    if (typeof window !== 'undefined' && !localStorage.getItem('isab_seeded')) {
         seedLocalStorage();
     }
-    return getDataSource();
-  }, []);
+    return new MockDataSource();
+
+  }, [authContext]);
 
   return (
     <DataContext.Provider value={dataSource}>
