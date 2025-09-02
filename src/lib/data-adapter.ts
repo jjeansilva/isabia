@@ -353,11 +353,11 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async getDashboardStats(): Promise<any> {
-    const statsDia = await this.list('stats', {filter: 'user = @request.auth.id'});
-    const simulados = await this.list<Simulado>('simulados', {filter: 'user = @request.auth.id'});
-    const questoes = await this.list<Questao>('questoes', {filter: 'user = @request.auth.id'});
-    const respostas = await this.list('respostas', {filter: 'user = @request.auth.id'});
-    const revisao = await this.list<Revisao>('revisoes', {filter: 'user = @request.auth.id'});
+    const statsDia = await this.list('stats');
+    const simulados = await this.list<Simulado>('simulados');
+    const questoes = await this.list<Questao>('questoes');
+    const respostas = await this.list('respostas');
+    const revisao = await this.list<Revisao>('revisoes');
 
     const totalAcertos = respostas.filter((r: any) => r.acertou).length;
     const acertoGeral = respostas.length > 0 ? (totalAcertos / respostas.length) * 100 : 0;
@@ -365,7 +365,7 @@ class PocketBaseDataSource implements IDataSource {
     const simuladoEmAndamento = simulados.find(s => s.status === 'andamento');
     const questoesParaRevisarHoje = revisao.filter((r: any) => new Date(r.proximaRevisao) <= new Date()).length;
 
-    const allDisciplinas = await this.list<Disciplina>('disciplinas', {filter: 'user = @request.auth.id'});
+    const allDisciplinas = await this.list<Disciplina>('disciplinas');
     const distribution = allDisciplinas.map(d => {
         const total = questoes.filter(q => q.disciplinaId === d.id).length;
         return { name: d.nome, total };
@@ -388,7 +388,7 @@ class PocketBaseDataSource implements IDataSource {
   async getQuestoesParaRevisar(): Promise<Questao[]> {
     const hoje = new Date().toISOString().split('T')[0];
     const revisoesHoje = await this.list<Revisao>('revisoes',{
-        filter: `proximaRevisao <= "${hoje}" && user = @request.auth.id`
+        filter: `proximaRevisao <= "${hoje}"`
     });
     const revisoesHojeIds = revisoesHoje.map(r => r.questaoId);
 
