@@ -142,7 +142,7 @@
             }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
+        "listRule": "@request.auth.id != \"\"",
         "viewRule": "user = @request.auth.id",
         "createRule": "user = @request.auth.id",
         "updateRule": "user = @request.auth.id",
@@ -877,3 +877,5 @@
         "options": {}
     }
 ]
+
+    

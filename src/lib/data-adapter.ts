@@ -1,4 +1,5 @@
 
+
 import { v4 as uuidv4 } from 'uuid';
 import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado, QuestionOrigem } from '@/types';
 import PocketBase, { ListResult } from 'pocketbase';
@@ -252,7 +253,13 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async list<T>(collection: CollectionName, options?: any): Promise<T[]> {
-    const records = await this.pb.collection(collection).getFullList<T>(options);
+     const finalOptions = { ...options };
+    if (finalOptions.filter) {
+        finalOptions.filter = `(${finalOptions.filter}) && user = @request.auth.id`;
+    } else {
+        finalOptions.filter = `user = @request.auth.id`;
+    }
+    const records = await this.pb.collection(collection).getFullList<T>(finalOptions);
     return records;
   }
 
@@ -535,3 +542,5 @@ class PocketBaseDataSource implements IDataSource {
 }
 
 export { PocketBaseDataSource, MockDataSource };
+
+    
