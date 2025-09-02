@@ -36,7 +36,7 @@ import { QuestionTipo } from "@/types";
 import { Input } from "../ui/input";
 
 const formSchema = z.object({
-  tipo: z.enum(["multipla", "vf", "lacuna", "flashcard"]),
+  tipo: z.enum(["Múltipla Escolha", "Certo ou Errado", "Completar Lacuna", "Flashcard"]),
   csvFile: z
     .custom<FileList>()
     .refine((files) => files?.length > 0, "O arquivo CSV é obrigatório.")
@@ -52,7 +52,7 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      tipo: "vf",
+      tipo: "Certo ou Errado",
     },
   });
 
@@ -123,7 +123,7 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
                         <SelectContent>
-                            {(['vf', 'multipla', 'lacuna', 'flashcard'] as QuestionTipo[]).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            {(["Certo ou Errado", "Múltipla Escolha", "Completar Lacuna", "Flashcard"] as QuestionTipo[]).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                         </SelectContent>
                     </Select>
                   <FormMessage />
