@@ -32,11 +32,12 @@ import { useData } from "@/hooks/use-data";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { QuestionTipo } from "@/types";
+import { QuestionOrigem, QuestionTipo } from "@/types";
 import { Input } from "../ui/input";
 
 const formSchema = z.object({
   tipo: z.enum(["Múltipla Escolha", "Certo ou Errado", "Completar Lacuna", "Flashcard"]),
+  origem: z.enum(["Autoral", "Conteúdo", "Legislação", "Jurisprudência", "Já caiu"]),
   csvFile: z
     .custom<FileList>()
     .refine((files) => files?.length > 0, "O arquivo CSV é obrigatório.")
@@ -53,16 +54,17 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
     resolver: zodResolver(formSchema),
     defaultValues: {
       tipo: "Certo ou Errado",
+      origem: "Conteúdo",
     },
   });
 
   const mutation = useMutation({
-    mutationFn: (data: {csvData: string, tipo: QuestionTipo}) => {
+    mutationFn: (data: {csvData: string, tipo: QuestionTipo, origem: QuestionOrigem}) => {
       if (!('bulkCreateFromCsv' in dataSource && typeof dataSource.bulkCreateFromCsv === 'function')) {
           toast({ variant: "destructive", title: "Erro!", description: "A importação de CSV não é suportada pelo provedor de dados atual." });
           return Promise.reject("Bulk create from CSV not supported");
       }
-      return dataSource.bulkCreateFromCsv(data.csvData, data.tipo);
+      return dataSource.bulkCreateFromCsv(data.csvData, data.tipo, data.origem);
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['questoes'] });
@@ -83,7 +85,7 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
     reader.onload = (e) => {
       const csvData = e.target?.result as string;
       if (csvData) {
-        mutation.mutate({csvData, tipo: values.tipo});
+        mutation.mutate({csvData, tipo: values.tipo, origem: values.origem});
       } else {
         toast({ variant: "destructive", title: "Erro!", description: "Não foi possível ler o arquivo CSV." });
       }
@@ -93,10 +95,10 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="sm:max-w-2xl flex flex-col h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Importar Questões via CSV</DialogTitle>
-          <DialogDescription>Selecione o tipo, escolha o arquivo CSV e importe em lote.</DialogDescription>
+          <DialogDescription>Selecione o tipo, a origem, escolha o arquivo CSV e importe em lote.</DialogDescription>
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto pr-6 pl-1 space-y-4">
@@ -105,7 +107,7 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
                 <AlertDescription>
                     <p>O CSV deve conter o seguinte cabeçalho na primeira linha:</p>
                     <pre className="mt-2 text-xs bg-muted p-2 rounded-md whitespace-pre-wrap break-all">
-    {`"dificuldade","disciplina","tópico da disciplina","subtópico","origem","questão","resposta","alternativa_2","alternativa_3","...","explicação"`}
+    {`"dificuldade","disciplina","tópico da disciplina","subtópico","questão","resposta","alternativa_2","alternativa_3","...","explicação"`}
                     </pre>
                     <p className="mt-2 text-sm text-muted-foreground">
                     Para questões de <span className="font-bold">Múltipla Escolha</span>, a resposta correta vai na coluna "resposta", e as demais nas colunas "alternativa_x". <br/>
@@ -116,22 +118,40 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
             </Alert>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-2">
-                <FormField
-                control={form.control}
-                name="tipo"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Tipo de Questão</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
-                            <SelectContent>
-                                {((["Certo ou Errado", "Múltipla Escolha", "Completar Lacuna", "Flashcard"] as QuestionTipo[])).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
+                <div className="grid md:grid-cols-2 gap-4">
+                    <FormField
+                    control={form.control}
+                    name="tipo"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Tipo de Questão</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    {((["Certo ou Errado", "Múltipla Escolha", "Completar Lacuna", "Flashcard"] as QuestionTipo[])).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="origem"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Origem das Questões</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    {((['Autoral', 'Conteúdo', 'Legislação', 'Jurisprudência', 'Já caiu'] as QuestionOrigem[])).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
                 <FormField
                 control={form.control}
                 name="csvFile"

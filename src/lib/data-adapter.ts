@@ -22,7 +22,7 @@ export interface IDataSource {
   get<T>(collection: CollectionName, id: string): Promise<T | null>;
   create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'user'>): Promise<T>;
   bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]>;
-  bulkCreateFromCsv?(csvData: string, tipo: QuestionTipo): Promise<number>;
+  bulkCreateFromCsv?(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem): Promise<number>;
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
   gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado>;
@@ -429,7 +429,7 @@ class PocketBaseDataSource implements IDataSource {
     }
   }
 
-  async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo): Promise<number> {
+  async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem): Promise<number> {
     const lines = csvData.trim().split('\n');
     const headerLine = lines.shift()?.trim().replace(/"/g, '');
     
@@ -518,7 +518,7 @@ class PocketBaseDataSource implements IDataSource {
             respostaCorreta: respostaCorreta,
             alternativas: alternativas,
             explicacao: values[colMap.explicacao],
-            origem: (values[colMap.origem] as QuestionOrigem) || 'Conteúdo',
+            origem: origem,
             version: 1,
             isActive: true,
             hashConteudo: 'import-csv-' + uuidv4(),
