@@ -871,11 +871,11 @@
             }
         ],
         "indexes": [],
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
+        "listRule": "user.id = @request.auth.id",
+        "viewRule": "user.id = @request.auth.id",
+        "createRule": "user.id = @request.auth.id",
+        "updateRule": "user.id = @request.auth.id",
+        "deleteRule": "user.id = @request.auth.id",
         "options": {}
     }
 ]
