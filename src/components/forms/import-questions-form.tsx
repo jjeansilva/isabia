@@ -102,7 +102,7 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
             <AlertTitle>Formato do CSV</AlertTitle>
             <AlertDescription>
                 <p>O CSV deve conter o seguinte cabeçalho na primeira linha:</p>
-                <pre className="mt-2 text-xs overflow-auto bg-muted p-2 rounded-md">
+                <pre className="mt-2 text-xs bg-muted p-2 rounded-md whitespace-pre-wrap">
 {`"dificuldade","disciplina","tópico da disciplina","subtópico","questão","resposta","alternativa_2","alternativa_3","...","explicação"`}
                 </pre>
                  <p className="mt-2 text-sm text-muted-foreground">
