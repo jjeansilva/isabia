@@ -99,7 +99,7 @@ function DisciplinaAccordionItem({
   const dataSource = useData();
   const { data: allTopicos, isLoading } = useQuery({
       queryKey: ['topicos', disciplina.id],
-      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}" && user = @request.auth.id`, sort: 'ordem' }),
+      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}"`, sort: 'ordem' }),
   });
 
   const topicosPrincipais = allTopicos?.filter(t => !t.topicoPaiId) || [];
@@ -183,7 +183,7 @@ export default function TaxonomiaPage() {
 
   const { data: disciplinas, isLoading } = useQuery({
     queryKey: ["disciplinas"],
-    queryFn: () => dataSource.list<Disciplina>("disciplinas", { filter: 'user = @request.auth.id' }),
+    queryFn: () => dataSource.list<Disciplina>("disciplinas"),
   });
   
   const handleNewDisciplina = () => {

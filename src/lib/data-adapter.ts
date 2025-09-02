@@ -350,19 +350,21 @@ class PocketBaseDataSource implements IDataSource {
   async getDashboardStats(): Promise<any> {
     const userFilter = { filter: 'user = @request.auth.id' };
 
-    const statsDia = await this.list('stats', userFilter);
-    const simulados = await this.list<Simulado>('simulados', userFilter);
-    const questoes = await this.list<Questao>('questoes', userFilter);
-    const respostas = await this.list('respostas', userFilter);
-    const revisao = await this.list<Revisao>('revisoes', userFilter);
-
+    const [statsDia, simulados, questoes, respostas, revisao, allDisciplinas] = await Promise.all([
+        this.list('stats', userFilter),
+        this.list<Simulado>('simulados', userFilter),
+        this.list<Questao>('questoes', userFilter),
+        this.list('respostas', userFilter),
+        this.list<Revisao>('revisoes', userFilter),
+        this.list<Disciplina>('disciplinas', userFilter)
+    ]);
+    
     const totalAcertos = respostas.filter((r: any) => r.acertou).length;
     const acertoGeral = respostas.length > 0 ? (totalAcertos / respostas.length) * 100 : 0;
     
     const simuladoEmAndamento = simulados.find(s => s.status === 'andamento');
     const questoesParaRevisarHoje = revisao.filter((r: any) => new Date(r.proximaRevisao) <= new Date()).length;
 
-    const allDisciplinas = await this.list<Disciplina>('disciplinas', userFilter);
     const distribution = allDisciplinas.map(d => {
         const total = questoes.filter(q => q.disciplinaId === d.id).length;
         return { name: d.nome, total };
@@ -474,11 +476,13 @@ class PocketBaseDataSource implements IDataSource {
         let disciplina = disciplinasCache[disciplinaNome];
         if (!disciplina) {
             try {
-                disciplina = await this.pb.collection('disciplinas').getFirstListItem<Disciplina>(`nome="${disciplinaNome}" && user = @request.auth.id`);
+                const filter = `nome="${disciplinaNome}" && user = @request.auth.id`;
+                disciplina = await this.pb.collection('disciplinas').getFirstListItem<Disciplina>(filter);
             } catch(e) {
                 if ((e as any)?.status === 404) {
                     disciplina = await this.create<Disciplina>('disciplinas', { nome: disciplinaNome } as any);
                 } else {
+                    console.error("Error fetching disciplina:", e);
                     throw e;
                 }
             }
@@ -489,7 +493,8 @@ class PocketBaseDataSource implements IDataSource {
         let topico = topicosCache[cacheKey];
         if (!topico) {
             try {
-                topico = await this.pb.collection('topicos').getFirstListItem<Topico>(`nome="${topicoNome}" AND disciplinaId="${disciplina.id}" && user = @request.auth.id`);
+                const filter = `nome="${topicoNome}" AND disciplinaId="${disciplina.id}" && user = @request.auth.id`;
+                topico = await this.pb.collection('topicos').getFirstListItem<Topico>(filter);
             } catch(e) {
                  if ((e as any)?.status === 404) {
                     topico = await this.create<Topico>('topicos', { nome: topicoNome, disciplinaId: disciplina.id } as any);
@@ -539,5 +544,3 @@ class PocketBaseDataSource implements IDataSource {
 }
 
 export { PocketBaseDataSource, MockDataSource };
-
-    

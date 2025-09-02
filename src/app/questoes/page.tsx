@@ -37,22 +37,20 @@ function QuestoesTable() {
   const [selectedQuestao, setSelectedQuestao] = useState<Questao | undefined>(undefined);
   const [questaoToDelete, setQuestaoToDelete] = useState<Questao | undefined>(undefined);
 
-  const userFilter = { filter: 'user = @request.auth.id' };
-
   const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
     queryKey: ["questoes"],
-    queryFn: () => dataSource.list<Questao>("questoes", userFilter),
+    queryFn: () => dataSource.list<Questao>("questoes"),
   });
   
   // Fetching disciplinas and topicos to display their names
   const { data: disciplinas, isLoading: isLoadingDisciplinas } = useQuery({
     queryKey: ['disciplinas'],
-    queryFn: () => dataSource.list<Disciplina>('disciplinas', userFilter)
+    queryFn: () => dataSource.list<Disciplina>('disciplinas')
   });
 
   const { data: topicos, isLoading: isLoadingTopicos } = useQuery({
     queryKey: ['topicos'],
-    queryFn: () => dataSource.list<Topico>('topicos', userFilter)
+    queryFn: () => dataSource.list<Topico>('topicos')
   });
 
   const deleteMutation = useMutation({
@@ -205,4 +203,3 @@ export default function QuestoesPage() {
     </>
   );
 }
-
