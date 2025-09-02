@@ -5,6 +5,22 @@
         "name": "users",
         "type": "auth",
         "system": false,
+        "listRule": "id = @request.auth.id",
+        "viewRule": "id = @request.auth.id",
+        "createRule": "",
+        "updateRule": "id = @request.auth.id",
+        "deleteRule": "id = @request.auth.id",
+        "options": {
+            "allowEmailAuth": true,
+            "allowOAuth2Auth": true,
+            "allowUsernameAuth": true,
+            "exceptEmailDomains": null,
+            "manageRule": null,
+            "minPasswordLength": 8,
+            "onlyEmailDomains": null,
+            "onlyVerified": false,
+            "requireEmail": false
+        },
         "fields": [
             {
                 "system": false,
@@ -44,30 +60,19 @@
                     "protected": false
                 }
             }
-        ],
-        "indexes": [],
-        "listRule": "id = @request.auth.id",
-        "viewRule": "id = @request.auth.id",
-        "createRule": "",
-        "updateRule": "id = @request.auth.id",
-        "deleteRule": "id = @request.auth.id",
-        "options": {
-            "allowEmailAuth": true,
-            "allowOAuth2Auth": true,
-            "allowUsernameAuth": true,
-            "exceptEmailDomains": null,
-            "manageRule": null,
-            "minPasswordLength": 8,
-            "onlyEmailDomains": null,
-            "onlyVerified": false,
-            "requireEmail": false
-        }
+        ]
     },
     {
         "id": "disciplinas_abcde1",
         "name": "disciplinas",
         "type": "base",
         "system": false,
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {},
         "fields": [
             {
                 "system": false,
@@ -141,20 +146,19 @@
                     "displayFields": null
                 }
             }
-        ],
-        "indexes": [],
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {}
+        ]
     },
     {
         "id": "topicos_abcde1",
         "name": "topicos",
         "type": "base",
         "system": false,
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {},
         "fields": [
             {
                 "system": false,
@@ -218,20 +222,19 @@
                     "displayFields": null
                 }
             }
-        ],
-        "indexes": [],
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {}
+        ]
     },
     {
         "id": "questoes_abcde1",
         "name": "questoes",
         "type": "base",
         "system": false,
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {},
         "fields": [
             {
                 "system": false,
@@ -419,7 +422,7 @@
                     "pattern": ""
                 }
             },
-             {
+            {
                 "system": false,
                 "id": "user_id",
                 "name": "user",
@@ -435,20 +438,19 @@
                     "displayFields": null
                 }
             }
-        ],
-        "indexes": [],
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {}
+        ]
     },
     {
         "id": "simulados_abcde1",
         "name": "simulados",
         "type": "base",
         "system": false,
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {},
         "fields": [
             {
                 "system": false,
@@ -566,20 +568,19 @@
                     "displayFields": null
                 }
             }
-        ],
-        "indexes": [],
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {}
+        ]
     },
     {
         "id": "revisoes_abcde1",
         "name": "revisoes",
         "type": "base",
         "system": false,
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {},
         "fields": [
             {
                 "system": false,
@@ -640,20 +641,19 @@
                     "displayFields": null
                 }
             }
-        ],
-        "indexes": [],
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {}
+        ]
     },
     {
         "id": "respostas_abcde1",
         "name": "respostas",
         "type": "base",
         "system": false,
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {},
         "fields": [
             {
                 "system": false,
@@ -769,20 +769,19 @@
                     "displayFields": null
                 }
             }
-        ],
-        "indexes": [],
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {}
+        ]
     },
     {
         "id": "stats_abcde1",
         "name": "stats",
         "type": "base",
         "system": false,
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {},
         "fields": [
             {
                 "system": false,
@@ -869,13 +868,6 @@
                     "displayFields": null
                 }
             }
-        ],
-        "indexes": [],
-        "listRule": null,
-        "viewRule": null,
-        "createRule": null,
-        "updateRule": null,
-        "deleteRule": null,
-        "options": {}
+        ]
     }
 ]
