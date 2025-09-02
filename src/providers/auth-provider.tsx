@@ -6,14 +6,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import { IDataSource, PocketBaseDataSource, MockDataSource } from '@/lib/data-adapter';
 import PocketBase from 'pocketbase';
 import { seedLocalStorage } from '@/lib/seed';
-import { DataContext } from './data-provider';
+import { DataProvider } from './data-provider';
 
 interface AuthContextType {
   user: any; 
   login: (email:string, pass:string) => Promise<any>;
   logout: () => void;
   signup: (email:string, pass:string, passConfirm:string, name:string) => Promise<any>;
-  dataSource: IDataSource;
   isLoading: boolean;
 }
 
@@ -50,8 +49,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model);
-        // CRITICAL: Re-initialize the dataSource's pb instance with the new auth state
-        dataSource.pb = pb;
+        if (dataSource && 'pb' in dataSource) {
+            (dataSource.pb as any).authStore.loadFromCookie(pb.authStore.exportToCookie());
+        }
     }, true);
 
     // Initial check
@@ -84,7 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pathname, router, user, isLoading, usePocketBase, pb?.authStore?.isValid]);
 
   const login = async (email:string, pass:string) => {
-    return pb.collection('users').authWithPassword(email, pass);
+    const authData = await pb.collection('users').authWithPassword(email, pass);
+     if (dataSource && 'pb' in dataSource) {
+        (dataSource.pb as any).authStore.loadFromCookie(pb.authStore.exportToCookie());
+    }
+    return authData;
   };
 
   const signup = async (email:string, pass:string, passConfirm:string, name:string) => {
@@ -104,17 +108,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  if (isLoading && usePocketBase) {
+  if (isLoading) {
      return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
   
-  const value = { user, login, logout, signup, dataSource, isLoading };
+  const value = { user, login, logout, signup, isLoading };
   
   return (
     <AuthContext.Provider value={value}>
-      <DataContext.Provider value={dataSource}>
+      <DataProvider value={dataSource}>
         {children}
-      </DataContext.Provider>
+      </DataProvider>
     </AuthContext.Provider>
   );
 }
