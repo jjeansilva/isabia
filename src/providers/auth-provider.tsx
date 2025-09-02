@@ -25,23 +25,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navRouter = useRouter();
   const usePocketBase = !!process.env.NEXT_PUBLIC_PB_URL;
 
-  // Create a single, memoized PocketBase instance
-  const pb = useMemo(() => {
-      if (usePocketBase) {
-          return new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
-      }
-      return null;
-  }, [usePocketBase]);
-
-  // Create the data source, which will either wrap the PB instance or be a mock
-  const dataSource = useMemo<IDataSource>(() => {
-    if (pb) {
-      return new PocketBaseDataSource(pb);
+  // Create a single, memoized PocketBase instance and DataSource
+  const { pb, dataSource } = useMemo(() => {
+    if (usePocketBase) {
+      const pocketbaseInstance = new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
+      const ds = new PocketBaseDataSource(pocketbaseInstance);
+      return { pb: pocketbaseInstance, dataSource: ds };
     } else {
       seedLocalStorage();
-      return new MockDataSource();
+      const ds = new MockDataSource();
+      return { pb: null, dataSource: ds };
     }
-  }, [pb]);
+  }, [usePocketBase]);
 
   const [user, setUser] = useState<User | null>(pb ? pb.authStore.model as User : null);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,14 +53,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model as User);
-        // This is crucial: we ensure the loading state is only updated after the first auth check.
-        setIsLoading(false);
+        setIsLoading(false); // Stop loading once we have an auth state.
     }, true); // `true` calls the callback immediately with the initial state.
 
     return () => {
       unsubscribe();
     };
-  }, [pb]); // The effect depends only on the PocketBase instance.
+  }, [pb]); 
   
   // This effect handles routing based on authentication state.
   useEffect(() => {
@@ -103,14 +97,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         pb.authStore.clear();
     }
     // The `onChange` listener will set the user to null.
-    navRouter.push('/login');
+    // The routing effect will redirect to /login
   };
   
   const value = { user, login, logout, signup, isLoading, dataSource };
   
   return (
     <AuthContext.Provider value={value}>
-        {!isLoading && children}
+        {children}
     </AuthContext.Provider>
   );
 }
@@ -122,5 +116,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
