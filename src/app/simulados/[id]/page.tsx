@@ -78,8 +78,8 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
                     )}
                     {questao.tipo === 'Certo ou Errado' && (
                         <RadioGroup onValueChange={(v) => setSelectedAnswer(v === 'true')} disabled={isAnswered}>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="true" id="vf-true" /><Label htmlFor="vf-true" className="text-base">Verdadeiro</Label></div>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="false" id="vf-false" /><Label htmlFor="vf-false" className="text-base">Falso</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="true" id="ce-certo" /><Label htmlFor="ce-certo" className="text-base">Certo</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="false" id="ce-errado" /><Label htmlFor="ce-errado" className="text-base">Errado</Label></div>
                         </RadioGroup>
                     )}
                     {questao.tipo === 'Completar Lacuna' && (

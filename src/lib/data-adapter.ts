@@ -510,7 +510,7 @@ class PocketBaseDataSource implements IDataSource {
              respostaCorreta = resp;
              alternativas = JSON.stringify(alternativas);
         } else if (tipo === 'Certo ou Errado') {
-            respostaCorreta = ['verdadeiro', 'certo', 'v'].includes(respostaCorreta.toLowerCase());
+            respostaCorreta = ['certo', 'verdadeiro', 'v'].includes(respostaCorreta.toLowerCase());
         }
 
         const questao: Partial<Questao> = {

@@ -109,7 +109,7 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
                     </pre>
                     <p className="mt-2 text-sm text-muted-foreground">
                     Para questões de <span className="font-bold">Múltipla Escolha</span>, a resposta correta vai na coluna "resposta", e as demais nas colunas "alternativa_x". <br/>
-                    Para <span className="font-bold">Verdadeiro/Falso</span>, a resposta é "Verdadeiro" ou "Falso". <br/>
+                    Para <span className="font-bold">Certo ou Errado</span>, a resposta é "Certo" ou "Errado". <br/>
                     Disciplinas e tópicos que não existirem serão criados.
                     </p>
                 </AlertDescription>

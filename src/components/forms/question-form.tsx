@@ -135,7 +135,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
 
       if (newQuestao.tipo === 'Múltipla Escolha' && newQuestao.alternativas) {
         finalData.respostaCorreta = newQuestao.alternativas[parseInt(newQuestao.respostaCorreta)];
-        finalData.alternativas = JSON.stringify(newQuestao.alternativas) as any;
+        finalData.alternativas = JSON.stringify(newQuestao.alternativas);
       }
       
       return questao
@@ -294,8 +294,8 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
                         <FormLabel>Resposta Correta</FormLabel>
                         <FormControl>
                             <RadioGroup onValueChange={(val) => field.onChange(val === 'true')} value={field.value?.toString()} className="flex gap-4">
-                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="true"/></FormControl><FormLabel className="font-normal">Verdadeiro</FormLabel></FormItem>
-                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="false"/></FormControl><FormLabel className="font-normal">Falso</FormLabel></FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="true"/></FormControl><FormLabel className="font-normal">Certo</FormLabel></FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="false"/></FormControl><FormLabel className="font-normal">Errado</FormLabel></FormItem>
                             </RadioGroup>
                         </FormControl>
                     </FormItem>
