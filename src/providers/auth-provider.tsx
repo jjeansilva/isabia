@@ -49,9 +49,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model);
-        if (dataSource && 'pb' in dataSource) {
-            (dataSource.pb as any).authStore.loadFromCookie(pb.authStore.exportToCookie());
-        }
     }, true);
 
     // Initial check
@@ -85,9 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email:string, pass:string) => {
     const authData = await pb.collection('users').authWithPassword(email, pass);
-     if (dataSource && 'pb' in dataSource) {
-        (dataSource.pb as any).authStore.loadFromCookie(pb.authStore.exportToCookie());
-    }
     return authData;
   };
 
@@ -116,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   return (
     <AuthContext.Provider value={value}>
-      <DataProvider value={dataSource}>
+      <DataProvider dataSource={dataSource}>
         {children}
       </DataProvider>
     </AuthContext.Provider>
