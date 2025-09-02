@@ -27,7 +27,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <QueryProvider>
-           <AuthProvider>
+          <AuthProvider>
             <DataProvider>
               <MainLayout>{children}</MainLayout>
             </DataProvider>

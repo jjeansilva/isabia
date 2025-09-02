@@ -23,7 +23,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   
-  // Create a single PocketBase instance to be used throughout the app.
   const pb = useMemo(() => new PocketBase(process.env.NEXT_PUBLIC_PB_URL), []);
   const dataSource = useMemo(() => new PocketBaseDataSource(pb), [pb]);
 
@@ -31,7 +30,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // This effect runs once on mount to check the initial auth state from the cookie
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model);
     }, true); 
@@ -42,9 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pb]);
   
   useEffect(() => {
-    // This effect handles route protection after the initial auth check is complete
-    // We set loading to false only after the first auth check (from the cookie) is done.
-    if(user !== undefined) {
+    if (user !== undefined) {
       setIsLoading(false);
     }
   }, [user]);
@@ -79,11 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     pb.authStore.clear();
-    router.push('/login');
+    // No need to manually push, the effect will handle it.
   };
   
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
   
   const value = { user, pb, dataSource, login, logout, signup };

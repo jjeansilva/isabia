@@ -9,14 +9,14 @@ import { useAuth } from './auth-provider';
 export const DataContext = createContext<IDataSource | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const authContext = useAuth();
+  const { dataSource: authDataSource } = useAuth();
 
   const dataSource = useMemo(() => {
     const usePocketBase = !!process.env.NEXT_PUBLIC_PB_URL;
 
     if (usePocketBase) {
       // We get the authenticated dataSource from the AuthContext
-      return authContext.dataSource;
+      return authDataSource;
     }
     
     // Fallback to mock data source if PocketBase is not configured
@@ -25,7 +25,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     return new MockDataSource();
 
-  }, [authContext]);
+  }, [authDataSource]);
 
   return (
     <DataContext.Provider value={dataSource}>
