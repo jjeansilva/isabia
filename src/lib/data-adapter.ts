@@ -507,6 +507,7 @@ class PocketBaseDataSource implements IDataSource {
                  if ((e as any)?.status === 404) {
                     topico = await this.create<Topico>('topicos', { nome: topicoNome, disciplinaId: disciplina.id } as any);
                  } else {
+                    console.error("Error fetching topico:", e);
                     throw e;
                  }
             }
@@ -520,8 +521,7 @@ class PocketBaseDataSource implements IDataSource {
              const resp = values[colMap.resposta];
              const outrasAlternativas = header.filter(h => h.startsWith('alternativa_')).map(key => values[colMap[key]]).filter(Boolean);
              alternativas = [resp, ...outrasAlternativas].sort(() => Math.random() - 0.5); 
-             respostaCorreta = JSON.stringify(resp);
-             alternativas = JSON.stringify(alternativas);
+             respostaCorreta = resp;
         } else if (tipo === 'Certo ou Errado') {
             respostaCorreta = ['certo', 'verdadeiro', 'v'].includes(respostaCorreta.toLowerCase());
         }
