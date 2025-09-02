@@ -6,14 +6,15 @@ import { usePathname, useRouter } from 'next/navigation';
 import { IDataSource, PocketBaseDataSource, MockDataSource } from '@/lib/data-adapter';
 import PocketBase from 'pocketbase';
 import { seedLocalStorage } from '@/lib/seed';
+import { DataContext } from './data-provider';
 
 interface AuthContextType {
   user: any; 
-  pb: PocketBase;
-  dataSource: IDataSource;
   login: (email:string, pass:string) => Promise<any>;
   logout: () => void;
   signup: (email:string, pass:string, passConfirm:string, name:string) => Promise<any>;
+  dataSource: IDataSource;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,8 +24,10 @@ const PUBLIC_ROUTES = ['/login', '/signup'];
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  
   const usePocketBase = !!process.env.NEXT_PUBLIC_PB_URL;
+
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const { pb, dataSource } = useMemo(() => {
     if (usePocketBase) {
@@ -32,23 +35,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const dsInstance = new PocketBaseDataSource(pbInstance);
       return { pb: pbInstance, dataSource: dsInstance };
     } else {
+      seedLocalStorage();
       const dsInstance = new MockDataSource();
       return { pb: null as any, dataSource: dsInstance };
     }
   }, [usePocketBase]);
 
-  const [user, setUser] = useState<any>(pb?.authStore?.model);
-  const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
     if (!usePocketBase) {
+      setUser({ name: "Usuário Mock" }); // Mock user
       setIsLoading(false);
       return;
     }
 
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model);
-    }, true); 
+        // CRITICAL: Re-initialize the dataSource's pb instance with the new auth state
+        dataSource.pb = pb;
+    }, true);
 
     // Initial check
     setUser(pb.authStore.model);
@@ -57,21 +61,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       unsubscribe();
     };
-  }, [pb, usePocketBase]);
+  }, [pb, dataSource, usePocketBase]);
   
 
   useEffect(() => {
-    if (isLoading || !usePocketBase) return;
+    if (isLoading) return;
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-    const isAuthenticated = pb.authStore.isValid;
+    
+    let isAuthenticated = false;
+    if(usePocketBase) {
+        isAuthenticated = pb.authStore.isValid;
+    } else {
+        isAuthenticated = !!user;
+    }
     
     if (!isAuthenticated && !isPublicRoute) {
       router.push('/login');
     } else if (isAuthenticated && isPublicRoute) {
       router.push('/dashboard');
     }
-  }, [pathname, router, pb?.authStore?.isValid, isLoading, usePocketBase]);
+  }, [pathname, router, user, isLoading, usePocketBase, pb?.authStore?.isValid]);
 
   const login = async (email:string, pass:string) => {
     return pb.collection('users').authWithPassword(email, pass);
@@ -87,18 +97,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    pb.authStore.clear();
+    if (usePocketBase) {
+        pb.authStore.clear();
+    } else {
+        setUser(null);
+    }
   };
   
   if (isLoading && usePocketBase) {
      return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
   
-  const value = { user, pb, dataSource, login, logout, signup };
+  const value = { user, login, logout, signup, dataSource, isLoading };
   
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      <DataContext.Provider value={dataSource}>
+        {children}
+      </DataContext.Provider>
     </AuthContext.Provider>
   );
 }

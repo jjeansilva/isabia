@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { MainLayout } from '@/components/layout/main-layout';
-import { DataProvider } from '@/providers/data-provider';
-import { QueryProvider } from '@/providers/query-provider';
 import { AuthProvider } from '@/providers/auth-provider';
+import { QueryProvider } from '@/providers/query-provider';
+import { DataProvider } from '@/providers/data-provider';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
