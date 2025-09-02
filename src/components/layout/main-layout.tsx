@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   Sidebar,
   SidebarProvider,
@@ -41,19 +41,14 @@ function LoadingSkeleton() {
 
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const [isClient, setIsClient] = useState(false);
+  const { user, isLoading } = useAuth();
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  if (isLoading) {
+    return <LoadingSkeleton />;
+  }
 
   if (!user) {
     return <>{children}</>;
-  }
-  
-  if (!isClient) {
-    return <LoadingSkeleton />;
   }
 
   return <LayoutContent>{children}</LayoutContent>;

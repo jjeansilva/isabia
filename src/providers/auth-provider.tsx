@@ -38,11 +38,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [usePocketBase]);
 
-  const [user, setUser] = useState<User | null>(pb ? pb.authStore.model as User : null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // This effect hook is the core of the auth management.
-  // It runs once and sets up a listener for auth state changes.
+  
   useEffect(() => {
     if (!pb) {
       // For mock data source, we just set a mock user and finish loading.
@@ -53,7 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model as User);
-        setIsLoading(false); // Stop loading once we have an auth state.
+        // This is the key: we are now sure about auth state, so we can stop loading.
+        setIsLoading(false);
     }, true); // `true` calls the callback immediately with the initial state.
 
     return () => {
