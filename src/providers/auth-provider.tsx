@@ -3,8 +3,9 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { IDataSource, PocketBaseDataSource } from '@/lib/data-adapter';
+import { IDataSource, PocketBaseDataSource, MockDataSource } from '@/lib/data-adapter';
 import PocketBase from 'pocketbase';
+import { seedLocalStorage } from '@/lib/seed';
 
 interface AuthContextType {
   user: any; 
@@ -23,31 +24,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   
-  const pb = useMemo(() => new PocketBase(process.env.NEXT_PUBLIC_PB_URL), []);
-  const dataSource = useMemo(() => new PocketBaseDataSource(pb), [pb]);
+  const usePocketBase = !!process.env.NEXT_PUBLIC_PB_URL;
 
-  const [user, setUser] = useState<any>(pb.authStore.model);
+  const { pb, dataSource } = useMemo(() => {
+    if (usePocketBase) {
+      const pbInstance = new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
+      const dsInstance = new PocketBaseDataSource(pbInstance);
+      return { pb: pbInstance, dataSource: dsInstance };
+    } else {
+      const dsInstance = new MockDataSource();
+      return { pb: null as any, dataSource: dsInstance };
+    }
+  }, [usePocketBase]);
+
+  const [user, setUser] = useState<any>(pb?.authStore?.model);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!usePocketBase) {
+      setIsLoading(false);
+      return;
+    }
+
     const unsubscribe = pb.authStore.onChange((token, model) => {
         setUser(model);
     }, true); 
 
+    // Initial check
+    setUser(pb.authStore.model);
+    setIsLoading(false);
+
     return () => {
       unsubscribe();
     };
-  }, [pb]);
+  }, [pb, usePocketBase]);
   
-  useEffect(() => {
-    if (user !== undefined) {
-      setIsLoading(false);
-    }
-  }, [user]);
-
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !usePocketBase) return;
 
     const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
     const isAuthenticated = pb.authStore.isValid;
@@ -57,8 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else if (isAuthenticated && isPublicRoute) {
       router.push('/dashboard');
     }
-  }, [pathname, router, pb.authStore.isValid, isLoading]);
-
+  }, [pathname, router, pb?.authStore?.isValid, isLoading, usePocketBase]);
 
   const login = async (email:string, pass:string) => {
     return pb.collection('users').authWithPassword(email, pass);
@@ -75,10 +88,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     pb.authStore.clear();
-    // No need to manually push, the effect will handle it.
   };
   
-  if (isLoading) {
+  if (isLoading && usePocketBase) {
      return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
   
