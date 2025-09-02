@@ -26,14 +26,14 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SimuladoDificuldade, Topico } from "@/types";
+import { SimuladoDificuldade, Topico, QuestionDificuldade } from "@/types";
 
 const formSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres."),
   disciplinaId: z.string().min(1, "Disciplina é obrigatória."),
   topicoId: z.string().optional(),
   quantidade: z.coerce.number().min(1, "Pelo menos 1 questão.").max(100, "Máximo de 100 questões."),
-  dificuldade: z.enum(["facil", "dificil", "aleatorio"]),
+  dificuldade: z.enum(["Fácil", "Médio", "Difícil", "aleatorio"]),
 });
 
 export function SimuladoForm() {
@@ -58,13 +58,13 @@ export function SimuladoForm() {
     const selectedDisciplinaId = form.watch("disciplinaId");
     const { data: topicos } = useQuery({ 
         queryKey: ['topicos', selectedDisciplinaId], 
-        queryFn: () => dataSource.list<Topico>('topicos', { disciplinaId: selectedDisciplinaId }),
+        queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${selectedDisciplinaId}"` }),
         enabled: !!selectedDisciplinaId,
     });
 
 
     const mutation = useMutation({
-        mutationFn: (criteria: z.infer<typeof formSchema>) => dataSource.gerarSimulado(criteria),
+        mutationFn: (criteria: z.infer<typeof formSchema>) => dataSource.gerarSimulado(criteria as any),
         onSuccess: (newSimulado) => {
             toast({ title: "Sucesso!", description: "Simulado criado. Começando agora..." });
             router.push(`/simulados/${newSimulado.id}`);
@@ -98,8 +98,8 @@ export function SimuladoForm() {
                             <FormLabel>Disciplina</FormLabel>
                             <Select onValueChange={(value) => {
                                 field.onChange(value);
-                                form.setValue('topicoId', undefined);
-                            }} defaultValue={field.value}>
+                                form.setValue('topicoId', '');
+                            }} value={field.value}>
                                 <FormControl><SelectTrigger><SelectValue placeholder="Selecione a disciplina" /></SelectTrigger></FormControl>
                                 <SelectContent>
                                     {disciplinas?.map(d => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
@@ -136,7 +136,7 @@ export function SimuladoForm() {
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                 <SelectContent>
-                                    {(["aleatorio", "facil", "dificil"] as SimuladoDificuldade[]).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                    {(["aleatorio", "Fácil", "Médio", "Difícil"] as (SimuladoDificuldade | QuestionDificuldade)[]).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                             <FormMessage />

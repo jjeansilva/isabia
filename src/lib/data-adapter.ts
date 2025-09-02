@@ -104,7 +104,7 @@ class MockDataSource implements IDataSource {
       }
 
       if (criteria.dificuldade !== 'aleatorio') {
-          if (criteria.dificuldade === 'facil') {
+          if (criteria.dificuldade === 'Fácil') {
             filtered = filtered.filter(q => q.dificuldade === 'Fácil' || q.dificuldade === 'Médio');
           } else { // dificil
             filtered = filtered.filter(q => q.dificuldade === 'Médio' || q.dificuldade === 'Difícil');
@@ -231,7 +231,6 @@ class PocketBaseDataSource implements IDataSource {
   
   constructor(pocketbaseInstance: PocketBase) {
     this.pb = pocketbaseInstance;
-    // This is the key change: ensure the instance loads auth state from cookies on creation.
     this.pb.authStore.loadFromCookie(this.pb.authStore.exportToCookie());
   }
   
@@ -267,13 +266,11 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]> {
-      // PocketBase free plan has a rate limit, so we can't just spam requests.
-      // A small delay helps, but for larger imports, this might still be an issue.
       const results: T[] = [];
       for(const item of data) {
           const result = await this.create<T>(collection, item as any);
           results.push(result);
-          await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay
+          await new Promise(resolve => setTimeout(resolve, 50)); 
       }
       return results;
   }
@@ -287,7 +284,7 @@ class PocketBaseDataSource implements IDataSource {
     await this.pb.collection(collection).delete(id);
   }
 
-  async gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade, nome: string }): Promise<Simulado> {
+  async gerarSimulado(criteria: { disciplinaId: string, topicoId?: string, quantidade: number, dificuldade: SimuladoDificuldade | QuestionDificuldade, nome: string }): Promise<Simulado> {
     const filterParts: string[] = [];
     filterParts.push(`isActive=true`);
     filterParts.push(`disciplinaId="${criteria.disciplinaId}"`);
@@ -296,11 +293,7 @@ class PocketBaseDataSource implements IDataSource {
     }
 
     if (criteria.dificuldade !== 'aleatorio') {
-        if (criteria.dificuldade === 'facil') {
-            filterParts.push(`(dificuldade="Fácil" || dificuldade="Médio")`);
-        } else { // dificil
-            filterParts.push(`(dificuldade="Médio" || dificuldade="Difícil")`);
-        }
+       filterParts.push(`dificuldade="${criteria.dificuldade}"`);
     }
     
     const filterString = filterParts.join(" && ");
@@ -315,11 +308,11 @@ class PocketBaseDataSource implements IDataSource {
 
     const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt' | 'user'> = {
         nome: criteria.nome,
-        dificuldade: criteria.dificuldade,
+        dificuldade: criteria.dificuldade as SimuladoDificuldade,
         status: 'rascunho',
         criadoEm: new Date().toISOString(),
         questoes: selectedQuestoes.map((q, index) => ({
-            id: '', // pocketbase will generate this
+            id: '', 
             simuladoId: '', 
             questaoId: q.id,
             ordem: index + 1,
@@ -330,7 +323,7 @@ class PocketBaseDataSource implements IDataSource {
       
     createdSimulado.questoes.forEach(q => q.simuladoId = createdSimulado.id);
       
-    return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: createdSimulado.questoes });
+    return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: createdSimulado.questoes as any });
   }
 
   async getDashboardStats(): Promise<any> {
@@ -437,7 +430,6 @@ class PocketBaseDataSource implements IDataSource {
         }
     }
     
-    // Cache for created disciplines and topics to avoid multiple lookups/creates
     const disciplinasCache: Record<string, Disciplina> = {};
     const topicosCache: Record<string, Topico> = {};
 
@@ -450,13 +442,12 @@ class PocketBaseDataSource implements IDataSource {
         
         const disciplinaNome = values[colMap.disciplina];
         let topicoNome = values[colMap['tópico da disciplina']];
-        const subtopicoNome = values[colMap.subtópico]; // Note: subtópico is merged into tópico
+        const subtopicoNome = values[colMap.subtópico];
 
         if (subtopicoNome && subtopicoNome.toLowerCase() !== 'n/a' && subtopicoNome !== '') {
             topicoNome = `${topicoNome} - ${subtopicoNome}`;
         }
         
-        // --- Get or Create Disciplina ---
         let disciplina = disciplinasCache[disciplinaNome];
         if (!disciplina) {
             try {
@@ -465,13 +456,12 @@ class PocketBaseDataSource implements IDataSource {
                 if ((e as any)?.status === 404) {
                     disciplina = await this.create<Disciplina>('disciplinas', { nome: disciplinaNome } as any);
                 } else {
-                    throw e; // Rethrow other errors
+                    throw e;
                 }
             }
             disciplinasCache[disciplinaNome] = disciplina;
         }
 
-        // --- Get or Create Topico ---
         const cacheKey = `${disciplina.id}-${topicoNome}`;
         let topico = topicosCache[cacheKey];
         if (!topico) {
@@ -481,20 +471,21 @@ class PocketBaseDataSource implements IDataSource {
                  if ((e as any)?.status === 404) {
                     topico = await this.create<Topico>('topicos', { nome: topicoNome, disciplinaId: disciplina.id } as any);
                  } else {
-                    throw e; // Rethrow other errors
+                    throw e;
                  }
             }
             topicosCache[cacheKey] = topico;
         }
 
         let respostaCorreta: any = values[colMap.resposta];
-        let alternativas: string[] | undefined;
+        let alternativas: any;
 
         if (tipo === 'Múltipla Escolha') {
              const resp = values[colMap.resposta];
              const outrasAlternativas = header.filter(h => h.startsWith('alternativa_')).map(key => values[colMap[key]]).filter(Boolean);
-             alternativas = [resp, ...outrasAlternativas].sort(() => Math.random() - 0.5); // Randomize order
+             alternativas = [resp, ...outrasAlternativas].sort(() => Math.random() - 0.5); 
              respostaCorreta = resp;
+             alternativas = JSON.stringify(alternativas);
         } else if (tipo === 'Certo ou Errado') {
             respostaCorreta = ['verdadeiro', 'certo', 'v'].includes(respostaCorreta.toLowerCase());
         }
@@ -508,7 +499,7 @@ class PocketBaseDataSource implements IDataSource {
             respostaCorreta: respostaCorreta,
             alternativas: alternativas,
             explicacao: values[colMap.explicacao],
-            origem: 'importacao' as any,
+            origem: 'Já caiu',
             version: 1,
             isActive: true,
             hashConteudo: 'import-csv-' + uuidv4(),

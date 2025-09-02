@@ -37,23 +37,23 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Trash2 } from "lucide-react";
 import { suggestSimilarQuestions } from "@/ai/flows/suggest-similar-questions";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Skeleton } from "../ui/skeleton";
 
 const formSchema = z.object({
   disciplinaId: z.string().min(1, "Disciplina é obrigatória"),
   topicoId: z.string().min(1, "Tópico é obrigatório"),
-  tipo: z.enum(["multipla", "vf", "lacuna", "flashcard"]),
-  dificuldade: z.enum(["facil", "medio", "dificil"]),
-  origem: z.enum(["autoral", "banca", "importacao"]),
+  tipo: z.enum(["Múltipla Escolha", "Certo ou Errado", "Completar Lacuna", "Flashcard"]),
+  dificuldade: z.enum(["Fácil", "Médio", "Difícil"]),
+  origem: z.enum(["Autoral", "Conteúdo", "Legislação", "Jurisprudência", "Já caiu"]),
   enunciado: z.string().min(10, "Enunciado é muito curto").max(2000, "Enunciado muito longo"),
   alternativas: z.array(z.string()).optional(),
   respostaCorreta: z.any(),
   explicacao: z.string().optional(),
 }).refine(data => {
-    if (data.tipo === 'multipla') {
-        return data.alternativas && data.alternativas.length >= 2 && data.respostaCorreta;
+    if (data.tipo === 'Múltipla Escolha') {
+        return data.alternativas && data.alternativas.length >= 2 && data.respostaCorreta !== undefined;
     }
     return true;
 }, { message: "Questões de múltipla escolha devem ter pelo menos 2 alternativas e uma resposta correta.", path: ["respostaCorreta"] });
@@ -63,19 +63,51 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
   const dataSource = useData();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: questao ? {
-        ...questao,
-        respostaCorreta: questao.tipo === 'multipla' && questao.alternativas ? questao.alternativas.indexOf(questao.respostaCorreta as string) : questao.respostaCorreta,
-    } : {
-      tipo: "multipla",
-      dificuldade: "medio",
-      origem: "autoral",
+    defaultValues: {
+      tipo: "Múltipla Escolha",
+      dificuldade: "Médio",
+      origem: "Autoral",
       enunciado: "",
       alternativas: ["", "", "", ""],
     },
   });
+
+  useEffect(() => {
+    if(open && questao) {
+       let alternativas = questao.alternativas;
+        if (typeof alternativas === 'string') {
+          try {
+            alternativas = JSON.parse(alternativas);
+          } catch(e) {
+            console.error("Failed to parse alternativas", e);
+            alternativas = [];
+          }
+        }
+
+        form.reset({
+            ...questao,
+            alternativas: Array.isArray(alternativas) ? alternativas : [],
+            respostaCorreta: questao.tipo === 'Múltipla Escolha' && Array.isArray(alternativas)
+                ? alternativas.indexOf(questao.respostaCorreta as string).toString()
+                : questao.respostaCorreta,
+        });
+    } else if (open && !questao) {
+        form.reset({
+            tipo: "Múltipla Escolha",
+            dificuldade: "Médio",
+            origem: "Autoral",
+            enunciado: "",
+            alternativas: ["", "", "", ""],
+            respostaCorreta: undefined,
+            disciplinaId: undefined,
+            topicoId: undefined,
+            explicacao: "",
+        });
+    }
+  }, [open, questao, form]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -87,20 +119,25 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
   const selectedDisciplinaId = form.watch("disciplinaId");
   const { data: topicos } = useQuery({ 
       queryKey: ['topicos', selectedDisciplinaId], 
-      queryFn: () => dataSource.list<Topico>('topicos', { disciplinaId: selectedDisciplinaId }),
-      enabled: !!selectedDisciplinaId, // Only fetch if disciplina is selected
+      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${selectedDisciplinaId}"` }),
+      enabled: !!selectedDisciplinaId,
   });
 
 
   const mutation = useMutation({
-    mutationFn: (newQuestao: Omit<Questao, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'isActive' | 'hashConteudo'>) => {
-      const finalData = {
+    mutationFn: (newQuestao: z.infer<typeof formSchema>) => {
+      let finalData: Partial<Questao> = {
         ...newQuestao,
-        respostaCorreta: newQuestao.tipo === 'multipla' && newQuestao.alternativas ? newQuestao.alternativas[newQuestao.respostaCorreta] : newQuestao.respostaCorreta,
         version: questao?.version ?? 1,
         isActive: true,
         hashConteudo: 'temp-hash'
       };
+
+      if (newQuestao.tipo === 'Múltipla Escolha' && newQuestao.alternativas) {
+        finalData.respostaCorreta = newQuestao.alternativas[parseInt(newQuestao.respostaCorreta)];
+        finalData.alternativas = JSON.stringify(newQuestao.alternativas) as any;
+      }
+      
       return questao
         ? dataSource.update('questoes', questao.id, finalData as Partial<Questao>)
         : dataSource.create('questoes', finalData as any);
@@ -109,9 +146,9 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
       queryClient.invalidateQueries({ queryKey: ['questoes'] });
       toast({ title: "Sucesso!", description: `Questão ${questao ? 'atualizada' : 'criada'} com sucesso.` });
       onOpenChange(false);
-      form.reset();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error(error);
       toast({ variant: "destructive", title: "Erro!", description: "Não foi possível salvar a questão." });
     },
   });
@@ -138,7 +175,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
   }
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    mutation.mutate(values as any);
+    mutation.mutate(values);
   }
 
   const tipo = form.watch("tipo");
@@ -159,7 +196,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
                       <Select onValueChange={(value) => {
                           field.onChange(value)
                           form.setValue('topicoId', '');
-                      }} defaultValue={field.value}>
+                      }} value={field.value}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Selecione a disciplina"/></SelectTrigger></FormControl>
                           <SelectContent>
                               {disciplinas?.map(d => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
@@ -171,7 +208,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
                <FormField control={form.control} name="topicoId" render={({ field }) => (
                   <FormItem>
                       <FormLabel>Tópico</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={!selectedDisciplinaId || !topicos}>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDisciplinaId || !topicos}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Selecione o tópico"/></SelectTrigger></FormControl>
                           <SelectContent>
                                 {topicos?.map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
@@ -185,10 +222,10 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
                 <FormField control={form.control} name="tipo" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Tipo</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
                             <SelectContent>
-                                {(['multipla', 'vf', 'lacuna', 'flashcard'] as QuestionTipo[]).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                {(['Múltipla Escolha', 'Certo ou Errado', 'Completar Lacuna', 'Flashcard'] as QuestionTipo[]).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </FormItem>
@@ -196,10 +233,10 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
                 <FormField control={form.control} name="dificuldade" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Dificuldade</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
                             <SelectContent>
-                                {(['facil', 'medio', 'dificil'] as QuestionDificuldade[]).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                {(['Fácil', 'Médio', 'Difícil'] as QuestionDificuldade[]).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </FormItem>
@@ -207,10 +244,10 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
                 <FormField control={form.control} name="origem" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Origem</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
                             <SelectContent>
-                                {(['autoral', 'banca', 'importacao'] as QuestionOrigem[]).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                {(['Autoral', 'Conteúdo', 'Legislação', 'Jurisprudência', 'Já caiu'] as QuestionOrigem[]).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </FormItem>
@@ -225,11 +262,11 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
                 </FormItem>
             )}/>
             
-            {tipo === 'multipla' && (
+            {tipo === 'Múltipla Escolha' && (
               <div className="space-y-4 rounded-md border p-4">
                 <FormLabel>Alternativas</FormLabel>
                 <FormField control={form.control} name="respostaCorreta" render={({ field: radioField }) => (
-                  <RadioGroup onValueChange={val => radioField.onChange(parseInt(val))} defaultValue={radioField.value?.toString()} className="space-y-2">
+                  <RadioGroup onValueChange={val => radioField.onChange(val)} value={radioField.value?.toString()} className="space-y-2">
                     {fields.map((field, index) => (
                       <FormField key={field.id} control={form.control} name={`alternativas.${index}`}
                         render={({ field }) => (
@@ -251,12 +288,12 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
               </div>
             )}
             
-            {tipo === 'vf' && (
+            {tipo === 'Certo ou Errado' && (
                 <FormField control={form.control} name="respostaCorreta" render={({ field }) => (
                     <FormItem className="space-y-3 rounded-md border p-4">
                         <FormLabel>Resposta Correta</FormLabel>
                         <FormControl>
-                            <RadioGroup onValueChange={(val) => field.onChange(val === 'true')} defaultValue={field.value?.toString()} className="flex gap-4">
+                            <RadioGroup onValueChange={(val) => field.onChange(val === 'true')} value={field.value?.toString()} className="flex gap-4">
                                 <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="true"/></FormControl><FormLabel className="font-normal">Verdadeiro</FormLabel></FormItem>
                                 <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="false"/></FormControl><FormLabel className="font-normal">Falso</FormLabel></FormItem>
                             </RadioGroup>
@@ -265,7 +302,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
                 )}/>
             )}
 
-            {tipo === 'lacuna' && (
+            {tipo === 'Completar Lacuna' && (
                  <FormField control={form.control} name="respostaCorreta" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Texto da Lacuna</FormLabel>
@@ -275,7 +312,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
                 )}/>
             )}
 
-            {tipo === 'flashcard' && (
+            {tipo === 'Flashcard' && (
                  <FormField control={form.control} name="respostaCorreta" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Verso do Cartão (Resposta)</FormLabel>

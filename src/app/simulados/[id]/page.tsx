@@ -32,7 +32,17 @@ import {
 
 function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, onAnswer: (answer: any, confianca: RespostaConfianca) => void, isAnswered: boolean }) {
     const [selectedAnswer, setSelectedAnswer] = useState<any>(null);
-    const [confianca, setConfianca] = useState<RespostaConfianca>('duvida');
+    const [confianca, setConfianca] = useState<RespostaConfianca>('Dúvida');
+    
+    let alternativas = questao.alternativas;
+    if (typeof alternativas === 'string') {
+        try {
+            alternativas = JSON.parse(alternativas);
+        } catch (e) {
+            alternativas = [];
+        }
+    }
+
 
     const handleAnswer = () => {
         if (selectedAnswer !== null) {
@@ -56,9 +66,9 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
 
                 {/* Answer Area */}
                 <div className="space-y-4">
-                    {questao.tipo === 'multipla' && questao.alternativas && (
+                    {questao.tipo === 'Múltipla Escolha' && Array.isArray(alternativas) && (
                         <RadioGroup onValueChange={setSelectedAnswer} disabled={isAnswered}>
-                            {questao.alternativas.map((alt, index) => (
+                            {alternativas.map((alt, index) => (
                                 <div key={index} className="flex items-center space-x-2">
                                     <RadioGroupItem value={alt} id={`alt-${index}`} />
                                     <Label htmlFor={`alt-${index}`} className="text-base">{alt}</Label>
@@ -66,16 +76,16 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
                             ))}
                         </RadioGroup>
                     )}
-                    {questao.tipo === 'vf' && (
+                    {questao.tipo === 'Certo ou Errado' && (
                         <RadioGroup onValueChange={(v) => setSelectedAnswer(v === 'true')} disabled={isAnswered}>
                             <div className="flex items-center space-x-2"><RadioGroupItem value="true" id="vf-true" /><Label htmlFor="vf-true" className="text-base">Verdadeiro</Label></div>
                             <div className="flex items-center space-x-2"><RadioGroupItem value="false" id="vf-false" /><Label htmlFor="vf-false" className="text-base">Falso</Label></div>
                         </RadioGroup>
                     )}
-                    {questao.tipo === 'lacuna' && (
+                    {questao.tipo === 'Completar Lacuna' && (
                         <Input onChange={e => setSelectedAnswer(e.target.value)} disabled={isAnswered} placeholder="Digite sua resposta..."/>
                     )}
-                     {questao.tipo === 'flashcard' && (
+                     {questao.tipo === 'Flashcard' && (
                         <div>
                             <Button onClick={() => setSelectedAnswer(true)} disabled={isAnswered} variant="outline" className="mr-2">Lembrei</Button>
                             <Button onClick={() => setSelectedAnswer(false)} disabled={isAnswered} variant="outline">Não lembrei</Button>
@@ -87,11 +97,11 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
                 {!isAnswered && (
                     <div className="mt-8">
                         <Label className="mb-2 block">Nível de Confiança</Label>
-                        <RadioGroup defaultValue="duvida" onValueChange={(v: RespostaConfianca) => setConfianca(v)} className="flex gap-2 md:gap-4">
+                        <RadioGroup defaultValue="Dúvida" onValueChange={(v: RespostaConfianca) => setConfianca(v)} className="flex gap-2 md:gap-4">
                             {[
-                                {value: 'certeza', label: 'Certeza', icon: ThumbsUp},
-                                {value: 'duvida', label: 'Dúvida', icon: Lightbulb},
-                                {value: 'chute', label: 'Chute', icon: Zap},
+                                {value: 'Certeza', label: 'Certeza', icon: ThumbsUp},
+                                {value: 'Dúvida', label: 'Dúvida', icon: Lightbulb},
+                                {value: 'Chute', label: 'Chute', icon: Zap},
                             ].map(c => (
                                 <Label key={c.value} htmlFor={`conf-${c.value}`} className={cn("flex-1 flex items-center justify-center gap-2 rounded-lg border p-3 cursor-pointer hover:bg-accent", confianca === c.value && "bg-accent border-primary")}>
                                     <RadioGroupItem value={c.value} id={`conf-${c.value}`} className="sr-only"/>

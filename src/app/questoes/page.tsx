@@ -8,7 +8,7 @@ import { useData } from "@/hooks/use-data";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
-import { Disciplina, Questao, Topico } from "@/types";
+import { Disciplina, Questao, Topico, QuestionDificuldade } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -81,11 +81,11 @@ function QuestoesTable() {
     }
   }
 
-  const getDifficultyColor = (dificuldade: Questao['dificuldade']) => {
+  const getDifficultyColor = (dificuldade: QuestionDificuldade) => {
     switch (dificuldade) {
-      case 'facil': return 'bg-green-100 text-green-800 border-green-200';
-      case 'medio': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'dificil': return 'bg-red-100 text-red-800 border-red-200';
+      case 'Fácil': return 'bg-green-100 text-green-800 border-green-200';
+      case 'Médio': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Difícil': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-secondary';
     }
   };
@@ -188,7 +188,9 @@ export default function QuestoesPage() {
   return (
     <>
       <PageHeader title="Banco de Questões" description="Gerencie seu acervo de questões para simulados e revisões.">
-        <Button onClick={() => setShowCreateModal(true)}>
+        <Button onClick={() => {
+            setShowCreateModal(true);
+        }}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Nova Questão
         </Button>
