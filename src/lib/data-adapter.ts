@@ -534,7 +534,7 @@ class PocketBaseDataSource implements IDataSource {
             dificuldade: values[colMap.dificuldade] as QuestionDificuldade,
             disciplinaId: disciplina.id,
             topicoId: topico.id,
-            enunciado: values[colMap.questao],
+            enunciado: values[colMap['questão']],
             respostaCorreta: respostaCorreta,
             alternativas: alternativas,
             explicacao: values[colMap.explicacao],
@@ -556,5 +556,3 @@ class PocketBaseDataSource implements IDataSource {
 }
 
 export { PocketBaseDataSource, MockDataSource };
-
-    
