@@ -520,7 +520,8 @@ class PocketBaseDataSource implements IDataSource {
         if (tipo === 'Múltipla Escolha') {
              const resp = values[colMap.resposta];
              const outrasAlternativas = header.filter(h => h.startsWith('alternativa_')).map(key => values[colMap[key]]).filter(Boolean);
-             alternativas = [resp, ...outrasAlternativas].sort(() => Math.random() - 0.5); 
+             alternativas = [resp, ...outrasAlternativas].sort(() => Math.random() - 0.5);
+             alternativas = JSON.stringify(alternativas);
              respostaCorreta = resp;
         } else if (tipo === 'Certo ou Errado') {
             respostaCorreta = ['certo', 'verdadeiro', 'v'].includes(respostaCorreta.toLowerCase());
