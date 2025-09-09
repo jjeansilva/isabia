@@ -19,10 +19,11 @@ const saveToStorage = <T>(key: string, data: T[]): void => {
 
 export interface IDataSource {
   pb?: PocketBase;
-  list<T>(collection: CollectionName, options?: any): Promise<T[]>;
+  list<T>(collection: CollectionName, options?: any): Promise<T[] | ListResult<T>>;
   get<T>(collection: CollectionName, id: string): Promise<T | null>;
   create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'user'>): Promise<T>;
   bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]>;
+  bulkDelete(collection: CollectionName, ids: string[]): Promise<void>;
   bulkCreateFromCsv?(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem): Promise<number>;
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
@@ -76,6 +77,13 @@ class MockDataSource implements IDataSource {
     const updatedData = [...allData, ...newItems];
     saveToStorage(collection, updatedData);
     return Promise.resolve(newItems as T[]);
+  }
+
+   async bulkDelete(collection: CollectionName, ids: string[]): Promise<void> {
+    let data = getFromStorage<any>(collection);
+    const filteredData = data.filter(item => !ids.includes(item.id));
+    saveToStorage(collection, filteredData);
+    return Promise.resolve();
   }
 
   async update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> {
@@ -252,9 +260,20 @@ class PocketBaseDataSource implements IDataSource {
     return data;
   }
 
-  async list<T>(collection: CollectionName, options?: any): Promise<T[]> {
-    const records = await this.pb.collection(collection).getFullList<T>(options);
-    return records;
+  async list<T>(collection: CollectionName, options?: any): Promise<ListResult<T>> {
+    const { page, perPage, ...restOptions } = options || {};
+    if (page && perPage) {
+        return this.pb.collection(collection).getList<T>(page, perPage, restOptions);
+    }
+    const records = await this.pb.collection(collection).getFullList<T>(restOptions);
+    // Mimic ListResult for getFullList
+    return {
+        page: 1,
+        perPage: records.length,
+        totalPages: 1,
+        totalItems: records.length,
+        items: records,
+    };
   }
 
   async get<T>(collection: CollectionName, id: string): Promise<T | null> {
@@ -281,6 +300,10 @@ class PocketBaseDataSource implements IDataSource {
           await new Promise(resolve => setTimeout(resolve, 50)); 
       }
       return results;
+  }
+   async bulkDelete(collection: CollectionName, ids: string[]): Promise<void> {
+    const promises = ids.map(id => this.delete(collection, id));
+    await Promise.all(promises);
   }
   
   async update<T extends { id: string; }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> {
@@ -313,7 +336,8 @@ class PocketBaseDataSource implements IDataSource {
         }
         
         const filterString = filterParts.join(" && ");
-        const availableQuestoes = await this.list<Questao>('questoes', { filter: filterString });
+        const availableQuestoesResult = await this.list<Questao>('questoes', { filter: filterString });
+        const availableQuestoes = availableQuestoesResult.items;
 
         const shuffled = availableQuestoes.sort(() => 0.5 - Math.random());
         const selectedQuestoes = shuffled.slice(0, criteria.quantidade);
@@ -362,24 +386,24 @@ class PocketBaseDataSource implements IDataSource {
         this.list<Disciplina>('disciplinas', { filter: userFilter })
     ]);
     
-    const totalAcertos = respostas.filter((r: any) => r.acertou).length;
-    const acertoGeral = respostas.length > 0 ? (totalAcertos / respostas.length) * 100 : 0;
+    const totalAcertos = (respostas as any[]).filter((r: any) => r.acertou).length;
+    const acertoGeral = (respostas as any[]).length > 0 ? (totalAcertos / (respostas as any[]).length) * 100 : 0;
     
-    const simuladoEmAndamento = simulados.find(s => s.status === 'andamento');
-    const questoesParaRevisarHoje = revisao.filter((r: any) => new Date(r.proximaRevisao) <= new Date()).length;
+    const simuladoEmAndamento = (simulados.items as Simulado[]).find(s => s.status === 'andamento');
+    const questoesParaRevisarHoje = (revisao.items as Revisao[]).filter((r: any) => new Date(r.proximaRevisao) <= new Date()).length;
 
-    const distribution = allDisciplinas.map(d => {
-        const total = questoes.filter(q => q.disciplinaId === d.id).length;
+    const distribution = (allDisciplinas.items as Disciplina[]).map(d => {
+        const total = (questoes.items as Questao[]).filter(q => q.disciplinaId === d.id).length;
         return { name: d.nome, total };
     });
 
     return Promise.resolve({
-        statsDia,
+        statsDia: statsDia.items,
         acertoGeral,
         simuladosCount: {
-            criados: simulados.length,
-            emAndamento: simulados.filter(s => s.status === 'andamento').length,
-            concluidos: simulados.filter(s => s.status === 'concluido').length,
+            criados: simulados.totalItems,
+            emAndamento: (simulados.items as Simulado[]).filter(s => s.status === 'andamento').length,
+            concluidos: (simulados.items as Simulado[]).filter(s => s.status === 'concluido').length,
         },
         simuladoEmAndamento,
         questoesParaRevisarHoje,
@@ -390,17 +414,17 @@ class PocketBaseDataSource implements IDataSource {
   async getQuestoesParaRevisar(): Promise<Questao[]> {
     const hoje = new Date().toISOString().split('T')[0];
     const userFilter = `user = "${this.pb.authStore.model?.id}"`;
-    const revisoesHoje = await this.list<Revisao>('revisoes',{
+    const revisoesHojeResult = await this.list<Revisao>('revisoes',{
         filter: `proximaRevisao <= "${hoje}" && ${userFilter}`
     });
-    const revisoesHojeIds = revisoesHoje.map(r => r.questaoId);
+    const revisoesHojeIds = revisoesHojeResult.items.map(r => r.questaoId);
 
     if (revisoesHojeIds.length === 0) return [];
     
     const idFilter = revisoesHojeIds.map(id => `id="${id}"`).join(" || ");
-    const questoes = await this.list<Questao>('questoes', { filter: `(${idFilter}) && ${userFilter}` });
+    const questoesResult = await this.list<Questao>('questoes', { filter: `(${idFilter}) && ${userFilter}` });
     
-    return questoes;
+    return questoesResult.items;
   }
 
   async registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> {
@@ -526,7 +550,7 @@ class PocketBaseDataSource implements IDataSource {
              respostaCorreta = resp;
         } else if (tipo === 'Certo ou Errado') {
             const lowerCaseAnswer = respostaCorreta.toLowerCase();
-            respostaCorreta = ['certo', 'verdadeiro', 'v'].includes(lowerCaseAnswer) ? "true" : "false";
+            respostaCorreta = ['certo', 'verdadeiro', 'v'].includes(lowerCaseAnswer);
         }
 
         const questao: Partial<Questao> = {
