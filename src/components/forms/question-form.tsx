@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -88,10 +89,15 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
         }
         
         let respostaCorreta = questao.respostaCorreta;
+        try {
+            respostaCorreta = JSON.parse(questao.respostaCorreta);
+        } catch(e) {
+            // not a json, use as is
+        }
+
+
         if (questao.tipo === 'Múltipla Escolha' && Array.isArray(alternativas)) {
-            respostaCorreta = alternativas.indexOf(questao.respostaCorreta as string).toString();
-        } else if (questao.tipo === 'Certo ou Errado') {
-            respostaCorreta = questao.respostaCorreta === "true";
+            respostaCorreta = alternativas.indexOf(respostaCorreta).toString();
         }
 
         form.reset({
@@ -138,14 +144,16 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
         hashConteudo: 'temp-hash'
       };
 
+      let finalRespostaCorreta = newQuestao.respostaCorreta;
+
       if (newQuestao.tipo === 'Múltipla Escolha' && Array.isArray(newQuestao.alternativas)) {
-        finalData.respostaCorreta = newQuestao.alternativas[parseInt(newQuestao.respostaCorreta)];
+        finalRespostaCorreta = newQuestao.alternativas[parseInt(newQuestao.respostaCorreta)];
         finalData.alternativas = JSON.stringify(newQuestao.alternativas);
-      } else if (newQuestao.tipo === 'Certo ou Errado') {
-        finalData.respostaCorreta = String(newQuestao.respostaCorreta);
       } else {
-        finalData.alternativas = "[]"; // Garante que o campo de alternativas seja um JSON vazio para outros tipos.
+        finalData.alternativas = "[]"; 
       }
+      
+      finalData.respostaCorreta = JSON.stringify(finalRespostaCorreta);
       
       return questao
         ? dataSource.update('questoes', questao.id, finalData as Partial<Questao>)

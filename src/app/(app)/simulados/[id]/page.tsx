@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -181,11 +182,14 @@ export default function SimuladoExecutionPage() {
     const handleAnswer = (answer: any, confianca: RespostaConfianca) => {
         if (!simulado || !questao) return;
 
-        let isCorrect = questao.respostaCorreta === answer;
-        if (questao.tipo === 'Certo ou Errado') {
-            isCorrect = questao.respostaCorreta === answer.toString();
+        let parsedRespostaCorreta = questao.respostaCorreta;
+        try {
+            parsedRespostaCorreta = JSON.parse(questao.respostaCorreta)
+        } catch(e) {
+            // It's not a JSON, so we use it as is
         }
-
+        
+        let isCorrect = parsedRespostaCorreta === answer;
 
         const updatedQuestoes = simulado.questoes.map((q, index) => 
             index === currentQuestionIndex 

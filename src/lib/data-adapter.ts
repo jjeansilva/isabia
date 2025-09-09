@@ -535,7 +535,7 @@ class PocketBaseDataSource implements IDataSource {
             disciplinaId: disciplina.id,
             topicoId: topico.id,
             enunciado: values[colMap['questão']],
-            respostaCorreta: respostaCorreta,
+            respostaCorreta: JSON.stringify(respostaCorreta),
             alternativas: alternativas,
             explicacao: values[colMap.explicacao],
             origem: origem,
