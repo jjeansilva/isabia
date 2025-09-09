@@ -484,7 +484,7 @@ class PocketBaseDataSource implements IDataSource {
         let disciplina = disciplinasCache[disciplinaNome];
         if (!disciplina) {
             try {
-                const filter = `nome="${disciplinaNome}" && user="${userId}"`;
+                const filter = `nome="${disciplinaNome}" && user = "${userId}"`;
                 disciplina = await this.pb.collection('disciplinas').getFirstListItem<Disciplina>(filter);
             } catch(e) {
                 if ((e as any)?.status === 404) {
@@ -520,11 +520,11 @@ class PocketBaseDataSource implements IDataSource {
         if (tipo === 'Múltipla Escolha') {
              const resp = values[colMap.resposta];
              const outrasAlternativas = header.filter(h => h.startsWith('alternativa_')).map(key => values[colMap[key]]).filter(Boolean);
-             alternativas = [resp, ...outrasAlternativas].sort(() => Math.random() - 0.5);
-             alternativas = JSON.stringify(alternativas);
+             const todasAlternativas = [resp, ...outrasAlternativas].sort(() => Math.random() - 0.5);
+             alternativas = JSON.stringify(todasAlternativas);
              respostaCorreta = resp;
         } else if (tipo === 'Certo ou Errado') {
-            respostaCorreta = ['certo', 'verdadeiro', 'v'].includes(respostaCorreta.toLowerCase());
+            respostaCorreta = ['certo', 'verdadeiro', 'v'].includes(respostaCorreta.toLowerCase()) ? 'Certo' : 'Errado';
         }
 
         const questao: Partial<Questao> = {
@@ -553,5 +553,3 @@ class PocketBaseDataSource implements IDataSource {
 }
 
 export { PocketBaseDataSource, MockDataSource };
-
-    
