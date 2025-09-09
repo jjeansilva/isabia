@@ -484,7 +484,7 @@ class PocketBaseDataSource implements IDataSource {
         let disciplina = disciplinasCache[disciplinaNome];
         if (!disciplina) {
             try {
-                const filter = `nome="${disciplinaNome}" && user = "${userId}"`;
+                const filter = `nome="${disciplinaNome}" && user="${userId}"`;
                 disciplina = await this.pb.collection('disciplinas').getFirstListItem<Disciplina>(filter);
             } catch(e) {
                 if ((e as any)?.status === 404) {
@@ -503,7 +503,7 @@ class PocketBaseDataSource implements IDataSource {
             try {
                 const filter = `nome="${topicoNome}" && disciplinaId="${disciplina.id}" && user = "${userId}"`;
                 topico = await this.pb.collection('topicos').getFirstListItem<Topico>(filter);
-            } catch(e) {
+             } catch(e) {
                  if ((e as any)?.status === 404) {
                     topico = await this.create<Topico>('topicos', { nome: topicoNome, disciplinaId: disciplina.id } as any);
                  } else {

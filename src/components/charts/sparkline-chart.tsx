@@ -1,7 +1,8 @@
+
 "use client"
 
 import * as React from "react"
-import { Area, AreaChart, ResponsiveContainer, Tooltip } from "recharts"
+import { Area, AreaChart, Tooltip } from "recharts"
 
 import {
   ChartContainer,
@@ -18,9 +19,10 @@ export function SparklineChart({ data, dataKey, color }: { data: any[], dataKey:
 
   return (
     <ChartContainer config={chartConfig} className="h-[32px] w-[80px]">
-      <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}
+          width={80}
+          height={32}
           margin={{
             top: 4,
             right: 0,
@@ -50,7 +52,6 @@ export function SparklineChart({ data, dataKey, color }: { data: any[], dataKey:
             strokeWidth={2}
           />
         </AreaChart>
-      </ResponsiveContainer>
     </ChartContainer>
   )
 }
