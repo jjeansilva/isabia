@@ -1,7 +1,7 @@
 
 
 import { v4 as uuidv4 } from 'uuid';
-import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado, QuestionOrigem } from '@/types';
+import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado, QuestionOrigem, SimuladoQuestao } from '@/types';
 import PocketBase, { ListResult } from 'pocketbase';
 import { SimuladoFormValues } from '@/components/forms/simulado-form';
 
@@ -339,12 +339,13 @@ class PocketBaseDataSource implements IDataSource {
               simuladoId: '', 
               questaoId: q.id,
               ordem: index + 1,
+              correta: false, // default value
           })),
       };
 
       const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
       
-      const updatedQuestoes = createdSimulado.questoes.map(q => ({...q, simuladoId: createdSimulado.id}));
+      const updatedQuestoes: SimuladoQuestao[] = createdSimulado.questoes.map(q => ({...q, simuladoId: createdSimulado.id, correta: false}));
       
       return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: updatedQuestoes as any });
   }
@@ -501,7 +502,7 @@ class PocketBaseDataSource implements IDataSource {
         let topico = topicosCache[cacheKey];
         if (!topico) {
             try {
-                const filter = `nome="${topicoNome}" && disciplinaId="${disciplina.id}" && user = "${userId}"`;
+                const filter = `nome = "${topicoNome}" && disciplinaId = "${disciplina.id}" && user = "${userId}"`;
                 topico = await this.pb.collection('topicos').getFirstListItem<Topico>(filter);
              } catch(e) {
                  if ((e as any)?.status === 404) {
@@ -520,7 +521,7 @@ class PocketBaseDataSource implements IDataSource {
         if (tipo === 'Múltipla Escolha') {
              const resp = values[colMap.resposta];
              const outrasAlternativas = header.filter(h => h.startsWith('alternativa_')).map(key => values[colMap[key]]).filter(Boolean);
-             const todasAlternativas = [resp, ...outrasAlternativas].sort(() => Math.random() - 0.5);
+             const todasAlternativas = [resp, ...outrasAlternativas];
              alternativas = JSON.stringify(todasAlternativas);
              respostaCorreta = resp;
         } else if (tipo === 'Certo ou Errado') {
@@ -546,6 +547,7 @@ class PocketBaseDataSource implements IDataSource {
     }
     
     if (questoesToCreate.length > 0) {
+      console.log("[DEBUG] Questoes to be created:", JSON.stringify(questoesToCreate, null, 2));
       await this.bulkCreate('questoes', questoesToCreate);
     }
 
