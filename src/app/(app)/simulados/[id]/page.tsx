@@ -181,7 +181,11 @@ export default function SimuladoExecutionPage() {
     const handleAnswer = (answer: any, confianca: RespostaConfianca) => {
         if (!simulado || !questao) return;
 
-        const isCorrect = questao.respostaCorreta === answer;
+        let isCorrect = questao.respostaCorreta === answer;
+        if (questao.tipo === 'Certo ou Errado') {
+            isCorrect = questao.respostaCorreta === answer.toString();
+        }
+
 
         const updatedQuestoes = simulado.questoes.map((q, index) => 
             index === currentQuestionIndex 
@@ -272,3 +276,5 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
+
+    
