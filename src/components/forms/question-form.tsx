@@ -86,13 +86,18 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
             alternativas = [];
           }
         }
+        
+        let respostaCorreta = questao.respostaCorreta;
+        if (questao.tipo === 'Múltipla Escolha' && Array.isArray(alternativas)) {
+            respostaCorreta = alternativas.indexOf(questao.respostaCorreta as string).toString();
+        } else if (questao.tipo === 'Certo ou Errado') {
+            respostaCorreta = questao.respostaCorreta === "true";
+        }
 
         form.reset({
             ...questao,
             alternativas: Array.isArray(alternativas) ? alternativas : [],
-            respostaCorreta: questao.tipo === 'Múltipla Escolha' && Array.isArray(alternativas)
-                ? alternativas.indexOf(questao.respostaCorreta as string).toString()
-                : questao.respostaCorreta,
+            respostaCorreta: respostaCorreta,
         });
     } else if (open && !questao) {
         form.reset({
@@ -136,6 +141,8 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
       if (newQuestao.tipo === 'Múltipla Escolha' && newQuestao.alternativas) {
         finalData.respostaCorreta = newQuestao.alternativas[parseInt(newQuestao.respostaCorreta)];
         finalData.alternativas = JSON.stringify(newQuestao.alternativas);
+      } else if (newQuestao.tipo === 'Certo ou Errado') {
+        finalData.respostaCorreta = newQuestao.respostaCorreta.toString();
       }
       
       return questao
