@@ -138,11 +138,11 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
         hashConteudo: 'temp-hash'
       };
 
-      if (newQuestao.tipo === 'Múltipla Escolha' && newQuestao.alternativas) {
+      if (newQuestao.tipo === 'Múltipla Escolha' && Array.isArray(newQuestao.alternativas)) {
         finalData.respostaCorreta = newQuestao.alternativas[parseInt(newQuestao.respostaCorreta)];
         finalData.alternativas = JSON.stringify(newQuestao.alternativas);
       } else if (newQuestao.tipo === 'Certo ou Errado') {
-        finalData.respostaCorreta = newQuestao.respostaCorreta.toString();
+        finalData.respostaCorreta = String(newQuestao.respostaCorreta);
       }
       
       return questao
