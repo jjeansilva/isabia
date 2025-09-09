@@ -116,4 +116,13 @@ export interface StatsDia {
   user: string;
 }
 
+export interface ImportProgress {
+    message: string;
+    current: number;
+    total: number;
+    log?: string[];
+    isError?: boolean;
+}
+
+
 export type CollectionName = 'users' | 'disciplinas' | 'topicos' | 'questoes' | 'simulados' | 'respostas' | 'revisoes' | 'stats';

@@ -1,7 +1,7 @@
 
 
 import { v4 as uuidv4 } from 'uuid';
-import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado, QuestionOrigem, SimuladoQuestao } from '@/types';
+import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado, QuestionOrigem, SimuladoQuestao, ImportProgress } from '@/types';
 import PocketBase, { ListResult } from 'pocketbase';
 import { SimuladoFormValues } from '@/components/forms/simulado-form';
 
@@ -24,7 +24,7 @@ export interface IDataSource {
   create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'user'>): Promise<T>;
   bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]>;
   bulkDelete(collection: CollectionName, ids: string[]): Promise<void>;
-  bulkCreateFromCsv?(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem): Promise<number>;
+  bulkCreateFromCsv?(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem, onProgress: (progress: ImportProgress) => void): Promise<number>;
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
   gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado>;
@@ -454,7 +454,7 @@ class PocketBaseDataSource implements IDataSource {
     }
   }
 
-  async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem): Promise<number> {
+  async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem, onProgress: (progress: ImportProgress) => void): Promise<number> {
     if (!this.pb.authStore.model?.id) throw new Error("Usuário não autenticado.");
     const userId = this.pb.authStore.model.id;
 
@@ -481,10 +481,17 @@ class PocketBaseDataSource implements IDataSource {
     const topicosCache: Record<string, Topico> = {};
 
     const questoesToCreate: Partial<Questao>[] = [];
+    const log: string[] = [];
+
+    let currentLine = 0;
+    const totalLines = lines.length;
 
     for (const line of lines) {
+        currentLine++;
         if (!line.trim()) continue;
         
+        onProgress({ message: `Processando linha ${currentLine} de ${totalLines}...`, current: currentLine, total: totalLines, log });
+
         const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/"/g, '').trim()) || [];
         
         const disciplinaNome = values[colMap.disciplina];
@@ -497,6 +504,7 @@ class PocketBaseDataSource implements IDataSource {
         
         let disciplina = disciplinasCache[disciplinaNome];
         if (!disciplina) {
+            log.push(`Verificando disciplina: "${disciplinaNome}"...`);
             try {
                 const results = await this.list<Disciplina>('disciplinas', { filter: `nome="${disciplinaNome}" && user = "${userId}"`});
                 disciplina = results[0];
@@ -504,8 +512,10 @@ class PocketBaseDataSource implements IDataSource {
                 // Ignore if not found
             }
             if (!disciplina) {
+                 log.push(`-> Disciplina não encontrada. Criando...`);
                  try {
                     disciplina = await this.create<Disciplina>('disciplinas', { nome: disciplinaNome } as any);
+                    log.push(`-> Disciplina "${disciplinaNome}" criada com sucesso.`);
                  } catch (createError) {
                     console.error("Error creating disciplina:", createError);
                     throw createError;
@@ -517,15 +527,18 @@ class PocketBaseDataSource implements IDataSource {
         const cacheKey = `${disciplina.id}-${topicoNome}`;
         let topico = topicosCache[cacheKey];
         if (!topico) {
-            try {
+            log.push(`Verificando tópico: "${topicoNome}"...`);
+             try {
                 const results = await this.list<Topico>('topicos', { filter: `nome = "${topicoNome}" && disciplinaId = "${disciplina.id}" && user = "${userId}"` });
                 topico = results[0];
              } catch(e) {
                 // Ignore if not found
              }
              if (!topico) {
+                 log.push(`-> Tópico não encontrado. Criando...`);
                  try {
                     topico = await this.create<Topico>('topicos', { nome: topicoNome, disciplinaId: disciplina.id } as any);
+                    log.push(`-> Tópico "${topicoNome}" criado com sucesso.`);
                  } catch (createError) {
                     console.error("Error creating topico:", createError);
                     throw createError;
@@ -533,6 +546,10 @@ class PocketBaseDataSource implements IDataSource {
             }
             topicosCache[cacheKey] = topico;
         }
+        
+        log.push(`Montando questão da linha ${currentLine}...`);
+        onProgress({ message: `Montando questão da linha ${currentLine}...`, current: currentLine, total: totalLines, log });
+
 
         let respostaCorreta: any = values[colMap.resposta];
         let alternativas: any;
@@ -571,6 +588,8 @@ class PocketBaseDataSource implements IDataSource {
     }
     
     if (questoesToCreate.length > 0) {
+      log.push(`Enviando ${questoesToCreate.length} questões para o banco de dados...`);
+      onProgress({ message: `Salvando ${questoesToCreate.length} questões...`, current: totalLines, total: totalLines, log });
       console.log("[DEBUG] Questoes to be created:", JSON.stringify(questoesToCreate, null, 2));
       await this.bulkCreate('questoes', questoesToCreate);
     }
