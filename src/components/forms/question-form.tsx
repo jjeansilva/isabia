@@ -143,6 +143,8 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
         finalData.alternativas = JSON.stringify(newQuestao.alternativas);
       } else if (newQuestao.tipo === 'Certo ou Errado') {
         finalData.respostaCorreta = String(newQuestao.respostaCorreta);
+      } else {
+        finalData.alternativas = "[]"; // Garante que o campo de alternativas seja um JSON vazio para outros tipos.
       }
       
       return questao
