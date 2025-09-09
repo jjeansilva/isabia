@@ -218,9 +218,18 @@ export default function TaxonomiaPage() {
   }
 
   const deleteDisciplinaMutation = useMutation({
-      mutationFn: (disciplinaId: string) => dataSource.delete('disciplinas', disciplinaId),
+      mutationFn: async (disciplina: Disciplina) => {
+        // First, delete all topics related to this disciplina
+        const topicosToDelete = await dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}"` });
+        if (topicosToDelete && topicosToDelete.length > 0) {
+            const deletePromises = topicosToDelete.map(t => dataSource.delete('topicos', t.id));
+            await Promise.all(deletePromises);
+        }
+        // Then, delete the disciplina itself
+        await dataSource.delete('disciplinas', disciplina.id);
+      },
       onSuccess: () => {
-          toast({ title: "Disciplina Excluída!", description: "A disciplina e todos os seus dados foram removidos." });
+          toast({ title: "Disciplina Excluída!", description: "A disciplina e seus tópicos foram removidos." });
           queryClient.invalidateQueries({ queryKey: ["disciplinas"] });
           queryClient.invalidateQueries({ queryKey: ["topicos"] });
       },
@@ -241,7 +250,7 @@ export default function TaxonomiaPage() {
   });
 
   const handleDeleteDisciplina = (disciplina: Disciplina) => {
-      deleteDisciplinaMutation.mutate(disciplina.id);
+      deleteDisciplinaMutation.mutate(disciplina);
   }
 
   const handleDeleteTopico = (topico: Topico) => {
@@ -326,3 +335,4 @@ export default function TaxonomiaPage() {
     </>
   );
 }
+
