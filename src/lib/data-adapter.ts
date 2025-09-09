@@ -417,7 +417,7 @@ class PocketBaseDataSource implements IDataSource {
 
   async registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> {
     let revisao: Revisao | undefined;
-    const userFilter = `user = "${this.pb.authStore.model?.id}"`;
+    const userFilter = `user = "${this   .pb.authStore.model?.id}"`;
 
     try {
         const results = await this.list<Revisao>('revisoes', { filter: `questaoId="${questaoId}" && ${userFilter}` });
@@ -536,6 +536,11 @@ class PocketBaseDataSource implements IDataSource {
 
         let respostaCorreta: any = values[colMap.resposta];
         let alternativas: any;
+        let dificuldade = values[colMap.dificuldade] as QuestionDificuldade;
+
+        if (dificuldade.toString().toLowerCase() === 'média') {
+            dificuldade = 'Médio';
+        }
 
         if (tipo === 'Múltipla Escolha') {
              const resp = values[colMap.resposta];
@@ -550,7 +555,7 @@ class PocketBaseDataSource implements IDataSource {
 
         const questao: Partial<Questao> = {
             tipo: tipo,
-            dificuldade: values[colMap.dificuldade] as QuestionDificuldade,
+            dificuldade: dificuldade,
             disciplinaId: disciplina.id,
             topicoId: topico.id,
             enunciado: values[colMap['questão']],
@@ -575,3 +580,5 @@ class PocketBaseDataSource implements IDataSource {
 }
 
 export { PocketBaseDataSource, MockDataSource };
+
+    
