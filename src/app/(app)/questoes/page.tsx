@@ -99,9 +99,9 @@ function QuestoesTable() {
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Excluir Questão?</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogDescription className="overflow-y-auto max-h-40">
                     Tem certeza que deseja excluir esta questão? <br/>
-                    <strong className="truncate block mt-2">"{questaoToDelete?.enunciado}"</strong>
+                    <strong className="block mt-2 font-normal">"{questaoToDelete?.enunciado}"</strong>
                     <br/>
                     Esta ação não pode ser desfeita.
                 </AlertDialogDescription>
