@@ -59,11 +59,11 @@ export function QuestoesDataTable<TData, TValue>({
   )
   const [sorting, setSorting] = React.useState<SortingState>([])
 
-  const { data: pagedData, isLoading: isLoadingQuestoes } = useQuery({
-      queryKey: ['questoes', 'paginated'], // Using a different key for paginated data
+  const { data, isLoading: isLoadingQuestoes } = useQuery({
+      queryKey: ['questoes'],
       queryFn: async () => {
-          const result = await dataSource.list<Questao>('questoes', { page: 1, perPage: 10 });
-          return result as { items: TData[], totalItems: number, totalPages: number, page: number, perPage: number };
+          const result = await dataSource.list<Questao>('questoes');
+          return result as TData[];
       },
       placeholderData: (prev) => prev,
   });
@@ -89,7 +89,7 @@ export function QuestoesDataTable<TData, TValue>({
 
 
   const table = useReactTable({
-    data: pagedData?.items ?? [],
+    data: data ?? [],
     columns,
     state: {
       sorting,
@@ -97,10 +97,6 @@ export function QuestoesDataTable<TData, TValue>({
       rowSelection,
       columnFilters,
     },
-    pageCount: pagedData?.totalPages ?? -1,
-    manualPagination: true,
-    manualSorting: true,
-    manualFiltering: true,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
