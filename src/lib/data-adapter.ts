@@ -340,7 +340,7 @@ class PocketBaseDataSource implements IDataSource {
       const finalQuestoes = combinedQuestoes.sort(() => 0.5 - Math.random());
 
       const questoesParaSalvar: SimuladoQuestao[] = finalQuestoes.map((q, index) => ({
-        id: '',
+        id: uuidv4(),
         simuladoId: '', 
         questaoId: q.id,
         ordem: index + 1,
@@ -348,17 +348,17 @@ class PocketBaseDataSource implements IDataSource {
 
       const novoSimulado = {
           nome: formValues.nome,
-          criterios: JSON.stringify(formValues.criterios),
+          criterios: formValues.criterios,
           status: 'rascunho',
           criadoEm: new Date().toISOString(),
-          questoes: JSON.stringify(questoesParaSalvar),
+          questoes: questoesParaSalvar,
       };
 
       const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
       
-      const updatedQuestoes: SimuladoQuestao[] = JSON.parse(createdSimulado.questoes as any).map((q: SimuladoQuestao) => ({...q, simuladoId: createdSimulado.id, correta: false}));
+      const updatedQuestoes: SimuladoQuestao[] = createdSimulado.questoes.map((q: SimuladoQuestao) => ({...q, simuladoId: createdSimulado.id, correta: false}));
       
-      return await this.update<Simulado>(createdSimulado.id, createdSimulado.id, { questoes: JSON.stringify(updatedQuestoes) as any });
+      return await this.update<Simulado>(createdSimulado.id, createdSimulado.id, { questoes: updatedQuestoes as any });
   }
 
   async getDashboardStats(): Promise<any> {
@@ -529,7 +529,7 @@ class PocketBaseDataSource implements IDataSource {
         
         // --- Tópico Pai ---
         const topicoPaiNome = values[colMap['tópico da disciplina']];
-        const topicoPaiFilter = `nome = "${topicoPaiNome}" && disciplinaId = "${disciplina.id}" && topicoPaiId = "" && user = "${userId}"`;
+        const topicoPaiFilter = `nome = "${topicoPaiNome}" && disciplinaId = "${disciplina.id}" && (topicoPaiId = "" || topicoPaiId = null) && user = "${userId}"`;
         const topicoPai = await getOrCreate<Topico>('topicos', topicosCache, topicoPaiFilter, { nome: topicoPaiNome, disciplinaId: disciplina.id }, 'tópico pai');
 
         let topicoFinal = topicoPai;
@@ -598,3 +598,6 @@ export { PocketBaseDataSource, MockDataSource };
 
 
 
+
+
+    
