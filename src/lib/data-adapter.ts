@@ -306,7 +306,6 @@ class PocketBaseDataSource implements IDataSource {
 
   async gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado> {
       let combinedQuestoes: Questao[] = [];
-      let totalQuestoesPedidas = 0;
       const userFilter = `user = "${this.pb.authStore.model?.id}"`;
 
 
@@ -336,17 +335,15 @@ class PocketBaseDataSource implements IDataSource {
         }
 
         combinedQuestoes.push(...selectedQuestoes);
-        totalQuestoesPedidas += criteria.quantidade;
       }
 
       const finalQuestoes = combinedQuestoes.sort(() => 0.5 - Math.random());
 
-      const questoesParaSalvar = finalQuestoes.map((q, index) => ({
+      const questoesParaSalvar: SimuladoQuestao[] = finalQuestoes.map((q, index) => ({
         id: '',
         simuladoId: '', 
         questaoId: q.id,
         ordem: index + 1,
-        correta: false,
       }));
 
       const novoSimulado = {
@@ -359,9 +356,9 @@ class PocketBaseDataSource implements IDataSource {
 
       const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
       
-      const updatedQuestoes: SimuladoQuestao[] = createdSimulado.questoes.map(q => ({...q, simuladoId: createdSimulado.id, correta: false}));
+      const updatedQuestoes: SimuladoQuestao[] = JSON.parse(createdSimulado.questoes as any).map((q: SimuladoQuestao) => ({...q, simuladoId: createdSimulado.id, correta: false}));
       
-      return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: updatedQuestoes as any });
+      return await this.update<Simulado>(createdSimulado.id, createdSimulado.id, { questoes: JSON.stringify(updatedQuestoes) as any });
   }
 
   async getDashboardStats(): Promise<any> {
@@ -598,5 +595,6 @@ class PocketBaseDataSource implements IDataSource {
 export { PocketBaseDataSource, MockDataSource };
 
     
+
 
 

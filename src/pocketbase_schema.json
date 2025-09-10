@@ -9,6 +9,7 @@
         "deleteRule": null,
         "name": "_superusers",
         "type": "auth",
+        "system": true,
         "schema": [
             {
                 "id": "text3208210256",
