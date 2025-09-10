@@ -341,18 +341,20 @@ class PocketBaseDataSource implements IDataSource {
 
       const finalQuestoes = combinedQuestoes.sort(() => 0.5 - Math.random());
 
-      const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt' | 'user'> = {
+      const questoesParaSalvar = finalQuestoes.map((q, index) => ({
+        id: '',
+        simuladoId: '', 
+        questaoId: q.id,
+        ordem: index + 1,
+        correta: false,
+      }));
+
+      const novoSimulado = {
           nome: formValues.nome,
-          criterios: formValues.criterios,
+          criterios: JSON.stringify(formValues.criterios),
           status: 'rascunho',
           criadoEm: new Date().toISOString(),
-          questoes: finalQuestoes.map((q, index) => ({
-              id: '', 
-              simuladoId: '', 
-              questaoId: q.id,
-              ordem: index + 1,
-              correta: false, // default value
-          })),
+          questoes: JSON.stringify(questoesParaSalvar),
       };
 
       const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
@@ -417,7 +419,7 @@ class PocketBaseDataSource implements IDataSource {
 
   async registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> {
     let revisao: Revisao | undefined;
-    const userFilter = `user = "${this   .pb.authStore.model?.id}"`;
+    const userFilter = `user = "${this.pb.authStore.model?.id}"`;
 
     try {
         const results = await this.list<Revisao>('revisoes', { filter: `questaoId="${questaoId}" && ${userFilter}` });
@@ -596,4 +598,5 @@ class PocketBaseDataSource implements IDataSource {
 export { PocketBaseDataSource, MockDataSource };
 
     
+
 
