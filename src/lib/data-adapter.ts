@@ -486,6 +486,35 @@ class PocketBaseDataSource implements IDataSource {
     let currentLine = 0;
     const totalLines = lines.length;
 
+    const getOrCreate = async <T extends {id: string, nome: string}>(
+        collection: CollectionName, 
+        cache: Record<string, T>, 
+        filter: string, 
+        data: any, 
+        logMessage: string
+    ): Promise<T> => {
+        const cacheKey = JSON.stringify(filter);
+        if (cache[cacheKey]) {
+            return cache[cacheKey];
+        }
+
+        log.push(`Verificando ${logMessage}: "${data.nome}"...`);
+        try {
+            const results = await this.list<T>(collection, { filter });
+            if (results && results.length > 0) {
+                cache[cacheKey] = results[0];
+                return results[0];
+            }
+        } catch (e) { /* ignore */ }
+
+        log.push(`-> Não encontrado(a). Criando ${logMessage}: "${data.nome}"...`);
+        const created = await this.create<T>(collection, data);
+        log.push(`-> ${logMessage} "${data.nome}" criado(a) com sucesso.`);
+        cache[cacheKey] = created;
+        return created;
+    };
+
+
     for (const line of lines) {
         currentLine++;
         if (!line.trim()) continue;
@@ -494,59 +523,26 @@ class PocketBaseDataSource implements IDataSource {
 
         const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/"/g, '').trim()) || [];
         
+        // --- Disciplina ---
         const disciplinaNome = values[colMap.disciplina];
-        let topicoNome = values[colMap['tópico da disciplina']];
+        const disciplinaFilter = `nome="${disciplinaNome}" && user = "${userId}"`;
+        const disciplina = await getOrCreate<Disciplina>('disciplinas', disciplinasCache, disciplinaFilter, { nome: disciplinaNome }, 'disciplina');
+        
+        // --- Tópico Pai ---
+        const topicoPaiNome = values[colMap['tópico da disciplina']];
+        const topicoPaiFilter = `nome = "${topicoPaiNome}" && disciplinaId = "${disciplina.id}" && topicoPaiId = "" && user = "${userId}"`;
+        const topicoPai = await getOrCreate<Topico>('topicos', topicosCache, topicoPaiFilter, { nome: topicoPaiNome, disciplinaId: disciplina.id }, 'tópico pai');
+
+        let topicoFinal = topicoPai;
+        
+        // --- Subtópico ---
         const subtopicoNome = values[colMap.subtópico];
-
         if (subtopicoNome && subtopicoNome.toLowerCase() !== 'n/a' && subtopicoNome !== '') {
-            topicoNome = `${topicoNome} - ${subtopicoNome}`;
-        }
-        
-        let disciplina = disciplinasCache[disciplinaNome];
-        if (!disciplina) {
-            log.push(`Verificando disciplina: "${disciplinaNome}"...`);
-            try {
-                const results = await this.list<Disciplina>('disciplinas', { filter: `nome="${disciplinaNome}" && user = "${userId}"`});
-                disciplina = results[0];
-            } catch(e) {
-                // Ignore if not found
-            }
-            if (!disciplina) {
-                 log.push(`-> Disciplina não encontrada. Criando...`);
-                 try {
-                    disciplina = await this.create<Disciplina>('disciplinas', { nome: disciplinaNome } as any);
-                    log.push(`-> Disciplina "${disciplinaNome}" criada com sucesso.`);
-                 } catch (createError) {
-                    console.error("Error creating disciplina:", createError);
-                    throw createError;
-                 }
-            }
-            disciplinasCache[disciplinaNome] = disciplina;
+             const subtopicoFilter = `nome = "${subtopicoNome}" && disciplinaId = "${disciplina.id}" && topicoPaiId = "${topicoPai.id}" && user = "${userId}"`;
+             const subtopico = await getOrCreate<Topico>('topicos', topicosCache, subtopicoFilter, { nome: subtopicoNome, disciplinaId: disciplina.id, topicoPaiId: topicoPai.id }, 'subtópico');
+             topicoFinal = subtopico;
         }
 
-        const cacheKey = `${disciplina.id}-${topicoNome}`;
-        let topico = topicosCache[cacheKey];
-        if (!topico) {
-            log.push(`Verificando tópico: "${topicoNome}"...`);
-             try {
-                const results = await this.list<Topico>('topicos', { filter: `nome = "${topicoNome}" && disciplinaId = "${disciplina.id}" && user = "${userId}"` });
-                topico = results[0];
-             } catch(e) {
-                // Ignore if not found
-             }
-             if (!topico) {
-                 log.push(`-> Tópico não encontrado. Criando...`);
-                 try {
-                    topico = await this.create<Topico>('topicos', { nome: topicoNome, disciplinaId: disciplina.id } as any);
-                    log.push(`-> Tópico "${topicoNome}" criado com sucesso.`);
-                 } catch (createError) {
-                    console.error("Error creating topico:", createError);
-                    throw createError;
-                 }
-            }
-            topicosCache[cacheKey] = topico;
-        }
-        
         log.push(`Montando questão da linha ${currentLine}...`);
         onProgress({ message: `Montando questão da linha ${currentLine}...`, current: currentLine, total: totalLines, log });
 
@@ -555,7 +551,7 @@ class PocketBaseDataSource implements IDataSource {
         let alternativas: any;
         let dificuldade = values[colMap.dificuldade] as QuestionDificuldade;
 
-        if (dificuldade.toString().toLowerCase() === 'média') {
+        if (dificuldade && dificuldade.toString().toLowerCase() === 'média') {
             dificuldade = 'Médio';
         }
 
@@ -574,7 +570,7 @@ class PocketBaseDataSource implements IDataSource {
             tipo: tipo,
             dificuldade: dificuldade,
             disciplinaId: disciplina.id,
-            topicoId: topico.id,
+            topicoId: topicoFinal.id,
             enunciado: values[colMap['questão']],
             respostaCorreta: JSON.stringify(respostaCorreta),
             alternativas: alternativas,
@@ -590,7 +586,6 @@ class PocketBaseDataSource implements IDataSource {
     if (questoesToCreate.length > 0) {
       log.push(`Enviando ${questoesToCreate.length} questões para o banco de dados...`);
       onProgress({ message: `Salvando ${questoesToCreate.length} questões...`, current: totalLines, total: totalLines, log });
-      console.log("[DEBUG] Questoes to be created:", JSON.stringify(questoesToCreate, null, 2));
       await this.bulkCreate('questoes', questoesToCreate);
     }
 
@@ -601,3 +596,4 @@ class PocketBaseDataSource implements IDataSource {
 export { PocketBaseDataSource, MockDataSource };
 
     
+
