@@ -33,12 +33,14 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 
-function TopicoItem({ topico, subtopicos, onEdit, onDelete, onAddSubtopic }: { 
+function TopicoItem({ topico, subtopicos, onEdit, onDelete, onAddSubtopic, onEditSubtopic, onDeleteSubtopic }: { 
     topico: Topico, 
     subtopicos: Topico[],
     onEdit: () => void, 
     onDelete: () => void,
     onAddSubtopic: () => void,
+    onEditSubtopic: (subtopico: Topico) => void,
+    onDeleteSubtopic: (subtopico: Topico) => void
 }) {
     return (
         <div className="flex flex-col pl-4 border-l border-border ml-2">
@@ -49,32 +51,54 @@ function TopicoItem({ topico, subtopicos, onEdit, onDelete, onAddSubtopic }: {
                         <PlusCircle className="h-3 w-3" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}><Edit2 className="h-4 w-4" /></Button>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
-                    </AlertDialogTrigger>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir Tópico?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Tem certeza que deseja excluir o tópico "{topico.nome}"? Esta ação não pode ser desfeita e removerá os dados associados, incluindo subtópicos.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={onDelete}>Sim, Excluir</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </div>
              {subtopicos.length > 0 && (
                 <div className="ml-4 mt-2 space-y-1 border-l border-border pl-4">
                     {subtopicos.map(sub => (
-                         <div key={sub.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted -ml-2 -mr-2 pl-4 pr-2 text-sm">
+                        <div key={sub.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted -ml-2 -mr-2 pl-4 pr-2 text-sm">
                             <span>{sub.nome}</span>
-                         </div>
+                            <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEditSubtopic(sub)}><Edit2 className="h-3 w-3" /></Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive"><Trash2 className="h-3 w-3"/></Button>
+                                    </AlertDialogTrigger>
+                                     <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Excluir Subtópico?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Tem certeza que deseja excluir o subtópico "{sub.nome}"? Esta ação não pode ser desfeita.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => onDeleteSubtopic(sub)}>Sim, Excluir</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
+                        </div>
                     ))}
                 </div>
             )}
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Excluir Tópico?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Tem certeza que deseja excluir o tópico "{topico.nome}"? Esta ação não pode ser desfeita e removerá os dados associados, incluindo subtópicos.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={onDelete}>Sim, Excluir</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
         </div>
     )
 }
@@ -140,7 +164,6 @@ function DisciplinaAccordionItem({
         {isLoading && <p>Carregando tópicos...</p>}
         {topicosPrincipais && topicosPrincipais.length > 0 && (
             <div className="space-y-1">
-                <AlertDialog>
                  {topicosPrincipais.map(t => (
                      <TopicoItem 
                         key={t.id} 
@@ -149,9 +172,10 @@ function DisciplinaAccordionItem({
                         onEdit={() => onEditTopico(t, disciplina)} 
                         onDelete={() => onDeleteTopico(t)}
                         onAddSubtopic={() => onAddSubtopic(t, disciplina)}
+                        onEditSubtopic={(sub) => onEditTopico(sub, disciplina)}
+                        onDeleteSubtopic={(sub) => onDeleteTopico(sub)}
                      />
                 ))}
-                </AlertDialog>
             </div>
         )}
          {allTopicos && allTopicos.length === 0 && (
@@ -205,7 +229,7 @@ export default function TaxonomiaPage() {
   
   const handleEditTopico = (topico: Topico, disciplina: Disciplina) => {
     setSelectedTopico(topico);
-    setParentTopico(undefined);
+    setParentTopico(undefined); // Clear parent topic when editing, form handles it
     setParentDisciplina(disciplina);
     setIsTopicoFormOpen(true);
   }
@@ -335,4 +359,3 @@ export default function TaxonomiaPage() {
     </>
   );
 }
-
