@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useData } from "@/hooks/use-data";
@@ -37,12 +37,12 @@ export default function QuestoesPage() {
     queryFn: () => dataSource.list<Topico>('topicos')
   });
   
-  const handleEdit = (q: Questao) => {
+  const handleEdit = useCallback((q: Questao) => {
     setSelectedQuestao(q);
     setIsFormOpen(true);
-  }
+  }, []);
 
-  const columns = getColumns({ onEdit: handleEdit });
+  const columns = useMemo(() => getColumns({ onEdit: handleEdit }), [handleEdit]);
 
   useEffect(() => {
     if (searchParams.get('import') === 'true') {
