@@ -1,881 +1,273 @@
 
 [
     {
+        "id": "pbc_3142635823",
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null,
+        "name": "_superusers",
+        "type": "auth",
+        "schema": [
+            {
+                "id": "text3208210256",
+                "name": "id",
+                "type": "text",
+                "system": true,
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 15,
+                    "max": 15,
+                    "pattern": "^[a-z0-9]+$"
+                }
+            },
+            {
+                "id": "password901924565",
+                "name": "password",
+                "type": "password",
+                "system": true,
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 8,
+                    "max": 0
+                }
+            },
+            {
+                "id": "text2504183744",
+                "name": "tokenKey",
+                "type": "text",
+                "system": true,
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": 30,
+                    "max": 60,
+                    "pattern": ""
+                }
+            },
+            {
+                "id": "email3885137012",
+                "name": "email",
+                "type": "email",
+                "system": true,
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "exceptDomains": null,
+                    "onlyDomains": null
+                }
+            },
+            {
+                "id": "bool1547992806",
+                "name": "emailVisibility",
+                "type": "bool",
+                "system": true,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {}
+            },
+            {
+                "id": "bool256245529",
+                "name": "verified",
+                "type": "bool",
+                "system": true,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {}
+            },
+            {
+                "id": "autodate2990389176",
+                "name": "created",
+                "type": "autodate",
+                "system": true,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "onCreate": true,
+                    "onUpdate": false
+                }
+            },
+            {
+                "id": "autodate3332085495",
+                "name": "updated",
+                "type": "autodate",
+                "system": true,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "onCreate": true,
+                    "onUpdate": true
+                }
+            }
+        ],
+        "indexes": [
+            "CREATE UNIQUE INDEX `idx_tokenKey_pbc_3142635823` ON `_superusers` (`tokenKey`)",
+            "CREATE UNIQUE INDEX `idx_email_pbc_3142635823` ON `_superusers` (`email`) WHERE `email` != ''"
+        ]
+    },
+    {
         "id": "_pb_users_auth_",
         "name": "users",
         "type": "auth",
         "system": false,
         "schema": [
+            { "id": "text_name_001", "name": "name", "type": "text", "required": false },
             {
-                "id": "text_name_001",
-                "name": "name",
-                "type": "text",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "pattern": ""
-                }
-            },
-            {
-                "id": "file_avatar_001",
-                "name": "avatar",
-                "type": "file",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "maxSelect": 1,
-                    "maxSize": 5242880,
-                    "mimeTypes": [
-                        "image/jpeg",
-                        "image/png",
-                        "image/svg+xml",
-                        "image/gif",
-                        "image/webp"
-                    ],
-                    "thumbs": [
-                        "100x100"
-                    ],
-                    "protected": false
-                }
+                "id": "file_avatar_001", "name": "avatar", "type": "file", "required": false,
+                "options": { "maxSelect": 1, "maxSize": 5242880, "mimeTypes": ["image/jpeg", "image/png", "image/svg+xml", "image/gif", "image/webp"], "thumbs": ["100x100"] }
             }
-        ],
-        "indexes": [],
-        "listRule": "id = @request.auth.id",
-        "viewRule": "id = @request.auth.id",
-        "createRule": "",
-        "updateRule": "id = @request.auth.id",
-        "deleteRule": "id = @request.auth.id",
-        "options": {
-            "allowEmailAuth": true,
-            "allowOAuth2Auth": true,
-            "allowUsernameAuth": true,
-            "exceptEmailDomains": null,
-            "manageRule": null,
-            "minPasswordLength": 8,
-            "onlyEmailDomains": null,
-            "requireEmail": false
-        }
+        ]
     },
     {
         "id": "disciplinas_abcde1",
         "name": "disciplinas",
         "type": "base",
         "system": false,
-        "schema": [
-            {
-                "id": "k7vjgz9w",
-                "name": "nome",
-                "type": "text",
-                "system": false,
-                "required": true,
-                "presentable": true,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "pattern": ""
-                }
-            },
-            {
-                "id": "yecxmm3d",
-                "name": "descricao",
-                "type": "text",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "pattern": ""
-                }
-            },
-            {
-                "id": "a5yuyk5g",
-                "name": "cor",
-                "type": "text",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "pattern": ""
-                }
-            },
-            {
-                "id": "bcfu7pqs",
-                "name": "ordem",
-                "type": "number",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": false
-                }
-            },
-            {
-                "id": "relation2375276105",
-                "name": "user",
-                "type": "relation",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "_pb_users_auth_",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            }
-        ],
-        "indexes": [],
-        "listRule": "@request.auth.id != \"\"",
+        "listRule": "user = @request.auth.id",
         "viewRule": "user = @request.auth.id",
         "createRule": "user = @request.auth.id",
         "updateRule": "user = @request.auth.id",
         "deleteRule": "user = @request.auth.id",
-        "options": {}
+        "schema": [
+            { "id": "k7vjgz9w", "name": "nome", "type": "text", "required": true, "presentable": true },
+            { "id": "yecxmm3d", "name": "descricao", "type": "text" },
+            { "id": "a5yuyk5g", "name": "cor", "type": "text" },
+            { "id": "bcfu7pqs", "name": "ordem", "type": "number" },
+            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
+        ]
     },
     {
         "id": "topicos_abcde1",
         "name": "topicos",
         "type": "base",
         "system": false,
-        "schema": [
-            {
-                "id": "k7vjgz9w",
-                "name": "nome",
-                "type": "text",
-                "system": false,
-                "required": true,
-                "presentable": true,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "pattern": ""
-                }
-            },
-            {
-                "id": "bcfu7pqs",
-                "name": "ordem",
-                "type": "number",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": false
-                }
-            },
-            {
-                "id": "relation2807848817",
-                "name": "disciplinaId",
-                "type": "relation",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "disciplinas_abcde1",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            },
-            {
-                "id": "relation_topico_pai",
-                "name": "topicoPaiId",
-                "type": "relation",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "topicos_abcde1",
-                    "cascadeDelete": false,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": null
-                }
-            },
-            {
-                "id": "relation2375276105",
-                "name": "user",
-                "type": "relation",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "_pb_users_auth_",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            }
-        ],
-        "indexes": [],
         "listRule": "user = @request.auth.id",
         "viewRule": "user = @request.auth.id",
         "createRule": "user = @request.auth.id",
         "updateRule": "user = @request.auth.id",
         "deleteRule": "user = @request.auth.id",
-        "options": {}
+        "schema": [
+            { "id": "k7vjgz9w", "name": "nome", "type": "text", "required": true, "presentable": true },
+            { "id": "bcfu7pqs", "name": "ordem", "type": "number" },
+            { "id": "relation2807848817", "name": "disciplinaId", "type": "relation", "required": true, "options": { "collectionId": "disciplinas_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation_topico_pai", "name": "topicoPaiId", "type": "relation", "required": false, "options": { "collectionId": "topicos_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
+        ]
     },
     {
         "id": "questoes_abcde1",
         "name": "questoes",
         "type": "base",
         "system": false,
-        "schema": [
-            {
-                "id": "select1882004807",
-                "name": "tipo",
-                "type": "select",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "maxSelect": 1,
-                    "values": [
-                        "Múltipla Escolha",
-                        "Certo ou Errado",
-                        "Completar Lacuna",
-                        "Flashcard"
-                    ]
-                }
-            },
-            {
-                "id": "select986616355",
-                "name": "dificuldade",
-                "type": "select",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "maxSelect": 1,
-                    "values": [
-                        "Fácil",
-                        "Médio",
-                        "Difícil"
-                    ]
-                }
-            },
-            {
-                "id": "select3947710632",
-                "name": "origem",
-                "type": "select",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "maxSelect": 5,
-                    "values": [
-                        "Autoral",
-                        "Conteúdo",
-                        "Legislação",
-                        "Jurisprudência",
-                        "Já caiu"
-                    ]
-                }
-            },
-            {
-                "id": "s8iqlc0i",
-                "name": "enunciado",
-                "type": "text",
-                "system": false,
-                "required": true,
-                "presentable": true,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "pattern": ""
-                }
-            },
-            {
-                "id": "bczqg58z",
-                "name": "alternativas",
-                "type": "json",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {}
-            },
-            {
-                "id": "g0d64hfb",
-                "name": "respostaCorreta",
-                "type": "json",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {}
-            },
-            {
-                "id": "f5k6cwqu",
-                "name": "explicacao",
-                "type": "text",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "pattern": ""
-                }
-            },
-            {
-                "id": "q0g0udgt",
-                "name": "tags",
-                "type": "json",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {}
-            },
-            {
-                "id": "9gq8wlnx",
-                "name": "version",
-                "type": "number",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": false
-                }
-            },
-            {
-                "id": "d0n8k3lq",
-                "name": "isActive",
-                "type": "bool",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {}
-            },
-            {
-                "id": "4gczwz9j",
-                "name": "hashConteudo",
-                "type": "text",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "pattern": ""
-                }
-            },
-            {
-                "id": "relation853048275",
-                "name": "disciplinaId",
-                "type": "relation",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "disciplinas_abcde1",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            },
-            {
-                "id": "relation2931482895",
-                "name": "topicoId",
-                "type": "relation",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "topicos_abcde1",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            },
-            {
-                "id": "relation2375276105",
-                "name": "user",
-                "type": "relation",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "_pb_users_auth_",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            }
-        ],
-        "indexes": [],
         "listRule": "user = @request.auth.id",
         "viewRule": "user = @request.auth.id",
         "createRule": "user = @request.auth.id",
         "updateRule": "user = @request.auth.id",
         "deleteRule": "user = @request.auth.id",
-        "options": {}
+        "schema": [
+            { "id": "select1882004807", "name": "tipo", "type": "select", "options": { "maxSelect": 1, "values": [ "Múltipla Escolha", "Certo ou Errado", "Completar Lacuna", "Flashcard" ] } },
+            { "id": "select986616355", "name": "dificuldade", "type": "select", "options": { "maxSelect": 1, "values": [ "Fácil", "Médio", "Difícil" ] } },
+            { "id": "select3947710632", "name": "origem", "type": "select", "options": { "maxSelect": 5, "values": [ "Autoral", "Conteúdo", "Legislação", "Jurisprudência", "Já caiu" ] } },
+            { "id": "s8iqlc0i", "name": "enunciado", "type": "text", "required": true, "presentable": true },
+            { "id": "bczqg58z", "name": "alternativas", "type": "json" },
+            { "id": "g0d64hfb", "name": "respostaCorreta", "type": "json", "required": true },
+            { "id": "f5k6cwqu", "name": "explicacao", "type": "text" },
+            { "id": "q0g0udgt", "name": "tags", "type": "json" },
+            { "id": "9gq8wlnx", "name": "version", "type": "number", "required": true },
+            { "id": "d0n8k3lq", "name": "isActive", "type": "bool" },
+            { "id": "4gczwz9j", "name": "hashConteudo", "type": "text", "required": true },
+            { "id": "relation853048275", "name": "disciplinaId", "type": "relation", "required": true, "options": { "collectionId": "disciplinas_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation2931482895", "name": "topicoId", "type": "relation", "required": true, "options": { "collectionId": "topicos_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
+        ]
     },
     {
         "id": "simulados_abcde1",
         "name": "simulados",
         "type": "base",
         "system": false,
-        "schema": [
-            {
-                "id": "gqg3t1yq",
-                "name": "nome",
-                "type": "text",
-                "system": false,
-                "required": true,
-                "presentable": true,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "pattern": ""
-                }
-            },
-            {
-                "id": "7vwnp0je",
-                "name": "descricao",
-                "type": "text",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "pattern": ""
-                }
-            },
-            {
-                "id": "select2063623452",
-                "name": "status",
-                "type": "select",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "maxSelect": 1,
-                    "values": [
-                        "rascunho",
-                        "andamento",
-                        "concluido"
-                    ]
-                }
-            },
-            {
-                "id": "f5k6cwqu",
-                "name": "criadoEm",
-                "type": "date",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": "",
-                    "max": ""
-                }
-            },
-            {
-                "id": "f5k6cwqv",
-                "name": "finalizadoEm",
-                "type": "date",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": "",
-                    "max": ""
-                }
-            },
-            {
-                "id": "w3f5wct5",
-                "name": "questoes",
-                "type": "json",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {}
-            },
-            {
-                "id": "criterios_field",
-                "name": "criterios",
-                "type": "json",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {}
-            },
-            {
-                "id": "relation2375276105",
-                "name": "user",
-                "type": "relation",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "_pb_users_auth_",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            }
-        ],
-        "indexes": [],
         "listRule": "user = @request.auth.id",
         "viewRule": "user = @request.auth.id",
         "createRule": "user = @request.auth.id",
         "updateRule": "user = @request.auth.id",
         "deleteRule": "user = @request.auth.id",
-        "options": {}
+        "schema": [
+            { "id": "gqg3t1yq", "name": "nome", "type": "text", "required": true, "presentable": true },
+            { "id": "7vwnp0je", "name": "descricao", "type": "text" },
+            { "id": "select2063623452", "name": "status", "type": "select", "options": { "maxSelect": 1, "values": [ "rascunho", "andamento", "concluido" ] } },
+            { "id": "f5k6cwqu", "name": "criadoEm", "type": "date", "required": true },
+            { "id": "f5k6cwqv", "name": "finalizadoEm", "type": "date" },
+            { "id": "w3f5wct5", "name": "questoes", "type": "json" },
+            { "id": "json528764584", "name": "criterios", "type": "json"},
+            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
+        ]
     },
     {
         "id": "respostas_abcde1",
         "name": "respostas",
         "type": "base",
         "system": false,
-        "schema": [
-            {
-                "id": "d0n8k3lq",
-                "name": "acertou",
-                "type": "bool",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {}
-            },
-            {
-                "id": "g0d64hfb",
-                "name": "respostaUsuario",
-                "type": "json",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {}
-            },
-            {
-                "id": "select2929511165",
-                "name": "confianca",
-                "type": "select",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "maxSelect": 1,
-                    "values": [
-                        "Certeza",
-                        "Dúvida",
-                        "Chute"
-                    ]
-                }
-            },
-            {
-                "id": "jph7t0b7",
-                "name": "tempoSegundos",
-                "type": "number",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": false
-                }
-            },
-            {
-                "id": "f5k6cwqu",
-                "name": "respondedAt",
-                "type": "date",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": "",
-                    "max": ""
-                }
-            },
-            {
-                "id": "relation377375640",
-                "name": "questaoId",
-                "type": "relation",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "questoes_abcde1",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            },
-            {
-                "id": "relation3158640492",
-                "name": "simuladoId",
-                "type": "relation",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "simulados_abcde1",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            },
-            {
-                "id": "relation2375276105",
-                "name": "user",
-                "type": "relation",
-                "system": false,
-                "required": false,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "_pb_users_auth_",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            }
-        ],
-        "indexes": [],
         "listRule": "user = @request.auth.id",
         "viewRule": "user = @request.auth.id",
         "createRule": "user = @request.auth.id",
         "updateRule": "user = @request.auth.id",
         "deleteRule": "user = @request.auth.id",
-        "options": {}
+        "schema": [
+            { "id": "d0n8k3lq", "name": "acertou", "type": "bool", "required": true },
+            { "id": "g0d64hfb", "name": "respostaUsuario", "type": "json", "required": true },
+            { "id": "select2929511165", "name": "confianca", "type": "select", "options": { "maxSelect": 1, "values": [ "Certeza", "Dúvida", "Chute" ] } },
+            { "id": "jph7t0b7", "name": "tempoSegundos", "type": "number", "required": true },
+            { "id": "f5k6cwqu", "name": "respondedAt", "type": "date", "required": true },
+            { "id": "relation377375640", "name": "questaoId", "type": "relation", "required": true, "options": { "collectionId": "questoes_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation3158640492", "name": "simuladoId", "type": "relation", "options": { "collectionId": "simulados_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation2375276105", "name": "user", "type": "relation", "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
+        ]
     },
     {
         "id": "revisoes_abcde1",
         "name": "revisoes",
         "type": "base",
         "system": false,
-        "schema": [
-            {
-                "id": "jph7t0b7",
-                "name": "bucket",
-                "type": "number",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": false
-                }
-            },
-            {
-                "id": "w3f5wct5",
-                "name": "proximaRevisao",
-                "type": "date",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": "",
-                    "max": ""
-                }
-            },
-            {
-                "id": "relation377375640",
-                "name": "questaoId",
-                "type": "relation",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "questoes_abcde1",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            },
-            {
-                "id": "relation2375276105",
-                "name": "user",
-                "type": "relation",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "_pb_users_auth_",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            }
-        ],
-        "indexes": [],
         "listRule": "user = @request.auth.id",
         "viewRule": "user = @request.auth.id",
         "createRule": "user = @request.auth.id",
         "updateRule": "user = @request.auth.id",
         "deleteRule": "user = @request.auth.id",
-        "options": {}
+        "schema": [
+            { "id": "jph7t0b7", "name": "bucket", "type": "number", "required": true },
+            { "id": "w3f5wct5", "name": "proximaRevisao", "type": "date", "required": true },
+            { "id": "relation377375640", "name": "questaoId", "type": "relation", "required": true, "options": { "collectionId": "questoes_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
+        ]
     },
     {
         "id": "stats_abcde1",
         "name": "stats",
         "type": "base",
         "system": false,
-        "schema": [
-            {
-                "id": "f5k6cwqu",
-                "name": "data",
-                "type": "date",
-                "system": false,
-                "required": true,
-                "presentable": true,
-                "unique": false,
-                "options": {
-                    "min": "",
-                    "max": ""
-                }
-            },
-            {
-                "id": "jph7t0b7",
-                "name": "totalQuestoes",
-                "type": "number",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": false
-                }
-            },
-            {
-                "id": "bcfu7pqs",
-                "name": "acertos",
-                "type": "number",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": false
-                }
-            },
-            {
-                "id": "a5yuyk5g",
-                "name": "erros",
-                "type": "number",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": false
-                }
-            },
-            {
-                "id": "yecxmm3d",
-                "name": "tempoMedio",
-                "type": "number",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "min": null,
-                    "max": null,
-                    "noDecimal": false
-                }
-            },
-            {
-                "id": "relation2375276105",
-                "name": "user",
-                "type": "relation",
-                "system": false,
-                "required": true,
-                "presentable": false,
-                "unique": false,
-                "options": {
-                    "collectionId": "_pb_users_auth_",
-                    "cascadeDelete": true,
-                    "minSelect": null,
-                    "maxSelect": 1,
-                    "displayFields": []
-                }
-            }
-        ],
-        "indexes": [],
         "listRule": "user = @request.auth.id",
         "viewRule": "user = @request.auth.id",
         "createRule": "user = @request.auth.id",
         "updateRule": "user = @request.auth.id",
         "deleteRule": "user = @request.auth.id",
-        "options": {}
+        "schema": [
+            { "id": "f5k6cwqu", "name": "data", "type": "date", "required": true, "presentable": true },
+            { "id": "jph7t0b7", "name": "totalQuestoes", "type": "number", "required": true },
+            { "id": "bcfu7pqs", "name": "acertos", "type": "number", "required": true },
+            { "id": "a5yuyk5g", "name": "erros", "type": "number", "required": true },
+            { "id": "yecxmm3d", "name": "tempoMedio", "type": "number", "required": true },
+            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
+        ]
     }
 ]
-
-    

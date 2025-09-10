@@ -253,33 +253,27 @@ export default function TaxonomiaPage() {
   const deleteTopicosAndSubtopicos = async (topicoIds: string[]) => {
     if (topicoIds.length === 0) return;
     
-    // 1. Delete all questions from these topics
     const topicoFilter = topicoIds.map(id => `topicoId = "${id}"`).join(' || ');
     await deleteQuestoesByFilter(topicoFilter);
 
-    // 2. Find and delete all subtopics recursively
     const subtopicFilter = topicoIds.map(id => `topicoPaiId = "${id}"`).join(' || ');
     const subtopicos = await dataSource.list<Topico>('topicos', { filter: subtopicFilter, fields: 'id' });
     if (subtopicos.length > 0) {
       await deleteTopicosAndSubtopicos(subtopicos.map(st => st.id));
     }
 
-    // 3. Delete the topics themselves
     await dataSource.bulkDelete('topicos', topicoIds);
   };
   
   const deleteDisciplinaMutation = useMutation({
       mutationFn: async (disciplina: Disciplina) => {
-        // 1. Delete all questions for the entire disciplina
         await deleteQuestoesByFilter(`disciplinaId = "${disciplina.id}"`);
 
-        // 2. Delete all topics for the disciplina
         const topicosToDelete = await dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}"`, fields: 'id' });
         if (topicosToDelete.length > 0) {
           await dataSource.bulkDelete('topicos', topicosToDelete.map(t => t.id));
         }
 
-        // 3. Delete the disciplina itself
         await dataSource.delete('disciplinas', disciplina.id);
       },
       onSuccess: () => {
@@ -392,5 +386,6 @@ export default function TaxonomiaPage() {
     </>
   );
 }
+
 
 
