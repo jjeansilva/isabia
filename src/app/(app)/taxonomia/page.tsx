@@ -249,37 +249,56 @@ export default function TaxonomiaPage() {
       await dataSource.bulkDelete('questoes', questoesToDelete.map(q => q.id));
     }
   };
-
+  
   const deleteTopicosAndSubtopicos = async (topicoIds: string[]) => {
     if (topicoIds.length === 0) return;
-    
-    const topicoFilter = topicoIds.map(id => `topicoId = "${id}"`).join(' || ');
-    await deleteQuestoesByFilter(topicoFilter);
 
-    const subtopicFilter = topicoIds.map(id => `topicoPaiId = "${id}"`).join(' || ');
-    const subtopicos = await dataSource.list<Topico>('topicos', { filter: subtopicFilter, fields: 'id' });
-    if (subtopicos.length > 0) {
-      await deleteTopicosAndSubtopicos(subtopicos.map(st => st.id));
+    // 1. Find all sub-topics recursively
+    let allTopicsToDelete = [...topicoIds];
+    let currentIds = [...topicoIds];
+    while (currentIds.length > 0) {
+        const subtopicFilter = currentIds.map(id => `topicoPaiId = "${id}"`).join(' || ');
+        const subtopics = await dataSource.list<Topico>('topicos', { filter: subtopicFilter, fields: 'id' });
+        if (subtopics.length === 0) break;
+        const subtopicIds = subtopics.map(st => st.id);
+        allTopicsToDelete.push(...subtopicIds);
+        currentIds = subtopicIds;
     }
 
-    await dataSource.bulkDelete('topicos', topicoIds);
-  };
+    // 2. Delete all questions associated with any of the topics or sub-topics
+    const allTopicsFilter = allTopicsToDelete.map(id => `topicoId = "${id}"`).join(' || ');
+    await deleteQuestoesByFilter(allTopicsFilter);
+
+    // 3. Delete all topics and sub-topics at once
+    await dataSource.bulkDelete('topicos', allTopicsToDelete);
+};
+
   
   const deleteDisciplinaMutation = useMutation({
       mutationFn: async (disciplina: Disciplina) => {
+        // Since cascadeDelete is on for user -> disciplina, we just need to delete the disciplina
+        // But other relations (disciplina -> topico, topico -> questao) might not be cascade.
+        // It's safer to delete dependencies manually in the correct order.
+        
+        // 1. Find all topicos in the disciplina
+        const topicosToDelete = await dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}"`, fields: 'id' });
+        
+        if (topicosToDelete.length > 0) {
+             // 2. This will handle recursive deletion of sub-topics and their questions
+            await deleteTopicosAndSubtopicos(topicosToDelete.map(t => t.id));
+        }
+        
+        // 3. Delete any remaining questions tied directly to the disciplina (if any)
         await deleteQuestoesByFilter(`disciplinaId = "${disciplina.id}"`);
 
-        const topicosToDelete = await dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}"`, fields: 'id' });
-        if (topicosToDelete.length > 0) {
-          await dataSource.bulkDelete('topicos', topicosToDelete.map(t => t.id));
-        }
-
+        // 4. Finally, delete the disciplina itself
         await dataSource.delete('disciplinas', disciplina.id);
       },
       onSuccess: () => {
           toast({ title: "Disciplina Excluída!", description: "A disciplina e todos os seus dados foram removidos." });
           queryClient.invalidateQueries({ queryKey: ["disciplinas"] });
           queryClient.invalidateQueries({ queryKey: ["topicos"] });
+          queryClient.invalidateQueries({ queryKey: ["questoes"] });
       },
       onError: (error: any) => {
           console.error("Error deleting disciplina:", error.data || error);
@@ -292,6 +311,7 @@ export default function TaxonomiaPage() {
     onSuccess: (_, topico) => {
       toast({ title: "Tópico Excluído!", description: `O tópico "${topico.nome}" e seus dados foram removidos.` });
       queryClient.invalidateQueries({ queryKey: ["topicos"] });
+      queryClient.invalidateQueries({ queryKey: ["questoes"] });
     },
     onError: (error: any) => {
       console.error("Error deleting topico:", error.data || error);
@@ -386,6 +406,7 @@ export default function TaxonomiaPage() {
     </>
   );
 }
+
 
 
 
