@@ -4,7 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useData } from "@/hooks/use-data";
-import { Disciplina, Topico } from "@/types";
+import { Disciplina, Topico, Questao } from "@/types";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Edit2, Trash2 } from "lucide-react";
@@ -59,7 +59,7 @@ function TopicoItem({ topico, subtopicos, onEdit, onDelete, onAddSubtopic, onEdi
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Excluir Tópico?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    Tem certeza que deseja excluir o tópico "{topico.nome}"? Esta ação não pode ser desfeita e removerá os dados associados, incluindo subtópicos.
+                                    Tem certeza que deseja excluir o tópico "{topico.nome}"? Esta ação não pode ser desfeita e removerá os dados associados, incluindo subtópicos e questões.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -85,7 +85,7 @@ function TopicoItem({ topico, subtopicos, onEdit, onDelete, onAddSubtopic, onEdi
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>Excluir Subtópico?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                Tem certeza que deseja excluir o subtópico "{sub.nome}"? Esta ação não pode ser desfeita.
+                                                Tem certeza que deseja excluir o subtópico "{sub.nome}"? Todas as questões associadas também serão removidas. Esta ação não pode ser desfeita.
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
@@ -149,7 +149,7 @@ function DisciplinaAccordionItem({
                         <AlertDialogHeader>
                             <AlertDialogTitle>Excluir Disciplina?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Tem certeza que deseja excluir a disciplina "{disciplina.nome}"? Todos os seus tópicos e questões associadas serão permanentemente removidos. Esta ação não pode ser desfeita.
+                                Tem certeza que deseja excluir a disciplina "{disciplina.nome}"? Todos os seus tópicos, subtópicos e questões associadas serão permanentemente removidos. Esta ação não pode ser desfeita.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -241,44 +241,77 @@ export default function TaxonomiaPage() {
       setIsTopicoFormOpen(true);
   }
 
+  // --- Deletion Logic ---
+
+  const deleteQuestoesByFilter = async (filter: string) => {
+    const questoesToDelete = await dataSource.list<Questao>('questoes', { filter: filter, fields: 'id' });
+    if (questoesToDelete.length > 0) {
+      await dataSource.bulkDelete('questoes', questoesToDelete.map(q => q.id));
+    }
+  };
+
+  const deleteTopicosAndSubtopicos = async (topicoIds: string[]) => {
+    if (topicoIds.length === 0) return;
+    
+    // 1. Delete all questions from these topics
+    const topicoFilter = topicoIds.map(id => `topicoId = "${id}"`).join(' || ');
+    await deleteQuestoesByFilter(topicoFilter);
+
+    // 2. Find and delete all subtopics recursively
+    const subtopicFilter = topicoIds.map(id => `topicoPaiId = "${id}"`).join(' || ');
+    const subtopicos = await dataSource.list<Topico>('topicos', { filter: subtopicFilter, fields: 'id' });
+    if (subtopicos.length > 0) {
+      await deleteTopicosAndSubtopicos(subtopicos.map(st => st.id));
+    }
+
+    // 3. Delete the topics themselves
+    await dataSource.bulkDelete('topicos', topicoIds);
+  };
+  
   const deleteDisciplinaMutation = useMutation({
       mutationFn: async (disciplina: Disciplina) => {
-        // First, delete all topics related to this disciplina
-        const topicosToDelete = await dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}"` });
-        if (topicosToDelete && topicosToDelete.length > 0) {
-            const deletePromises = topicosToDelete.map(t => dataSource.delete('topicos', t.id));
-            await Promise.all(deletePromises);
+        // 1. Delete all questions for the entire disciplina
+        await deleteQuestoesByFilter(`disciplinaId = "${disciplina.id}"`);
+
+        // 2. Delete all topics for the disciplina
+        const topicosToDelete = await dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}"`, fields: 'id' });
+        if (topicosToDelete.length > 0) {
+          await dataSource.bulkDelete('topicos', topicosToDelete.map(t => t.id));
         }
-        // Then, delete the disciplina itself
+
+        // 3. Delete the disciplina itself
         await dataSource.delete('disciplinas', disciplina.id);
       },
       onSuccess: () => {
-          toast({ title: "Disciplina Excluída!", description: "A disciplina e seus tópicos foram removidos." });
+          toast({ title: "Disciplina Excluída!", description: "A disciplina e todos os seus dados foram removidos." });
           queryClient.invalidateQueries({ queryKey: ["disciplinas"] });
           queryClient.invalidateQueries({ queryKey: ["topicos"] });
       },
-      onError: (error) => {
+      onError: (error: any) => {
+          console.error("Error deleting disciplina:", error.data || error);
           toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível excluir a disciplina." });
       }
   });
 
   const deleteTopicoMutation = useMutation({
-    mutationFn: (topicoId: string) => dataSource.delete('topicos', topicoId),
-    onSuccess: (_, topicoId) => {
-      toast({ title: "Tópico Excluído!", description: "O tópico foi removido com sucesso." });
+    mutationFn: (topico: Topico) => deleteTopicosAndSubtopicos([topico.id]),
+    onSuccess: (_, topico) => {
+      toast({ title: "Tópico Excluído!", description: `O tópico "${topico.nome}" e seus dados foram removidos.` });
       queryClient.invalidateQueries({ queryKey: ["topicos"] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Error deleting topico:", error.data || error);
       toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível excluir o tópico." });
     }
   });
+
 
   const handleDeleteDisciplina = (disciplina: Disciplina) => {
       deleteDisciplinaMutation.mutate(disciplina);
   }
 
   const handleDeleteTopico = (topico: Topico) => {
-      deleteTopicoMutation.mutate(topico.id);
+      deleteTopicoMutation.mutate(topico);
   }
 
   const handleFormClose = () => {
@@ -359,3 +392,4 @@ export default function TaxonomiaPage() {
     </>
   );
 }
+
