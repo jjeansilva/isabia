@@ -91,6 +91,7 @@ export function QuestoesDataTable<TData, TValue>({
   const table = useReactTable({
     data: data ?? [],
     columns,
+    autoResetPageIndex: false,
     state: {
       sorting,
       columnVisibility,
