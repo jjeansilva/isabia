@@ -26,6 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { PerformancePorCriterio } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function PerformanceTable({ title, data, isLoading }: { title: string, data: PerformancePorCriterio[], isLoading: boolean }) {
     return (
@@ -48,7 +49,7 @@ function PerformanceTable({ title, data, isLoading }: { title: string, data: Per
                     <TableBody>
                         {isLoading && Array.from({ length: 3 }).map((_, i) => (
                             <TableRow key={i}>
-                                <TableCell className="h-12 text-center" colSpan={3}>Carregando...</TableCell>
+                                <TableCell className="h-12" colSpan={3}><Skeleton className="h-6 w-full" /></TableCell>
                             </TableRow>
                         ))}
                          {!isLoading && data.length === 0 && (
@@ -176,7 +177,7 @@ export default function DashboardPage() {
                     {!isLoading && stats?.desempenhoPorDificuldade.map((item: PerformancePorCriterio) => (
                         <div key={item.nome} className="flex justify-between items-center text-sm">
                             <span className="font-medium">{item.nome}</span>
-                            <span className="text-muted-foreground">{item.percentualAcerto.toFixed(1)}%</span>
+                            <span className="text-muted-foreground">{item.percentualAcerto.toFixed(1)}% ({item.totalQuestoes}q)</span>
                         </div>
                     ))}
                 </CardContent>
@@ -188,7 +189,7 @@ export default function DashboardPage() {
                     {!isLoading && stats?.desempenhoPorTipo.map((item: PerformancePorCriterio) => (
                         <div key={item.nome} className="flex justify-between items-center text-sm">
                             <span className="font-medium">{item.nome}</span>
-                            <span className="text-muted-foreground">{item.percentualAcerto.toFixed(1)}%</span>
+                             <span className="text-muted-foreground">{item.percentualAcerto.toFixed(1)}% ({item.totalQuestoes}q)</span>
                         </div>
                     ))}
                 </CardContent>

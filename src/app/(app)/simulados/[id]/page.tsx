@@ -5,7 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useData } from "@/hooks/use-data";
-import { Questao, Simulado, SimuladoQuestao, RespostaConfianca } from "@/types";
+import { Questao, Simulado, SimuladoQuestao, RespostaConfianca, Resposta } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -170,7 +170,7 @@ export default function SimuladoExecutionPage() {
     useEffect(() => {
         if (simulado) {
             if (simulado.status === 'Rascunho') {
-                mutation.mutate({ status: 'Em andamento' });
+                updateSimuladoMutation.mutate({ status: 'Em andamento' });
             }
             const lastAnsweredIndex = simulado.questoes.findLastIndex((q: any) => q.respostaUsuario !== undefined) ?? -1;
             setCurrentQuestionIndex(lastAnsweredIndex + 1);
@@ -186,7 +186,7 @@ export default function SimuladoExecutionPage() {
         enabled: !!currentSimuladoQuestao,
     });
     
-    const mutation = useMutation({
+    const updateSimuladoMutation = useMutation({
         mutationFn: (data: Partial<Simulado>) => {
             const dataToUpdate: any = { ...data };
             if (data.questoes) {
@@ -199,12 +199,25 @@ export default function SimuladoExecutionPage() {
         }
     });
 
+     const createRespostasMutation = useMutation({
+        mutationFn: (respostas: Omit<Resposta, 'id' | 'user' | 'createdAt' | 'updatedAt'>[]) => 
+            dataSource.bulkCreate<Omit<Resposta, 'id' | 'user' | 'createdAt' | 'updatedAt'>>('respostas', respostas),
+        onSuccess: () => {
+             queryClient.invalidateQueries({ queryKey: ['dashboardStats']});
+        },
+        onError: (error) => {
+            toast({ variant: "destructive", title: "Erro ao salvar respostas", description: error.message });
+        }
+    });
+
     const handleAnswer = (answer: any, confianca: RespostaConfianca) => {
         if (!simulado || !questao) return;
 
         let parsedRespostaCorreta = questao.respostaCorreta;
         try {
-            parsedRespostaCorreta = JSON.parse(questao.respostaCorreta)
+            if (typeof questao.respostaCorreta === 'string') {
+                parsedRespostaCorreta = JSON.parse(questao.respostaCorreta)
+            }
         } catch(e) {
             // It's not a JSON, so we use it as is
         }
@@ -217,7 +230,7 @@ export default function SimuladoExecutionPage() {
                 : q
         );
         
-        mutation.mutate({ questoes: updatedQuestoes });
+        updateSimuladoMutation.mutate({ questoes: updatedQuestoes });
     };
 
     const handleNext = () => {
@@ -227,7 +240,25 @@ export default function SimuladoExecutionPage() {
     }
     
     const handleFinish = () => {
-        mutation.mutate(
+        if (!simulado) return;
+
+        const respostasToCreate: Omit<Resposta, 'id' | 'user' | 'createdAt' | 'updatedAt'>[] = simulado.questoes
+            .filter(q => q.respostaUsuario !== undefined) // Only answered questions
+            .map(q => ({
+                acertou: !!q.correta,
+                confianca: q.confianca || 'Dúvida',
+                questaoId: q.questaoId,
+                respostaUsuario: q.respostaUsuario,
+                simuladoId: simulado.id,
+                respondedAt: new Date().toISOString(),
+                tempoSegundos: q.tempoSegundos || 30, // Placeholder
+            }));
+        
+        if (respostasToCreate.length > 0) {
+            createRespostasMutation.mutate(respostasToCreate);
+        }
+
+        updateSimuladoMutation.mutate(
             { status: 'Concluído', finalizadoEm: new Date().toISOString() },
             {
                 onSuccess: () => {

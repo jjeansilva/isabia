@@ -455,8 +455,6 @@ class PocketBaseDataSource implements IDataSource {
         };
     });
 
-    const questoesMap = new Map(questoes.map(q => [q.id, q]));
-
     // --- Performance by criteria ---
     const reducePerformance = (map: Map<string, { total: number; acertos: number }>, key: string) => {
         if (!map.has(key)) map.set(key, { total: 0, acertos: 0 });
@@ -740,8 +738,3 @@ export { PocketBaseDataSource, MockDataSource };
     
 
     
-
-
-
-
-
