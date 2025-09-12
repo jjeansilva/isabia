@@ -1,5 +1,6 @@
 
 
+
 export interface User {
     id: string;
     email: string;
@@ -28,10 +29,20 @@ export interface Topico {
   updatedAt: string;
 }
 
-export type QuestionTipo = 'Múltipla Escolha' | 'Certo ou Errado' | 'Completar Lacuna' | 'Flashcard';
-export type QuestionDificuldade = 'Fácil' | 'Médio' | 'Difícil';
-export type QuestionOrigem = 'Autoral' | 'Conteúdo' | 'Legislação' | 'Jurisprudência' | 'Já caiu';
+export enum QuestionTipo {
+    MultiplaEscolha = 'Múltipla Escolha',
+    CertoErrado = 'Certo ou Errado',
+    CompletarLacuna = 'Completar Lacuna',
+    Flashcard = 'Flashcard',
+}
+export enum QuestionDificuldade {
+    Facil = 'Fácil',
+    Medio = 'Médio',
+    Dificil = 'Difícil',
+}
+
 export type RespostaConfianca = 'Certeza' | 'Dúvida' | 'Chute';
+export type QuestionOrigem = 'Autoral' | 'Conteúdo' | 'Legislação' | 'Jurisprudência' | 'Já caiu';
 
 export interface Questao {
   id: string;
@@ -96,6 +107,9 @@ export interface Resposta {
   tempoSegundos: number;
   user: string;
   respondedAt: string;
+  expand?: {
+    questaoId?: Questao;
+  };
 }
 
 export interface Revisao {
@@ -122,6 +136,12 @@ export interface ImportProgress {
     total: number;
     log?: string[];
     isError?: boolean;
+}
+
+export interface PerformancePorCriterio {
+    nome: string;
+    totalQuestoes: number;
+    percentualAcerto: number;
 }
 
 
