@@ -344,7 +344,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
              <FormField control={form.control} name="explicacao" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Explicação</FormLabel>
-                    <FormControl><Textarea placeholder="Explicação detalhada da resposta correta..." {...field} /></FormControl>
+                    <FormControl><Textarea placeholder="Explicação detalhada da resposta correta..." {...field} value={field.value ?? ''} /></FormControl>
                 </FormItem>
             )}/>
             
