@@ -78,8 +78,8 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
 
   useEffect(() => {
     if(open && questao) {
-       let alternativas = questao.alternativas;
-        if (typeof alternativas === 'string') {
+       let alternativas: any = questao.alternativas;
+        if (typeof alternativas === 'string' && alternativas) {
           try {
             alternativas = JSON.parse(alternativas);
           } catch(e) {
