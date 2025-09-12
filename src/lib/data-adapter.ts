@@ -137,7 +137,7 @@ class MockDataSource implements IDataSource {
       const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt' | 'user'> = {
           nome: formValues.nome,
           criterios: formValues.criterios,
-          status: 'rascunho',
+          status: 'Rascunho',
           criadoEm: new Date().toISOString(),
           questoes: finalQuestoes.map((q, index) => ({
               id: uuidv4(),
@@ -349,14 +349,14 @@ class PocketBaseDataSource implements IDataSource {
       const novoSimulado = {
           nome: formValues.nome,
           criterios: JSON.stringify(formValues.criterios),
-          status: 'rascunho',
+          status: 'Rascunho',
           criadoEm: new Date().toISOString(),
           questoes: JSON.stringify(questoesParaSalvar),
       };
 
       const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
       
-      const updatedQuestoes: SimuladoQuestao[] = (createdSimulado.questoes as any[]).map(q => ({...q, simuladoId: createdSimulado.id, correta: false}));
+      const updatedQuestoes: SimuladoQuestao[] = (JSON.parse(createdSimulado.questoes as any) as any[]).map(q => ({...q, simuladoId: createdSimulado.id, correta: false}));
       
       return await this.update<Simulado>(createdSimulado.id, createdSimulado.id, { questoes: JSON.stringify(updatedQuestoes) as any });
   }
@@ -603,3 +603,4 @@ export { PocketBaseDataSource, MockDataSource };
     
 
     
+

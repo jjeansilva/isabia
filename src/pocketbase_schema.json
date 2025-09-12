@@ -206,7 +206,7 @@
         "schema": [
             { "id": "gqg3t1yq", "name": "nome", "type": "text", "required": true, "presentable": true },
             { "id": "7vwnp0je", "name": "descricao", "type": "text" },
-            { "id": "select2063623452", "name": "status", "type": "select", "options": { "maxSelect": 1, "values": [ "rascunho", "andamento", "concluido" ] } },
+            { "id": "select2063623452", "name": "status", "type": "select", "options": { "maxSelect": 1, "values": [ "Rascunho", "Em andamento", "Concluído" ] } },
             { "id": "f5k6cwqu", "name": "criadoEm", "type": "date", "required": true },
             { "id": "f5k6cwqv", "name": "finalizadoEm", "type": "date" },
             { "id": "w3f5wct5", "name": "questoes", "type": "json" },
