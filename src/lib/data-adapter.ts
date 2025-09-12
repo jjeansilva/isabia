@@ -420,12 +420,12 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async getDashboardStats(): Promise<any> {
-    const userFilter = `user = "${this.pb.authStore.model?.id}"`;
+    if (!this.pb.authStore.model?.id) return {};
+    const userFilter = `user = "${this.pb.authStore.model.id}"`;
 
-    const [simulados, respostas, questoes, disciplinas, revisoes] = await Promise.all([
+    const [simulados, respostas, disciplinas, revisoes] = await Promise.all([
         this.list<Simulado>('simulados', { filter: userFilter }),
         this.list<Resposta>('respostas', { filter: userFilter, expand: 'questaoId' }),
-        this.list<Questao>('questoes', { filter: userFilter }),
         this.list<Disciplina>('disciplinas', { filter: userFilter }),
         this.list<Revisao>('revisoes', { filter: userFilter })
     ]);
@@ -456,11 +456,13 @@ class PocketBaseDataSource implements IDataSource {
     });
 
     // --- Performance by criteria ---
-    const reducePerformance = (map: Map<string, { total: number; acertos: number }>, key: string) => {
+    const reducePerformance = (map: Map<string, { total: number; acertos: number }>, key: string, acertou: boolean) => {
         if (!map.has(key)) map.set(key, { total: 0, acertos: 0 });
         const current = map.get(key)!;
         current.total++;
-        return current;
+        if (acertou) {
+            current.acertos++;
+        }
     };
 
     const desempenhoMap = new Map<string, { total: number; acertos: number }>();
@@ -468,18 +470,12 @@ class PocketBaseDataSource implements IDataSource {
     const tipoMap = new Map<string, { total: number; acertos: number }>();
     
     for (const resposta of respostas) {
-        // @ts-ignore
         const questao = resposta.expand?.questaoId as Questao | undefined;
         if (!questao) continue;
 
-        const discPerf = reducePerformance(desempenhoMap, questao.disciplinaId);
-        if (resposta.acertou) discPerf.acertos++;
-
-        const difPerf = reducePerformance(dificuldadeMap, questao.dificuldade);
-        if (resposta.acertou) difPerf.acertos++;
-
-        const tipoPerf = reducePerformance(tipoMap, questao.tipo);
-        if (resposta.acertou) tipoPerf.acertos++;
+        reducePerformance(desempenhoMap, questao.disciplinaId, resposta.acertou);
+        reducePerformance(dificuldadeMap, questao.dificuldade, resposta.acertou);
+        reducePerformance(tipoMap, questao.tipo, resposta.acertou);
     }
 
     const formatPerformanceData = (map: Map<string, { total: number; acertos: number }>, nameMap: Map<string, string>): PerformancePorCriterio[] => {
@@ -738,3 +734,4 @@ export { PocketBaseDataSource, MockDataSource };
     
 
     
+
