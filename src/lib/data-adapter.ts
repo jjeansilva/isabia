@@ -577,7 +577,7 @@ class PocketBaseDataSource implements IDataSource {
             enunciado: values[colMap['questão']],
             respostaCorreta: respostaCorreta,
             alternativas: alternativas,
-            explicacao: values[colMap.explicacao],
+            explicacao: values[colMap['explicação']],
             origem: origem,
             version: 1,
             isActive: true,
@@ -607,6 +607,7 @@ export { PocketBaseDataSource, MockDataSource };
     
 
     
+
 
 
 
