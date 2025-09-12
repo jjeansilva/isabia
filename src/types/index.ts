@@ -39,7 +39,7 @@ export interface Questao {
   topicoId: string;
   tipo: QuestionTipo;
   dificuldade: QuestionDificuldade;
-  origem: QuestionOrigem;
+  origem: QuestionOrigem | QuestionOrigem[];
   enunciado: string;
   alternativas?: string; // Stored as JSON string
   respostaCorreta: any;

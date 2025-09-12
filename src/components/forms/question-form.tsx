@@ -102,6 +102,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
 
         form.reset({
             ...questao,
+            origem: Array.isArray(questao.origem) ? questao.origem[0] : questao.origem,
             alternativas: Array.isArray(alternativas) ? alternativas : [],
             respostaCorreta: respostaCorreta,
         });
