@@ -36,7 +36,7 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
     const [confianca, setConfianca] = useState<RespostaConfianca>('Dúvida');
     
     let alternativas = questao.alternativas;
-    if (typeof alternativas === 'string') {
+    if (typeof alternativas === 'string' && alternativas) {
         try {
             alternativas = JSON.parse(alternativas);
         } catch (e) {

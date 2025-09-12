@@ -105,6 +105,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
             origem: Array.isArray(questao.origem) ? questao.origem[0] : questao.origem,
             alternativas: Array.isArray(alternativas) ? alternativas : [],
             respostaCorreta: respostaCorreta,
+            explicacao: questao.explicacao || "",
         });
     } else if (open && !questao) {
         form.reset({
@@ -343,7 +344,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
              <FormField control={form.control} name="explicacao" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Explicação</FormLabel>
-                    <FormControl><Textarea placeholder="Explicação detalhada da resposta correta..." {...field} value={field.value || ''}/></FormControl>
+                    <FormControl><Textarea placeholder="Explicação detalhada da resposta correta..." {...field} /></FormControl>
                 </FormItem>
             )}/>
             
