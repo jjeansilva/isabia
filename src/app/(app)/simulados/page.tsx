@@ -15,19 +15,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 function SimuladoCard({ simulado }: { simulado: Simulado }) {
   const getStatusBadge = (status: SimuladoStatus) => {
     switch (status) {
-      case 'rascunho': return <Badge variant="secondary">Rascunho</Badge>;
-      case 'andamento': return <Badge className="bg-yellow-500/80 text-white">Em Andamento</Badge>;
-      case 'concluido': return <Badge className="bg-approval text-white">Concluído</Badge>;
+      case 'Rascunho': return <Badge variant="secondary">Rascunho</Badge>;
+      case 'Em andamento': return <Badge className="bg-yellow-500/80 text-white">Em Andamento</Badge>;
+      case 'Concluído': return <Badge className="bg-approval text-white">Concluído</Badge>;
     }
   };
 
   const getAction = (simulado: Simulado) => {
     switch (simulado.status) {
-      case 'rascunho':
+      case 'Rascunho':
         return <Button asChild><Link href={`/simulados/${simulado.id}`}><Play className="mr-2 h-4 w-4" />Iniciar</Link></Button>;
-      case 'andamento':
+      case 'Em andamento':
         return <Button asChild><Link href={`/simulados/${simulado.id}`}><Play className="mr-2 h-4 w-4" />Continuar</Link></Button>;
-      case 'concluido':
+      case 'Concluído':
         return <Button asChild variant="outline"><Link href={`/simulados/${simulado.id}/resultado`}><Eye className="mr-2 h-4 w-4" />Ver Resultados</Link></Button>;
     }
   };
@@ -43,7 +43,7 @@ function SimuladoCard({ simulado }: { simulado: Simulado }) {
       </CardHeader>
       <CardContent>
         <div className="flex gap-4 text-sm text-muted-foreground">
-            <span>{simulado.questoes.length > 0 ? `${simulado.questoes.length} questões` : 'Critérios a definir'}</span>
+            <span>{Array.isArray(simulado.questoes) && simulado.questoes.length > 0 ? `${simulado.questoes.length} questões` : 'Critérios a definir'}</span>
         </div>
       </CardContent>
       <CardFooter>
@@ -59,6 +59,15 @@ export default function SimuladosPage() {
     queryKey: ["simulados"],
     queryFn: () => dataSource.list<Simulado>("simulados"),
   });
+  
+  const simuladosParsed = simulados?.map(s => {
+    try {
+        return {...s, questoes: typeof s.questoes === 'string' ? JSON.parse(s.questoes) : s.questoes ?? [] }
+    } catch(e) {
+        return {...s, questoes: []}
+    }
+  });
+
 
   return (
     <>
@@ -79,7 +88,7 @@ export default function SimuladosPage() {
             <CardFooter><Skeleton className="h-10 w-24" /></CardFooter>
           </Card>
         ))}
-        {simulados?.map((s) => <SimuladoCard key={s.id} simulado={s} />)}
+        {simuladosParsed?.map((s) => <SimuladoCard key={s.id} simulado={s} />)}
       </div>
 
        {!isLoading && simulados?.length === 0 && (

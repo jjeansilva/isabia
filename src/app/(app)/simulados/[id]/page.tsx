@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -151,18 +151,32 @@ export default function SimuladoExecutionPage() {
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
-    const { data: simulado, isLoading: isLoadingSimulado } = useQuery({
+    const { data: simuladoResult, isLoading: isLoadingSimulado } = useQuery({
         queryKey: ['simulado', id],
         queryFn: () => dataSource.get<Simulado>('simulados', id),
-        onSuccess: (data) => {
-          if (data && data.status === 'rascunho') {
-              // Start the exam
-              mutation.mutate({ status: 'andamento' });
-          }
-          const lastAnsweredIndex = data?.questoes.findLastIndex(q => q.respostaUsuario !== undefined) ?? -1;
-          setCurrentQuestionIndex(lastAnsweredIndex + 1);
-        }
     });
+
+    const simulado = useMemo(() => {
+        if (!simuladoResult) return null;
+        try {
+            const questoes = typeof simuladoResult.questoes === 'string' ? JSON.parse(simuladoResult.questoes) : simuladoResult.questoes;
+            return { ...simuladoResult, questoes };
+        } catch (e) {
+            console.error("Failed to parse simulado questoes", e);
+            return { ...simuladoResult, questoes: [] };
+        }
+    }, [simuladoResult]);
+
+    useEffect(() => {
+        if (simulado) {
+            if (simulado.status === 'Rascunho') {
+                mutation.mutate({ status: 'Em andamento' });
+            }
+            const lastAnsweredIndex = simulado.questoes.findLastIndex((q: any) => q.respostaUsuario !== undefined) ?? -1;
+            setCurrentQuestionIndex(lastAnsweredIndex + 1);
+        }
+    }, [simulado?.id]); // Rerun only when simulado id changes to set initial state
+
 
     const currentSimuladoQuestao = simulado?.questoes[currentQuestionIndex];
 
@@ -173,7 +187,13 @@ export default function SimuladoExecutionPage() {
     });
     
     const mutation = useMutation({
-        mutationFn: (data: Partial<Simulado>) => dataSource.update<Simulado>('simulados', id, data),
+        mutationFn: (data: Partial<Simulado>) => {
+            const dataToUpdate: any = { ...data };
+            if (data.questoes) {
+                dataToUpdate.questoes = JSON.stringify(data.questoes);
+            }
+            return dataSource.update<Simulado>('simulados', id, dataToUpdate);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['simulado', id] });
         }
@@ -208,7 +228,7 @@ export default function SimuladoExecutionPage() {
     
     const handleFinish = () => {
         mutation.mutate(
-            { status: 'concluido', finalizadoEm: new Date().toISOString() },
+            { status: 'Concluído', finalizadoEm: new Date().toISOString() },
             {
                 onSuccess: () => {
                     toast({title: "Simulado finalizado!", description: "Veja seus resultados."});
@@ -221,7 +241,7 @@ export default function SimuladoExecutionPage() {
     const isCurrentQuestionAnswered = currentSimuladoQuestao?.respostaUsuario !== undefined;
     const progress = simulado ? ((currentQuestionIndex + (isCurrentQuestionAnswered ? 1 : 0)) / simulado.questoes.length) * 100 : 0;
     
-    if (isLoadingSimulado || isLoadingQuestao && currentQuestionIndex < (simulado?.questoes.length ?? 0)) {
+    if (isLoadingSimulado || (isLoadingQuestao && simulado && currentQuestionIndex < simulado.questoes.length)) {
         return <Skeleton className="h-96 w-full"/>
     }
 

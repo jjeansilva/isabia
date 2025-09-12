@@ -164,7 +164,7 @@ class MockDataSource implements IDataSource {
     const totalAcertos = respostas.filter((r: any) => r.acertou).length;
     const acertoGeral = respostas.length > 0 ? (totalAcertos / respostas.length) * 100 : 0;
     
-    const simuladoEmAndamento = simulados.find(s => s.status === 'andamento');
+    const simuladoEmAndamento = simulados.find(s => s.status === 'Em andamento');
     const questoesParaRevisarHoje = revisao.filter((r: any) => new Date(r.proximaRevisao) <= new Date()).length;
 
     const allDisciplinas = await this.list<Disciplina>('disciplinas');
@@ -178,8 +178,8 @@ class MockDataSource implements IDataSource {
         acertoGeral,
         simuladosCount: {
             criados: simulados.length,
-            emAndamento: simulados.filter(s => s.status === 'andamento').length,
-            concluidos: simulados.filter(s => s.status === 'concluido').length,
+            emAndamento: simulados.filter(s => s.status === 'Em andamento').length,
+            concluidos: simulados.filter(s => s.status === 'Concluído').length,
         },
         simuladoEmAndamento,
         questoesParaRevisarHoje,
@@ -356,7 +356,7 @@ class PocketBaseDataSource implements IDataSource {
 
       const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
       
-      const updatedQuestoes: SimuladoQuestao[] = (JSON.parse(createdSimulado.questoes as any) as any[]).map(q => ({...q, simuladoId: createdSimulado.id, correta: false}));
+      const updatedQuestoes: SimuladoQuestao[] = (JSON.parse(createdSimulado.questoes as any) as any[]).map(q => ({...q, simuladoId: createdSimulado.id }));
       
       return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: JSON.stringify(updatedQuestoes) as any });
   }
@@ -376,7 +376,7 @@ class PocketBaseDataSource implements IDataSource {
     const totalAcertos = (respostas as any[]).filter((r: any) => r.acertou).length;
     const acertoGeral = (respostas as any[]).length > 0 ? (totalAcertos / (respostas as any[]).length) * 100 : 0;
     
-    const simuladoEmAndamento = (simulados as Simulado[]).find(s => s.status === 'andamento');
+    const simuladoEmAndamento = (simulados as Simulado[]).find(s => s.status === 'Em andamento');
     const questoesParaRevisarHoje = (revisao as Revisao[]).filter((r: any) => new Date(r.proximaRevisao) <= new Date()).length;
 
     const distribution = (allDisciplinas as Disciplina[]).map(d => {
@@ -389,8 +389,8 @@ class PocketBaseDataSource implements IDataSource {
         acertoGeral,
         simuladosCount: {
             criados: simulados.length,
-            emAndamento: (simulados as Simulado[]).filter(s => s.status === 'andamento').length,
-            concluidos: (simulados as Simulado[]).filter(s => s.status === 'concluido').length,
+            emAndamento: (simulados as Simulado[]).filter(s => s.status === 'Em andamento').length,
+            concluidos: (simulados as Simulado[]).filter(s => s.status === 'Concluído').length,
         },
         simuladoEmAndamento,
         questoesParaRevisarHoje,
@@ -524,11 +524,13 @@ class PocketBaseDataSource implements IDataSource {
         
         // --- Disciplina ---
         const disciplinaNome = values[colMap.disciplina];
+        if (!disciplinaNome) continue;
         const disciplinaFilter = `nome="${disciplinaNome}" && user = "${userId}"`;
         const disciplina = await getOrCreate<Disciplina>('disciplinas', disciplinasCache, disciplinaFilter, { nome: disciplinaNome }, 'disciplina');
         
         // --- Tópico Pai ---
         const topicoPaiNome = values[colMap['tópico da disciplina']];
+        if (!topicoPaiNome) continue;
         const topicoPaiFilter = `nome = "${topicoPaiNome}" && disciplinaId = "${disciplina.id}" && (topicoPaiId = "" || topicoPaiId = null) && user = "${userId}"`;
         const topicoPai = await getOrCreate<Topico>('topicos', topicosCache, topicoPaiFilter, { nome: topicoPaiNome, disciplinaId: disciplina.id }, 'tópico pai');
 
@@ -562,7 +564,9 @@ class PocketBaseDataSource implements IDataSource {
              respostaCorreta = resp;
         } else if (tipo === 'Certo ou Errado') {
             const lowerCaseAnswer = respostaCorreta.toLowerCase();
-            respostaCorreta = ['certo', 'verdadeiro', 'v'].includes(lowerCaseAnswer);
+            respostaCorreta = JSON.stringify(['certo', 'verdadeiro', 'v'].includes(lowerCaseAnswer));
+        } else {
+             respostaCorreta = JSON.stringify(respostaCorreta);
         }
 
         const questao: Partial<Questao> = {
@@ -571,7 +575,7 @@ class PocketBaseDataSource implements IDataSource {
             disciplinaId: disciplina.id,
             topicoId: topicoFinal.id,
             enunciado: values[colMap['questão']],
-            respostaCorreta: JSON.stringify(respostaCorreta),
+            respostaCorreta: respostaCorreta,
             alternativas: alternativas,
             explicacao: values[colMap.explicacao],
             origem: origem,
@@ -603,5 +607,6 @@ export { PocketBaseDataSource, MockDataSource };
     
 
     
+
 
 

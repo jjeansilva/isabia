@@ -12,16 +12,29 @@ import { CheckCircle2, XCircle, Percent } from "lucide-react";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useMemo } from "react";
 
 export default function ResultadoPage() {
     const params = useParams();
     const id = params.id as string;
     const dataSource = useData();
 
-    const { data: simulado, isLoading: isLoadingSimulado } = useQuery({
+    const { data: simuladoResult, isLoading: isLoadingSimulado } = useQuery({
         queryKey: ['simuladoResultado', id],
         queryFn: () => dataSource.get<Simulado>('simulados', id),
     });
+
+    const simulado = useMemo(() => {
+        if (!simuladoResult) return null;
+        try {
+            const questoes = typeof simuladoResult.questoes === 'string' ? JSON.parse(simuladoResult.questoes) : simuladoResult.questoes;
+            return { ...simuladoResult, questoes };
+        } catch (e) {
+            console.error("Failed to parse simulado questoes", e);
+            return { ...simuladoResult, questoes: [] };
+        }
+    }, [simuladoResult]);
+
 
     const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
         queryKey: ['questoes', 'all'], // Use a distinct key
