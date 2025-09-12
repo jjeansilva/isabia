@@ -73,6 +73,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
       origem: "Autoral",
       enunciado: "",
       alternativas: ["", "", "", ""],
+      explicacao: "",
     },
   });
 
