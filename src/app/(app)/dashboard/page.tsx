@@ -174,7 +174,7 @@ export default function DashboardPage() {
                 <CardHeader><CardTitle className="flex items-center gap-2"><HelpCircle className="h-5 w-5 text-primary" />Desempenho por Dificuldade</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                     {isLoading && <p>Carregando...</p>}
-                    {!isLoading && stats?.desempenhoPorDificuldade.map((item: PerformancePorCriterio) => (
+                    {!isLoading && stats?.desempenhoPorDificuldade?.map((item: PerformancePorCriterio) => (
                         <div key={item.nome} className="flex justify-between items-center text-sm">
                             <span className="font-medium">{item.nome}</span>
                             <span className="text-muted-foreground">{item.percentualAcerto.toFixed(1)}% ({item.totalQuestoes}q)</span>
@@ -186,7 +186,7 @@ export default function DashboardPage() {
                 <CardHeader><CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" />Desempenho por Tipo</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                     {isLoading && <p>Carregando...</p>}
-                    {!isLoading && stats?.desempenhoPorTipo.map((item: PerformancePorCriterio) => (
+                    {!isLoading && stats?.desempenhoPorTipo?.map((item: PerformancePorCriterio) => (
                         <div key={item.nome} className="flex justify-between items-center text-sm">
                             <span className="font-medium">{item.nome}</span>
                              <span className="text-muted-foreground">{item.percentualAcerto.toFixed(1)}% ({item.totalQuestoes}q)</span>
