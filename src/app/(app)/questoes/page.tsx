@@ -12,7 +12,6 @@ import { QuestionForm } from "@/components/forms/question-form";
 import { ImportQuestionsForm } from "@/components/forms/import-questions-form";
 import { QuestoesDataTable } from "@/components/tables/questoes-data-table";
 import { PageHeader } from "@/components/page-header";
-import { getColumns } from "@/components/tables/questoes-columns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -48,13 +47,6 @@ export default function QuestoesPage() {
     setSelectedQuestao(q);
     setIsFormOpen(true);
   }, []);
-
-  const columns = useMemo(() => getColumns({ 
-    onEdit: handleEdit,
-    disciplinas: disciplinas ?? [],
-    topicos: topicos ?? []
-  }), [handleEdit, disciplinas, topicos]);
-
 
   useEffect(() => {
     if (searchParams.get('import') === 'true') {
@@ -99,10 +91,10 @@ export default function QuestoesPage() {
         </div>
       ) : (
         <QuestoesDataTable 
-          columns={columns} 
-          data={questoes ?? []} 
+          questoes={questoes ?? []} 
           disciplinas={disciplinas ?? []} 
           topicos={topicos ?? []}
+          onEdit={handleEdit}
         />
       )}
     </>

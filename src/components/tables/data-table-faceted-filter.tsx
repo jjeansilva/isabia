@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from "react"
@@ -41,9 +42,6 @@ export function DataTableFacetedFilter<TData, TValue>({
 }: DataTableFacetedFilterProps<TData, TValue>) {
   const facets = column?.getFacetedUniqueValues()
   const selectedValues = new Set(column?.getFilterValue() as string[])
-  
-  console.log(`[${title}] Filtro Renderizado. Opções disponíveis:`, options.length, "Selecionados:", selectedValues);
-
 
   return (
     <Popover>
@@ -98,14 +96,12 @@ export function DataTableFacetedFilter<TData, TValue>({
                   <CommandItem
                     key={option.value}
                     onSelect={() => {
-                      console.log(`[${title}] Item Clicado:`, { label: option.label, value: option.value, estavaSelecionado: isSelected });
                       if (isSelected) {
                         selectedValues.delete(option.value)
                       } else {
                         selectedValues.add(option.value)
                       }
                       const filterValues = Array.from(selectedValues)
-                      console.log(`[${title}] Novos valores para aplicar ao filtro:`, filterValues);
                       column?.setFilterValue(
                         filterValues.length ? filterValues : undefined
                       )
@@ -139,10 +135,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
-                    onSelect={() => {
-                        console.log(`[${title}] Limpando todos os filtros.`);
-                        column?.setFilterValue(undefined)
-                    }}
+                    onSelect={() => column?.setFilterValue(undefined)}
                     className="justify-center text-center"
                   >
                     Limpar filtros
