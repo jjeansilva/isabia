@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import * as React from "react"
@@ -84,7 +83,7 @@ export function DataTableFacetedFilter<TData, TValue>({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0 z-50" align="start">
+      <PopoverContent className="w-[200px] p-0" align="start">
         <Command>
           <CommandInput placeholder={title} />
           <CommandList>
@@ -112,10 +111,10 @@ export function DataTableFacetedFilter<TData, TValue>({
                         "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
                         isSelected
                           ? "bg-primary text-primary-foreground"
-                          : "[&_svg]:invisible"
+                          : "opacity-50 [&_svg]:invisible"
                       )}
                     >
-                      <Check className="h-4 w-4" />
+                      <Check className={cn("h-4 w-4")} />
                     </div>
                     {option.icon && (
                       <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
