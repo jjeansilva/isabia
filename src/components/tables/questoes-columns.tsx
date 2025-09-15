@@ -2,7 +2,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, MoreHorizontal, Edit, Trash2 } from "lucide-react"
+import { ArrowUpDown, MoreHorizontal, Edit, Trash2, Flag } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -67,7 +67,15 @@ export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<Questao>[] =>
             </Button>
             )
         },
-        cell: ({ row }) => <div className="line-clamp-2 max-w-md">{row.getValue("enunciado")}</div>
+        cell: ({ row }) => {
+            const questao: Questao = row.original;
+            return (
+                <div className="flex items-center gap-2">
+                     {questao.necessitaRevisao && <Flag className="h-4 w-4 text-destructive" title="Revisão necessária"/>}
+                    <span className="line-clamp-2 max-w-md">{row.getValue("enunciado")}</span>
+                </div>
+            )
+        }
     },
     {
         accessorKey: "disciplinaId",

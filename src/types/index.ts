@@ -60,6 +60,8 @@ export interface Questao {
   version: number;
   isActive: boolean;
   hashConteudo: string;
+  necessitaRevisao?: boolean;
+  motivoRevisao?: string;
   user: string;
   createdAt: string;
   updatedAt: string;

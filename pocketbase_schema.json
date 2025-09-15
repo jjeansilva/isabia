@@ -145,7 +145,7 @@
             { "id": "yecxmm3d", "name": "descricao", "type": "text" },
             { "id": "a5yuyk5g", "name": "cor", "type": "text" },
             { "id": "bcfu7pqs", "name": "ordem", "type": "number" },
-            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1 } }
+            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
         ]
     },
     {
@@ -161,9 +161,9 @@
         "schema": [
             { "id": "k7vjgz9w", "name": "nome", "type": "text", "required": true, "presentable": true },
             { "id": "bcfu7pqs", "name": "ordem", "type": "number" },
-            { "id": "relation2807848817", "name": "disciplinaId", "type": "relation", "required": true, "options": { "collectionId": "disciplinas_abcde1", "maxSelect": 1 } },
-            { "id": "relation_topico_pai", "name": "topicoPaiId", "type": "relation", "required": false, "options": { "collectionId": "topicos_abcde1", "maxSelect": 1 } },
-            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1 } }
+            { "id": "relation2807848817", "name": "disciplinaId", "type": "relation", "required": true, "options": { "collectionId": "disciplinas_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation_topico_pai", "name": "topicoPaiId", "type": "relation", "required": false, "options": { "collectionId": "topicos_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
         ]
     },
     {
@@ -188,9 +188,11 @@
             { "id": "9gq8wlnx", "name": "version", "type": "number", "required": true },
             { "id": "d0n8k3lq", "name": "isActive", "type": "bool" },
             { "id": "4gczwz9j", "name": "hashConteudo", "type": "text", "required": true },
-            { "id": "relation853048275", "name": "disciplinaId", "type": "relation", "required": true, "options": { "collectionId": "disciplinas_abcde1", "maxSelect": 1 } },
-            { "id": "relation2931482895", "name": "topicoId", "type": "relation", "required": true, "options": { "collectionId": "topicos_abcde1", "maxSelect": 1 } },
-            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1 } }
+            { "id": "bool_necessita_revisao", "name": "necessitaRevisao", "type": "bool", "required": false },
+            { "id": "text_motivo_revisao", "name": "motivoRevisao", "type": "text", "required": false },
+            { "id": "relation853048275", "name": "disciplinaId", "type": "relation", "required": true, "options": { "collectionId": "disciplinas_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation2931482895", "name": "topicoId", "type": "relation", "required": true, "options": { "collectionId": "topicos_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
         ]
     },
     {
@@ -206,12 +208,12 @@
         "schema": [
             { "id": "gqg3t1yq", "name": "nome", "type": "text", "required": true, "presentable": true },
             { "id": "7vwnp0je", "name": "descricao", "type": "text" },
-            { "id": "select986616355", "name": "dificuldade", "type": "select", "options": { "maxSelect": 1, "values": [ "aleatorio", "facil", "dificil" ] } },
-            { "id": "select2063623452", "name": "status", "type": "select", "options": { "maxSelect": 1, "values": [ "rascunho", "andamento", "concluido" ] } },
+            { "id": "select2063623452", "name": "status", "type": "select", "options": { "maxSelect": 1, "values": [ "Rascunho", "Em andamento", "Concluído" ] } },
             { "id": "f5k6cwqu", "name": "criadoEm", "type": "date", "required": true },
             { "id": "f5k6cwqv", "name": "finalizadoEm", "type": "date" },
             { "id": "w3f5wct5", "name": "questoes", "type": "json" },
-            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1 } }
+            { "id": "json528764584", "name": "criterios", "type": "json"},
+            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
         ]
     },
     {
@@ -230,9 +232,9 @@
             { "id": "select2929511165", "name": "confianca", "type": "select", "options": { "maxSelect": 1, "values": [ "Certeza", "Dúvida", "Chute" ] } },
             { "id": "jph7t0b7", "name": "tempoSegundos", "type": "number", "required": true },
             { "id": "f5k6cwqu", "name": "respondedAt", "type": "date", "required": true },
-            { "id": "relation377375640", "name": "questaoId", "type": "relation", "required": true, "options": { "collectionId": "questoes_abcde1", "maxSelect": 1 } },
-            { "id": "relation3158640492", "name": "simuladoId", "type": "relation", "options": { "collectionId": "simulados_abcde1", "maxSelect": 1 } },
-            { "id": "relation2375276105", "name": "user", "type": "relation", "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1 } }
+            { "id": "relation377375640", "name": "questaoId", "type": "relation", "required": true, "options": { "collectionId": "questoes_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation3158640492", "name": "simuladoId", "type": "relation", "options": { "collectionId": "simulados_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation2375276105", "name": "user", "type": "relation", "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
         ]
     },
     {
@@ -248,8 +250,8 @@
         "schema": [
             { "id": "jph7t0b7", "name": "bucket", "type": "number", "required": true },
             { "id": "w3f5wct5", "name": "proximaRevisao", "type": "date", "required": true },
-            { "id": "relation377375640", "name": "questaoId", "type": "relation", "required": true, "options": { "collectionId": "questoes_abcde1", "maxSelect": 1 } },
-            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1 } }
+            { "id": "relation377375640", "name": "questaoId", "type": "relation", "required": true, "options": { "collectionId": "questoes_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
         ]
     },
     {
@@ -268,7 +270,9 @@
             { "id": "bcfu7pqs", "name": "acertos", "type": "number", "required": true },
             { "id": "a5yuyk5g", "name": "erros", "type": "number", "required": true },
             { "id": "yecxmm3d", "name": "tempoMedio", "type": "number", "required": true },
-            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1 } }
+            { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
         ]
     }
 ]
+
+    

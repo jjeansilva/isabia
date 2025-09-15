@@ -16,7 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, Check, ThumbsUp, X, Lightbulb, Zap } from "lucide-react";
+import { AlertCircle, Check, ThumbsUp, X, Lightbulb, Zap, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -30,10 +30,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ReportErrorForm } from "@/components/forms/report-error-form";
 
 function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, onAnswer: (answer: any, confianca: RespostaConfianca) => void, isAnswered: boolean }) {
     const [selectedAnswer, setSelectedAnswer] = useState<any>(null);
     const [confianca, setConfianca] = useState<RespostaConfianca>('Dúvida');
+    const [showReportModal, setShowReportModal] = useState(false);
     
     let alternativas = questao.alternativas;
     if (typeof alternativas === 'string' && alternativas) {
@@ -52,13 +54,18 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
     }
     
     return (
+        <>
+        {showReportModal && <ReportErrorForm open={showReportModal} onOpenChange={setShowReportModal} questao={questao} />}
         <Card className="mt-4">
             <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-start">
                     <CardTitle>Enunciado</CardTitle>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                         <Badge variant="secondary">{questao.tipo}</Badge>
                         <Badge variant="outline">{questao.dificuldade}</Badge>
+                         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => setShowReportModal(true)} title="Reportar Erro">
+                            <Flag className="h-4 w-4" />
+                         </Button>
                     </div>
                 </div>
             </CardHeader>
@@ -119,6 +126,7 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
                 )}
             </CardContent>
         </Card>
+        </>
     )
 }
 

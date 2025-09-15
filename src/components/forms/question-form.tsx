@@ -36,7 +36,7 @@ import { useData } from "@/hooks/use-data";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Trash2 } from "lucide-react";
+import { Trash2, AlertTriangle } from "lucide-react";
 import { suggestSimilarQuestions } from "@/ai/flows/suggest-similar-questions";
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
@@ -144,7 +144,9 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
         ...newQuestao,
         version: questao?.version ?? 1,
         isActive: true,
-        hashConteudo: 'temp-hash'
+        hashConteudo: 'temp-hash',
+        necessitaRevisao: false, // Always reset on save
+        motivoRevisao: "",
       };
 
       let finalRespostaCorreta = newQuestao.respostaCorreta;
@@ -209,6 +211,18 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-1">
+             {questao?.necessitaRevisao && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Revisão Necessária</AlertTitle>
+                <AlertDescription>
+                  Esta questão foi sinalizada com o seguinte problema: 
+                  <blockquote className="mt-2 pl-4 border-l-2 border-destructive-foreground/50 italic text-destructive-foreground">
+                    {questao.motivoRevisao || "Nenhum motivo especificado."}
+                  </blockquote>
+                </AlertDescription>
+              </Alert>
+            )}
             <div className="grid md:grid-cols-2 gap-4">
                <FormField control={form.control} name="disciplinaId" render={({ field }) => (
                   <FormItem>
