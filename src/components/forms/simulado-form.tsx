@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Disciplina, QuestionDificuldade, Topico } from "@/types";
+import { Disciplina, QuestionDificuldade, StatusQuestoesSimulado, Topico } from "@/types";
 import { PlusCircle, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
@@ -35,6 +35,7 @@ const criterioSchema = z.object({
   topicoId: z.string().optional(),
   quantidade: z.coerce.number().min(1, "Mínimo 1.").max(100, "Máx 100."),
   dificuldade: z.enum(["Fácil", "Médio", "Difícil", "aleatorio"]),
+  statusQuestoes: z.enum(["todas", "nao_resolvidas", "resolvidas", "erradas", "acertadas"]),
 });
 
 const formSchema = z.object({
@@ -43,6 +44,14 @@ const formSchema = z.object({
 });
 
 export type SimuladoFormValues = z.infer<typeof formSchema>;
+
+const statusQuestoesOptions: { value: StatusQuestoesSimulado, label: string }[] = [
+    { value: "todas", label: "Todas" },
+    { value: "nao_resolvidas", label: "Não Resolvidas" },
+    { value: "resolvidas", label: "Resolvidas" },
+    { value: "erradas", label: "Somente Erradas" },
+    { value: "acertadas", label: "Somente Acertadas" },
+]
 
 function CriterioRow({ index, remove }: { index: number; remove: (index: number) => void; }) {
   const dataSource = useData();
@@ -62,7 +71,7 @@ function CriterioRow({ index, remove }: { index: number; remove: (index: number)
 
   return (
     <div className="flex flex-col md:flex-row items-start md:items-end gap-2 p-4 border rounded-lg relative">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 w-full">
             <FormField
                 control={form.control}
                 name={`criterios.${index}.disciplinaId`}
@@ -126,6 +135,22 @@ function CriterioRow({ index, remove }: { index: number; remove: (index: number)
                 </FormItem>
                 )}
             />
+            <FormField
+                control={form.control}
+                name={`criterios.${index}.statusQuestoes`}
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent>
+                        {statusQuestoesOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                    </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
         </div>
         <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="md:absolute md:-right-12 md:top-8">
             <Trash2 className="h-4 w-4 text-destructive" />
@@ -144,7 +169,7 @@ export function SimuladoForm() {
         resolver: zodResolver(formSchema),
         defaultValues: {
             nome: "",
-            criterios: [{ disciplinaId: "", topicoId: "all", quantidade: 10, dificuldade: "aleatorio" }]
+            criterios: [{ disciplinaId: "", topicoId: "all", quantidade: 10, dificuldade: "aleatorio", statusQuestoes: "todas" }]
         },
     });
 
@@ -195,7 +220,7 @@ export function SimuladoForm() {
                           <CriterioRow key={field.id} index={index} remove={remove} />
                         ))}
 
-                        <Button type="button" variant="outline" onClick={() => append({ disciplinaId: "", topicoId: "all", quantidade: 10, dificuldade: "aleatorio" })}>
+                        <Button type="button" variant="outline" onClick={() => append({ disciplinaId: "", topicoId: "all", quantidade: 10, dificuldade: "aleatorio", statusQuestoes: "todas" })}>
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Adicionar Critério
                         </Button>

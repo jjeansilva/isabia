@@ -365,10 +365,20 @@ class PocketBaseDataSource implements IDataSource {
   async gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado> {
       let combinedQuestoes: Questao[] = [];
       const userFilter = `user = "${this.pb.authStore.model?.id}"`;
-
+      
+      const allRespostas = await this.list<Resposta>('respostas', { filter: userFilter, fields: 'id,questaoId,acertou' });
+      const respostasMap = new Map<string, boolean>();
+      allRespostas.forEach(r => {
+        // We only care about the last result for a question, so we can just overwrite.
+        // For more complex logic (e.g. "ever correct", "ever wrong"), this needs adjustment.
+        respostasMap.set(r.questaoId, r.acertou);
+      });
+      const resolvidasIds = new Set(respostasMap.keys());
+      const acertadasIds = new Set(allRespostas.filter(r => r.acertou).map(r => r.questaoId));
+      const erradasIds = new Set(allRespostas.filter(r => !r.acertou).map(r => r.questaoId));
 
       for(const criteria of formValues.criterios) {
-        const filterParts: string[] = [];
+        let filterParts: string[] = [];
         filterParts.push(`isActive=true`);
         filterParts.push(`disciplinaId="${criteria.disciplinaId}"`);
         filterParts.push(userFilter);
@@ -382,14 +392,34 @@ class PocketBaseDataSource implements IDataSource {
         }
         
         const filterString = filterParts.join(" && ");
-        const availableQuestoes = await this.list<Questao>('questoes', { filter: filterString });
+        let availableQuestoes = await this.list<Questao>('questoes', { filter: filterString });
+
+        // Apply performance filter
+        switch(criteria.statusQuestoes) {
+            case 'nao_resolvidas':
+                availableQuestoes = availableQuestoes.filter(q => !resolvidasIds.has(q.id));
+                break;
+            case 'resolvidas':
+                availableQuestoes = availableQuestoes.filter(q => resolvidasIds.has(q.id));
+                break;
+            case 'acertadas':
+                availableQuestoes = availableQuestoes.filter(q => acertadasIds.has(q.id));
+                break;
+            case 'erradas':
+                 availableQuestoes = availableQuestoes.filter(q => erradasIds.has(q.id));
+                break;
+            case 'todas':
+            default:
+                // No additional filtering needed
+                break;
+        }
 
         const shuffled = availableQuestoes.sort(() => 0.5 - Math.random());
         const selectedQuestoes = shuffled.slice(0, criteria.quantidade);
         
         if (selectedQuestoes.length < criteria.quantidade) {
             const disciplina = await this.get<Disciplina>('disciplinas', criteria.disciplinaId);
-            throw new Error(`Questões insuficientes para a disciplina ${disciplina?.nome}. Pedidas: ${criteria.quantidade}, Encontradas: ${selectedQuestoes.length}.`);
+            throw new Error(`Questões insuficientes para a disciplina ${disciplina?.nome} com os filtros aplicados. Pedidas: ${criteria.quantidade}, Encontradas: ${selectedQuestoes.length}.`);
         }
 
         combinedQuestoes.push(...selectedQuestoes);
@@ -407,7 +437,7 @@ class PocketBaseDataSource implements IDataSource {
       const novoSimulado = {
           nome: formValues.nome,
           criterios: JSON.stringify(formValues.criterios),
-          status: 'Rascunho',
+          status: 'Rascunho' as SimuladoStatus,
           criadoEm: new Date().toISOString(),
           questoes: JSON.stringify(questoesParaSalvar),
       };
@@ -734,4 +764,3 @@ export { PocketBaseDataSource, MockDataSource };
     
 
     
-

@@ -1,6 +1,5 @@
 
 
-
 export interface User {
     id: string;
     email: string;
@@ -43,6 +42,8 @@ export enum QuestionDificuldade {
 
 export type RespostaConfianca = 'Certeza' | 'Dúvida' | 'Chute';
 export type QuestionOrigem = 'Autoral' | 'Conteúdo' | 'Legislação' | 'Jurisprudência' | 'Já caiu';
+export type StatusQuestoesSimulado = 'todas' | 'nao_resolvidas' | 'resolvidas' | 'erradas' | 'acertadas';
+
 
 export interface Questao {
   id: string;
@@ -72,6 +73,7 @@ export interface CriterioSimulado {
   topicoId?: string;
   quantidade: number;
   dificuldade: SimuladoDificuldade;
+  statusQuestoes: StatusQuestoesSimulado;
 }
 
 export interface Simulado {
