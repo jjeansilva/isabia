@@ -11,8 +11,20 @@ import { DataTableViewOptions } from "./data-table-view-options"
 import { DataTableFacetedFilter } from "./data-table-faceted-filter"
 import { Disciplina, QuestionDificuldade, Topico } from "@/types"
 import React from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useData } from "@/hooks/use-data"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 
 interface DataTableToolbarProps<TData> {
@@ -29,8 +41,10 @@ export function DataTableToolbar<TData>({
   table,
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0;
+  const queryClient = useQueryClient();
   const dataSource = useData();
-
+  const { toast } = useToast();
+  
   const { data: disciplinas = [] } = useQuery({
       queryKey: ['disciplinas'],
       queryFn: () => dataSource.list<Disciplina>('disciplinas_abcde1')
@@ -40,6 +54,26 @@ export function DataTableToolbar<TData>({
       queryKey: ['topicos'],
       queryFn: () => dataSource.list<Topico>('topicos_abcde1')
   });
+
+
+  const deleteMutation = useMutation({
+    mutationFn: (ids: string[]) => dataSource.bulkDelete('questoes_abcde1', ids),
+    onSuccess: () => {
+      toast({ title: "Sucesso!", description: "Questões selecionadas excluídas." });
+      queryClient.invalidateQueries({ queryKey: ["questoes"] });
+      table.resetRowSelection();
+    },
+    onError: (error) => {
+       toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível excluir as questões." });
+    }
+  });
+
+  const handleDeleteSelected = () => {
+    const selectedIds = table.getFilteredSelectedRowModel().rows.map(row => (row.original as any).id);
+    if (selectedIds.length > 0) {
+      deleteMutation.mutate(selectedIds);
+    }
+  };
 
   const disciplinaOptions = React.useMemo(() => 
     disciplinas.map(d => ({ label: d.nome, value: d.id })),
@@ -102,7 +136,30 @@ export function DataTableToolbar<TData>({
           </Button>
         )}
       </div>
-      <DataTableViewOptions table={table} />
+      <div className="flex items-center space-x-2">
+        {table.getFilteredSelectedRowModel().rows.length > 0 && (
+           <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" >Excluir selecionadas</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir Questões?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tem certeza que deseja excluir as {table.getFilteredSelectedRowModel().rows.length} questões selecionadas? Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteSelected} disabled={deleteMutation.isPending}>
+                    {deleteMutation.isPending ? 'Excluindo...' : 'Sim, Excluir'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+        )}
+        <DataTableViewOptions table={table} />
+      </div>
     </div>
   )
 }
