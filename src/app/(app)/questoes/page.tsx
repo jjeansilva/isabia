@@ -90,12 +90,16 @@ export default function QuestoesPage() {
           </Card>
         </div>
       ) : (
-        <QuestoesDataTable 
-          questoes={questoes ?? []} 
-          disciplinas={disciplinas ?? []} 
-          topicos={topicos ?? []}
-          onEdit={handleEdit}
-        />
+        <Card>
+          <CardContent className="p-6">
+            <QuestoesDataTable 
+              questoes={questoes ?? []} 
+              disciplinas={disciplinas ?? []} 
+              topicos={topicos ?? []}
+              onEdit={handleEdit}
+            />
+          </CardContent>
+        </Card>
       )}
     </>
   );
