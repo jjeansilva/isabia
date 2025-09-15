@@ -49,7 +49,11 @@ export default function QuestoesPage() {
     setIsFormOpen(true);
   }, []);
 
-  const columns = useMemo(() => getColumns({ onEdit: handleEdit }), [handleEdit]);
+  const columns = useMemo(() => getColumns({ 
+    onEdit: handleEdit,
+    disciplinas: disciplinas ?? [],
+    topicos: topicos ?? [],
+  }), [handleEdit, disciplinas, topicos]);
 
   useEffect(() => {
     if (searchParams.get('import') === 'true') {
@@ -77,8 +81,6 @@ export default function QuestoesPage() {
       <QuestoesDataTable 
         columns={columns} 
         data={questoes ?? []}
-        disciplinas={disciplinas ?? []} 
-        topicos={topicos ?? []}
         isLoading={isLoading}
       />
     </>

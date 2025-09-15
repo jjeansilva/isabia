@@ -3,6 +3,7 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown, MoreHorizontal, Edit, Trash2, Flag } from "lucide-react"
+import React from 'react'
 
 import { Button } from "@/components/ui/button"
 import {
@@ -28,10 +29,16 @@ const getDifficultyColor = (dificuldade: QuestionDificuldade) => {
 
 type GetColumnsProps = {
   onEdit: (questao: Questao) => void;
+  disciplinas: Disciplina[];
+  topicos: Topico[];
 };
 
 
-export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<Questao>[] => [
+export const getColumns = ({ onEdit, disciplinas, topicos }: GetColumnsProps): ColumnDef<Questao>[] => {
+  const disciplinaMap = new Map(disciplinas.map(d => [d.id, d.nome]));
+  const topicoMap = new Map(topicos.map(t => [t.id, t.nome]));
+
+  return [
     {
         id: "select",
         header: ({ table }) => (
@@ -81,8 +88,8 @@ export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<Questao>[] =>
         accessorKey: "disciplinaId",
         header: "Disciplina",
         cell: ({ row }) => {
-            // This is a placeholder. The parent component will provide the actual name.
-            return <span>{row.getValue("disciplinaId")}</span>
+            const disciplinaId = row.getValue("disciplinaId") as string;
+            return <span>{disciplinaMap.get(disciplinaId) ?? disciplinaId}</span>
         },
         filterFn: (row, id, value) => {
             return value.includes(row.getValue(id))
@@ -92,8 +99,8 @@ export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<Questao>[] =>
         accessorKey: "topicoId",
         header: "Tópico",
         cell: ({ row }) => {
-            // This is a placeholder. The parent component will provide the actual name.
-            return <span>{row.getValue("topicoId")}</span>
+            const topicoId = row.getValue("topicoId") as string;
+            return <span>{topicoMap.get(topicoId) ?? topicoId}</span>
         },
          filterFn: (row, id, value) => {
             return value.includes(row.getValue(id))
@@ -140,3 +147,4 @@ export const getColumns = ({ onEdit }: GetColumnsProps): ColumnDef<Questao>[] =>
         },
     },
 ]
+}

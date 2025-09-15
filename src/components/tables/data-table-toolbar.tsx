@@ -10,12 +10,13 @@ import { DataTableViewOptions } from "./data-table-view-options"
 
 import { DataTableFacetedFilter } from "./data-table-faceted-filter"
 import { Disciplina, QuestionDificuldade, Topico } from "@/types"
+import React from "react"
+import { useQuery } from "@tanstack/react-query"
+import { useData } from "@/hooks/use-data"
 
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
-  disciplinas: Disciplina[]
-  topicos: Topico[]
 }
 
 const dificuldades: { label: string, value: QuestionDificuldade }[] = [
@@ -26,10 +27,19 @@ const dificuldades: { label: string, value: QuestionDificuldade }[] = [
 
 export function DataTableToolbar<TData>({
   table,
-  disciplinas,
-  topicos,
 }: DataTableToolbarProps<TData>) {
-  const isFiltered = table.getState().columnFilters.length > 0
+  const isFiltered = table.getState().columnFilters.length > 0;
+  const dataSource = useData();
+
+  const { data: disciplinas = [] } = useQuery({
+      queryKey: ['disciplinas'],
+      queryFn: () => dataSource.list<Disciplina>('disciplinas_abcde1')
+  });
+
+  const { data: topicos = [] } = useQuery({
+      queryKey: ['topicos'],
+      queryFn: () => dataSource.list<Topico>('topicos_abcde1')
+  });
 
   const disciplinaOptions = React.useMemo(() => 
     disciplinas.map(d => ({ label: d.nome, value: d.id })),
@@ -37,6 +47,7 @@ export function DataTableToolbar<TData>({
   )
   
   const disciplinaFilterValue = table.getColumn("disciplinaId")?.getFilterValue() as string[] | undefined;
+  
   const topicoOptions = React.useMemo(() => {
     if (!disciplinaFilterValue || disciplinaFilterValue.length === 0) {
         return topicos.map(t => ({ label: t.nome, value: t.id }));
