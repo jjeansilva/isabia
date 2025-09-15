@@ -53,14 +53,6 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
   const { toast } = useToast();
   const [progress, setProgress] = useState<ImportProgress | null>(null);
   
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      tipo: "Certo ou Errado",
-      origem: "Conteúdo",
-    },
-  });
-  
   const handleClose = () => {
     if (mutation.isPending) return;
     onOpenChange(false);

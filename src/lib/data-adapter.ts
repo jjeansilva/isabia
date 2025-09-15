@@ -1,7 +1,7 @@
 
 
 import { v4 as uuidv4 } from 'uuid';
-import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado, QuestionOrigem, SimuladoQuestao, ImportProgress, Resposta, PerformancePorCriterio } from '@/types';
+import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado, QuestionOrigem, SimuladoQuestao, ImportProgress, Resposta, PerformancePorCriterio, StatsDia, SimuladoStatus } from '@/types';
 import PocketBase, { ListResult } from 'pocketbase';
 import { SimuladoFormValues } from '@/components/forms/simulado-form';
 
@@ -35,7 +35,8 @@ export interface IDataSource {
 
 class MockDataSource implements IDataSource {
   async list<T>(collection: CollectionName, options?: any): Promise<T[]> {
-    let data = getFromStorage<T>(collection);
+    let key = collection.replace('_abcde1', '');
+    let data = getFromStorage<T>(key);
     if (options && options.filter) {
        // Super basic mock filter, needs improvement for complex queries
       const filterKey = options.filter.split('=')[0].trim();
@@ -46,13 +47,15 @@ class MockDataSource implements IDataSource {
   }
 
   async get<T extends {id: string}>(collection: CollectionName, id: string): Promise<T | null> {
-    const data = getFromStorage<T>(collection);
+    const key = collection.replace('_abcde1', '');
+    const data = getFromStorage<T>(key);
     const item = data.find(d => d.id === id) || null;
     return Promise.resolve(item);
   }
 
   async create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T> {
-    const allData = getFromStorage<any>(collection);
+    const key = collection.replace('_abcde1', '');
+    const allData = getFromStorage<any>(key);
     const now = new Date().toISOString();
     const newItem = {
       ...data,
@@ -61,12 +64,13 @@ class MockDataSource implements IDataSource {
       updatedAt: now,
     } as T;
     allData.push(newItem);
-    saveToStorage(collection, allData);
+    saveToStorage(key, allData);
     return Promise.resolve(newItem);
   }
 
   async bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]> {
-    const allData = getFromStorage<any>(collection);
+    const key = collection.replace('_abcde1', '');
+    const allData = getFromStorage<any>(key);
     const now = new Date().toISOString();
     const newItems = data.map(item => ({
         ...item,
@@ -75,32 +79,35 @@ class MockDataSource implements IDataSource {
         updatedAt: now,
     }));
     const updatedData = [...allData, ...newItems];
-    saveToStorage(collection, updatedData);
+    saveToStorage(key, updatedData);
     return Promise.resolve(newItems as T[]);
   }
 
    async bulkDelete(collection: CollectionName, ids: string[]): Promise<void> {
-    let data = getFromStorage<any>(collection);
+    const key = collection.replace('_abcde1', '');
+    let data = getFromStorage<any>(key);
     const filteredData = data.filter(item => !ids.includes(item.id));
-    saveToStorage(collection, filteredData);
+    saveToStorage(key, filteredData);
     return Promise.resolve();
   }
 
   async update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> {
-    const allData = getFromStorage<T>(collection);
+    const key = collection.replace('_abcde1', '');
+    const allData = getFromStorage<T>(key);
     const index = allData.findIndex(d => d.id === id);
     if (index === -1) throw new Error("Item not found");
     
     const updatedItem = { ...allData[index], ...data, updatedAt: new Date().toISOString() };
     allData[index] = updatedItem;
-    saveToStorage(collection, allData);
+    saveToStorage(key, allData);
     return Promise.resolve(updatedItem);
   }
 
   async delete(collection: CollectionName, id: string): Promise<void> {
-    let allData = getFromStorage<any>(collection);
+    const key = collection.replace('_abcde1', '');
+    let allData = getFromStorage<any>(key);
     allData = allData.filter(d => d.id !== id);
-    saveToStorage(collection, allData);
+    saveToStorage(key, allData);
     return Promise.resolve();
   }
   
@@ -147,20 +154,20 @@ class MockDataSource implements IDataSource {
           })),
       };
 
-      const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
+      const createdSimulado = await this.create<Simulado>('simulados_abcde1', novoSimulado as any);
       
-      createdSimulado.questoes.forEach(q => q.simuladoId = createdSimulado.id);
+      createdSimulado.questoes.forEach(q => (q as SimuladoQuestao).simuladoId = createdSimulado.id);
       
-      return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: createdSimulado.questoes });
+      return await this.update<Simulado>('simulados_abcde1', createdSimulado.id, { questoes: createdSimulado.questoes });
   }
 
   async getDashboardStats(): Promise<any> {
-    const simulados = await this.list<Simulado>('simulados');
-    const respostas = await this.list<Resposta>('respostas');
-    const questoes = await this.list<Questao>('questoes');
-    const disciplinas = await this.list<Disciplina>('disciplinas');
-    const topicos = await this.list<Topico>('topicos');
-    const revisoes = await this.list<Revisao>('revisoes');
+    const simulados = await this.list<Simulado>('simulados_abcde1');
+    const respostas = await this.list<Resposta>('respostas_abcde1');
+    const questoes = await this.list<Questao>('questoes_abcde1');
+    const disciplinas = await this.list<Disciplina>('disciplinas_abcde1');
+    const topicos = await this.list<Topico>('topicos_abcde1');
+    const revisoes = await this.list<Revisao>('revisoes_abcde1');
 
     const totalRespostas = respostas.length;
     const totalAcertos = respostas.filter(r => r.acertou).length;
@@ -366,7 +373,7 @@ class PocketBaseDataSource implements IDataSource {
       let combinedQuestoes: Questao[] = [];
       const userFilter = `user = "${this.pb.authStore.model?.id}"`;
       
-      const allRespostas = await this.list<Resposta>('respostas', { filter: userFilter, fields: 'id,questaoId,acertou' });
+      const allRespostas = await this.list<Resposta>('respostas_abcde1', { filter: userFilter, fields: 'id,questaoId,acertou' });
       const respostasMap = new Map<string, boolean>();
       allRespostas.forEach(r => {
         // We only care about the last result for a question, so we can just overwrite.
@@ -392,7 +399,7 @@ class PocketBaseDataSource implements IDataSource {
         }
         
         const filterString = filterParts.join(" && ");
-        let availableQuestoes = await this.list<Questao>('questoes', { filter: filterString });
+        let availableQuestoes = await this.list<Questao>('questoes_abcde1', { filter: filterString });
 
         // Apply performance filter
         switch(criteria.statusQuestoes) {
@@ -418,7 +425,7 @@ class PocketBaseDataSource implements IDataSource {
         const selectedQuestoes = shuffled.slice(0, criteria.quantidade);
         
         if (selectedQuestoes.length < criteria.quantidade) {
-            const disciplina = await this.get<Disciplina>('disciplinas', criteria.disciplinaId);
+            const disciplina = await this.get<Disciplina>('disciplinas_abcde1', criteria.disciplinaId);
             throw new Error(`Questões insuficientes para a disciplina ${disciplina?.nome} com os filtros aplicados. Pedidas: ${criteria.quantidade}, Encontradas: ${selectedQuestoes.length}.`);
         }
 
@@ -442,11 +449,11 @@ class PocketBaseDataSource implements IDataSource {
           questoes: JSON.stringify(questoesParaSalvar),
       };
 
-      const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
+      const createdSimulado = await this.create<Simulado>('simulados_abcde1', novoSimulado as any);
       
       const updatedQuestoes: SimuladoQuestao[] = (JSON.parse(createdSimulado.questoes as any) as any[]).map(q => ({...q, simuladoId: createdSimulado.id }));
       
-      return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: JSON.stringify(updatedQuestoes) as any });
+      return await this.update<Simulado>('simulados_abcde1', createdSimulado.id, { questoes: JSON.stringify(updatedQuestoes) as any });
   }
 
   async getDashboardStats(): Promise<any> {
@@ -454,10 +461,10 @@ class PocketBaseDataSource implements IDataSource {
     const userFilter = `user = "${this.pb.authStore.model.id}"`;
 
     const [simulados, respostas, disciplinas, revisoes] = await Promise.all([
-        this.list<Simulado>('simulados', { filter: userFilter }),
-        this.list<Resposta>('respostas', { filter: userFilter, expand: 'questaoId' }),
-        this.list<Disciplina>('disciplinas', { filter: userFilter }),
-        this.list<Revisao>('revisoes', { filter: userFilter })
+        this.list<Simulado>('simulados_abcde1', { filter: userFilter }),
+        this.list<Resposta>('respostas_abcde1', { filter: userFilter, expand: 'questaoId' }),
+        this.list<Disciplina>('disciplinas_abcde1', { filter: userFilter }),
+        this.list<Revisao>('revisoes_abcde1', { filter: userFilter })
     ]);
     
     const totalRespostas = respostas.length;
@@ -558,7 +565,7 @@ class PocketBaseDataSource implements IDataSource {
   async getQuestoesParaRevisar(): Promise<Questao[]> {
     const hoje = new Date().toISOString().split('T')[0];
     const userFilter = `user = "${this.pb.authStore.model?.id}"`;
-    const revisoesHoje = await this.list<Revisao>('revisoes',{
+    const revisoesHoje = await this.list<Revisao>('revisoes_abcde1',{
         filter: `proximaRevisao <= "${hoje}" && ${userFilter}`
     });
     const revisoesHojeIds = revisoesHoje.map(r => r.questaoId);
@@ -566,7 +573,7 @@ class PocketBaseDataSource implements IDataSource {
     if (revisoesHojeIds.length === 0) return [];
     
     const idFilter = revisoesHojeIds.map(id => `id="${id}"`).join(" || ");
-    const questoesResult = await this.list<Questao>('questoes', { filter: `(${idFilter}) && ${userFilter}` });
+    const questoesResult = await this.list<Questao>('questoes_abcde1', { filter: `(${idFilter}) && ${userFilter}` });
     
     return questoesResult;
   }
@@ -576,7 +583,7 @@ class PocketBaseDataSource implements IDataSource {
     const userFilter = `user = "${this.pb.authStore.model?.id}"`;
 
     try {
-        const results = await this.list<Revisao>('revisoes', { filter: `questaoId="${questaoId}" && ${userFilter}` });
+        const results = await this.list<Revisao>('revisoes_abcde1', { filter: `questaoId="${questaoId}" && ${userFilter}` });
         revisao = results[0];
     } catch (e) {
         // Not found, will create new one
@@ -597,7 +604,7 @@ class PocketBaseDataSource implements IDataSource {
       }
       const diasParaAdicionar = intervalos[performance][revisao.bucket];
       revisao.proximaRevisao = new Date(new Date().setDate(now.getDate() + diasParaAdicionar)).toISOString();
-      await this.update('revisoes', revisao.id, { bucket: revisao.bucket, proximaRevisao: revisao.proximaRevisao });
+      await this.update('revisoes_abcde1', revisao.id, { bucket: revisao.bucket, proximaRevisao: revisao.proximaRevisao });
     } else {
       const bucket = performance === 'dificil' ? 0 : 1;
       const diasParaAdicionar = intervalos[performance][bucket];
@@ -606,7 +613,7 @@ class PocketBaseDataSource implements IDataSource {
         bucket: bucket,
         proximaRevisao: new Date(new Date().setDate(now.getDate() + diasParaAdicionar)).toISOString(),
       };
-      await this.create('revisoes', novaRevisao as any);
+      await this.create('revisoes_abcde1', novaRevisao as any);
     }
   }
 
@@ -683,13 +690,13 @@ class PocketBaseDataSource implements IDataSource {
         const disciplinaNome = values[colMap.disciplina];
         if (!disciplinaNome) continue;
         const disciplinaFilter = `nome="${disciplinaNome}" && user = "${userId}"`;
-        const disciplina = await getOrCreate<Disciplina>('disciplinas', disciplinasCache, disciplinaFilter, { nome: disciplinaNome }, 'disciplina');
+        const disciplina = await getOrCreate<Disciplina>('disciplinas_abcde1', disciplinasCache, disciplinaFilter, { nome: disciplinaNome }, 'disciplina');
         
         // --- Tópico Pai ---
         const topicoPaiNome = values[colMap['tópico da disciplina']];
         if (!topicoPaiNome) continue;
         const topicoPaiFilter = `nome = "${topicoPaiNome}" && disciplinaId = "${disciplina.id}" && (topicoPaiId = "" || topicoPaiId = null) && user = "${userId}"`;
-        const topicoPai = await getOrCreate<Topico>('topicos', topicosCache, topicoPaiFilter, { nome: topicoPaiNome, disciplinaId: disciplina.id }, 'tópico pai');
+        const topicoPai = await getOrCreate<Topico>('topicos_abcde1', topicosCache, topicoPaiFilter, { nome: topicoPaiNome, disciplinaId: disciplina.id }, 'tópico pai');
 
         let topicoFinal = topicoPai;
         
@@ -697,7 +704,7 @@ class PocketBaseDataSource implements IDataSource {
         const subtopicoNome = values[colMap.subtópico];
         if (subtopicoNome && subtopicoNome.toLowerCase() !== 'n/a' && subtopicoNome !== '') {
              const subtopicoFilter = `nome = "${subtopicoNome}" && disciplinaId = "${disciplina.id}" && topicoPaiId = "${topicoPai.id}" && user = "${userId}"`;
-             const subtopico = await getOrCreate<Topico>('topicos', topicosCache, subtopicoFilter, { nome: subtopicoNome, disciplinaId: disciplina.id, topicoPaiId: topicoPai.id }, 'subtópico');
+             const subtopico = await getOrCreate<Topico>('topicos_abcde1', topicosCache, subtopicoFilter, { nome: subtopicoNome, disciplinaId: disciplina.id, topicoPaiId: topicoPai.id }, 'subtópico');
              topicoFinal = subtopico;
         }
 
@@ -746,7 +753,7 @@ class PocketBaseDataSource implements IDataSource {
     if (questoesToCreate.length > 0) {
       log.push(`Enviando ${questoesToCreate.length} questões para o banco de dados...`);
       onProgress({ message: `Salvando ${questoesToCreate.length} questões...`, current: totalLines, total: totalLines, log });
-      await this.bulkCreate('questoes', questoesToCreate);
+      await this.bulkCreate('questoes_abcde1', questoesToCreate);
     }
 
     return questoesToCreate.length;
@@ -764,3 +771,4 @@ export { PocketBaseDataSource, MockDataSource };
     
 
     
+

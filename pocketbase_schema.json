@@ -132,7 +132,7 @@
     },
     {
         "id": "disciplinas_abcde1",
-        "name": "disciplinas",
+        "name": "disciplinas_abcde1",
         "type": "base",
         "system": false,
         "listRule": "user = @request.auth.id",
@@ -150,7 +150,7 @@
     },
     {
         "id": "topicos_abcde1",
-        "name": "topicos",
+        "name": "topicos_abcde1",
         "type": "base",
         "system": false,
         "listRule": "user = @request.auth.id",
@@ -168,7 +168,7 @@
     },
     {
         "id": "questoes_abcde1",
-        "name": "questoes",
+        "name": "questoes_abcde1",
         "type": "base",
         "system": false,
         "listRule": "user = @request.auth.id",
@@ -197,7 +197,7 @@
     },
     {
         "id": "simulados_abcde1",
-        "name": "simulados",
+        "name": "simulados_abcde1",
         "type": "base",
         "system": false,
         "listRule": "user = @request.auth.id",
@@ -218,7 +218,7 @@
     },
     {
         "id": "respostas_abcde1",
-        "name": "respostas",
+        "name": "respostas_abcde1",
         "type": "base",
         "system": false,
         "listRule": "user = @request.auth.id",
@@ -239,7 +239,7 @@
     },
     {
         "id": "revisoes_abcde1",
-        "name": "revisoes",
+        "name": "revisoes_abcde1",
         "type": "base",
         "system": false,
         "listRule": "user = @request.auth.id",
@@ -256,7 +256,7 @@
     },
     {
         "id": "stats_abcde1",
-        "name": "stats",
+        "name": "stats_abcde1",
         "type": "base",
         "system": false,
         "listRule": "user = @request.auth.id",

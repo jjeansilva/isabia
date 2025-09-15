@@ -128,12 +128,12 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
     name: "alternativas",
   });
   
-  const { data: disciplinas } = useQuery({ queryKey: ['disciplinas'], queryFn: () => dataSource.list('disciplinas') });
+  const { data: disciplinas } = useQuery({ queryKey: ['disciplinas'], queryFn: () => dataSource.list('disciplinas_abcde1') });
   
   const selectedDisciplinaId = form.watch("disciplinaId");
   const { data: topicos } = useQuery({ 
       queryKey: ['topicos', selectedDisciplinaId], 
-      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${selectedDisciplinaId}"` }),
+      queryFn: () => dataSource.list<Topico>('topicos_abcde1', { filter: `disciplinaId = "${selectedDisciplinaId}"` }),
       enabled: !!selectedDisciplinaId,
   });
 
@@ -161,8 +161,8 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
       finalData.respostaCorreta = JSON.stringify(finalRespostaCorreta);
       
       return questao
-        ? dataSource.update('questoes', questao.id, finalData as Partial<Questao>)
-        : dataSource.create('questoes', finalData as any);
+        ? dataSource.update('questoes_abcde1', questao.id, finalData as Partial<Questao>)
+        : dataSource.create('questoes_abcde1', finalData as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['questoes'] });

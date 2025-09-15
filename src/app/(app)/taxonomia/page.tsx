@@ -123,7 +123,7 @@ function DisciplinaAccordionItem({
   const dataSource = useData();
   const { data: allTopicos, isLoading } = useQuery({
       queryKey: ['topicos', disciplina.id],
-      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}"`, sort: 'ordem' }),
+      queryFn: () => dataSource.list<Topico>('topicos_abcde1', { filter: `disciplinaId = "${disciplina.id}"`, sort: 'ordem' }),
   });
 
   const topicosPrincipais = allTopicos?.filter(t => !t.topicoPaiId) || [];
@@ -207,7 +207,7 @@ export default function TaxonomiaPage() {
 
   const { data: disciplinas, isLoading } = useQuery({
     queryKey: ["disciplinas"],
-    queryFn: () => dataSource.list<Disciplina>("disciplinas"),
+    queryFn: () => dataSource.list<Disciplina>("disciplinas_abcde1"),
   });
   
   const handleNewDisciplina = () => {
@@ -244,9 +244,9 @@ export default function TaxonomiaPage() {
   // --- Deletion Logic ---
 
   const deleteQuestoesByFilter = async (filter: string) => {
-    const questoesToDelete = await dataSource.list<Questao>('questoes', { filter: filter, fields: 'id' });
+    const questoesToDelete = await dataSource.list<Questao>('questoes_abcde1', { filter: filter, fields: 'id' });
     if (questoesToDelete.length > 0) {
-      await dataSource.bulkDelete('questoes', questoesToDelete.map(q => q.id));
+      await dataSource.bulkDelete('questoes_abcde1', questoesToDelete.map(q => q.id));
     }
   };
   
@@ -258,7 +258,7 @@ export default function TaxonomiaPage() {
     let currentIds = [...topicoIds];
     while (currentIds.length > 0) {
         const subtopicFilter = currentIds.map(id => `topicoPaiId = "${id}"`).join(' || ');
-        const subtopics = await dataSource.list<Topico>('topicos', { filter: subtopicFilter, fields: 'id' });
+        const subtopics = await dataSource.list<Topico>('topicos_abcde1', { filter: subtopicFilter, fields: 'id' });
         if (subtopics.length === 0) break;
         const subtopicIds = subtopics.map(st => st.id);
         allTopicsToDelete.push(...subtopicIds);
@@ -270,7 +270,7 @@ export default function TaxonomiaPage() {
     await deleteQuestoesByFilter(allTopicsFilter);
 
     // 3. Delete all topics and sub-topics at once
-    await dataSource.bulkDelete('topicos', allTopicsToDelete);
+    await dataSource.bulkDelete('topicos_abcde1', allTopicsToDelete);
 };
 
   
@@ -281,7 +281,7 @@ export default function TaxonomiaPage() {
         // It's safer to delete dependencies manually in the correct order.
         
         // 1. Find all topicos in the disciplina
-        const topicosToDelete = await dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}"`, fields: 'id' });
+        const topicosToDelete = await dataSource.list<Topico>('topicos_abcde1', { filter: `disciplinaId = "${disciplina.id}"`, fields: 'id' });
         
         if (topicosToDelete.length > 0) {
              // 2. This will handle recursive deletion of sub-topics and their questions
@@ -292,7 +292,7 @@ export default function TaxonomiaPage() {
         await deleteQuestoesByFilter(`disciplinaId = "${disciplina.id}"`);
 
         // 4. Finally, delete the disciplina itself
-        await dataSource.delete('disciplinas', disciplina.id);
+        await dataSource.delete('disciplinas_abcde1', disciplina.id);
       },
       onSuccess: () => {
           toast({ title: "Disciplina Excluída!", description: "A disciplina e todos os seus dados foram removidos." });
@@ -406,6 +406,7 @@ export default function TaxonomiaPage() {
     </>
   );
 }
+
 
 
 

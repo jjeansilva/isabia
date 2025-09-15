@@ -29,12 +29,12 @@ export default function QuestoesPage() {
   
   const { data: disciplinas, isLoading: isLoadingDisciplinas } = useQuery({
     queryKey: ['disciplinas'],
-    queryFn: () => dataSource.list<Disciplina>('disciplinas')
+    queryFn: () => dataSource.list<Disciplina>('disciplinas_abcde1')
   });
 
   const { data: topicos, isLoading: isLoadingTopicos } = useQuery({
     queryKey: ['topicos'],
-    queryFn: () => dataSource.list<Topico>('topicos')
+    queryFn: () => dataSource.list<Topico>('topicos_abcde1')
   });
   
   const handleEdit = useCallback((q: Questao) => {

@@ -172,7 +172,7 @@ export default function SimuladoExecutionPage() {
 
     const { data: simuladoResult, isLoading: isLoadingSimulado } = useQuery({
         queryKey: ['simulado', id],
-        queryFn: () => dataSource.get<Simulado>('simulados', id),
+        queryFn: () => dataSource.get<Simulado>('simulados_abcde1', id),
     });
 
     const simulado = useMemo(() => {
@@ -202,7 +202,7 @@ export default function SimuladoExecutionPage() {
 
     const { data: questao, isLoading: isLoadingQuestao } = useQuery({
         queryKey: ['questao', currentSimuladoQuestao?.questaoId],
-        queryFn: () => dataSource.get<Questao>('questoes', currentSimuladoQuestao!.questaoId),
+        queryFn: () => dataSource.get<Questao>('questoes_abcde1', currentSimuladoQuestao!.questaoId),
         enabled: !!currentSimuladoQuestao,
     });
     
@@ -212,7 +212,7 @@ export default function SimuladoExecutionPage() {
             if (data.questoes) {
                 dataToUpdate.questoes = JSON.stringify(data.questoes);
             }
-            return dataSource.update<Simulado>('simulados', id, dataToUpdate);
+            return dataSource.update<Simulado>('simulados_abcde1', id, dataToUpdate);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['simulado', id] });
@@ -221,7 +221,7 @@ export default function SimuladoExecutionPage() {
 
      const createRespostasMutation = useMutation({
         mutationFn: (respostas: Omit<Resposta, 'id' | 'user' | 'createdAt' | 'updatedAt'>[]) => 
-            dataSource.bulkCreate<Omit<Resposta, 'id' | 'user' | 'createdAt' | 'updatedAt'>>('respostas', respostas),
+            dataSource.bulkCreate<Omit<Resposta, 'id' | 'user' | 'createdAt' | 'updatedAt'>>('respostas_abcde1', respostas),
         onSuccess: () => {
              queryClient.invalidateQueries({ queryKey: ['dashboardStats']});
         },

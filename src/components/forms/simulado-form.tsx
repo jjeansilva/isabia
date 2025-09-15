@@ -59,13 +59,13 @@ function CriterioRow({ index, remove }: { index: number; remove: (index: number)
 
   const { data: disciplinas } = useQuery({ 
       queryKey: ['disciplinas'], 
-      queryFn: () => dataSource.list<Disciplina>('disciplinas') 
+      queryFn: () => dataSource.list<Disciplina>('disciplinas_abcde1') 
   });
 
   const selectedDisciplinaId = form.watch(`criterios.${index}.disciplinaId`);
   const { data: topicos } = useQuery({ 
       queryKey: ['topicos', selectedDisciplinaId], 
-      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${selectedDisciplinaId}"` }),
+      queryFn: () => dataSource.list<Topico>('topicos_abcde1', { filter: `disciplinaId = "${selectedDisciplinaId}"` }),
       enabled: !!selectedDisciplinaId,
   });
 
