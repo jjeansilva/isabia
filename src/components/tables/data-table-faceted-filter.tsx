@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -22,7 +23,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "../ui/checkbox"
 
 interface DataTableFacetedFilterProps<TData, TValue> {
   column?: Column<TData, TValue>
