@@ -29,7 +29,7 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination"
 import { DataTableToolbar } from "./questoes-toolbar"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { useData } from "@/hooks/use-data"
 import { Disciplina, Questao, Topico } from "@/types"
 import { Skeleton } from "../ui/skeleton"
@@ -50,7 +50,6 @@ export function QuestoesDataTable<TData, TValue>({
   isLoading: isLoadingTaxonomy
 }: DataTableProps<TData, TValue>) {
   const dataSource = useData();
-  const queryClient = useQueryClient();
 
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] =
