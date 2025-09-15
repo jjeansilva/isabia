@@ -140,7 +140,7 @@ export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit }: Da
         disciplinas={disciplinas}
         topicos={topicos}
       />
-      <Card>
+      <div className="rounded-lg border bg-card text-card-foreground">
         <CardContent className="p-0">
             <Table>
             <TableHeader>
@@ -191,7 +191,7 @@ export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit }: Da
             </TableBody>
             </Table>
         </CardContent>
-      </Card>
+      </div>
       <DataTablePagination table={table} />
 
        <AlertDialog open={!!questaoToDelete} onOpenChange={(open) => !open && setQuestaoToDelete(null)}>
