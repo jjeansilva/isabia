@@ -107,12 +107,16 @@ export function DataTableFacetedFilter<TData, TValue>({
                       )
                     }}
                   >
-                    <Check
+                    <div
                       className={cn(
-                        "mr-2 h-4 w-4",
-                        isSelected ? "opacity-100" : "opacity-0"
+                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                        isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "opacity-50 [&_svg]:invisible"
                       )}
-                    />
+                    >
+                      <Check className={cn("h-4 w-4")} />
+                    </div>
                     {option.icon && (
                       <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
                     )}
