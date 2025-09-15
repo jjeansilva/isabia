@@ -107,7 +107,10 @@ export function DataTableFacetedFilter<TData, TValue>({
                 return (
                   <CommandItem
                     key={option.value}
-                    onSelect={() => handleSelect(option.value)}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      handleSelect(option.value);
+                    }}
                   >
                     <Checkbox
                         checked={isSelected}
