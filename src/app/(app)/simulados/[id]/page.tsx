@@ -16,7 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, Check, ThumbsUp, X, Lightbulb, Zap, Flag } from "lucide-react";
+import { AlertCircle, Check, ThumbsUp, X, Lightbulb, Zap, Flag, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -31,6 +31,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ReportErrorForm } from "@/components/forms/report-error-form";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
 
 function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, onAnswer: (answer: any, confianca: RespostaConfianca) => void, isAnswered: boolean }) {
     const [selectedAnswer, setSelectedAnswer] = useState<any>(null);
@@ -305,7 +314,32 @@ export default function SimuladoExecutionPage() {
             <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
                     <h1 className="text-xl font-bold">{simulado.nome}</h1>
-                    <span className="text-sm font-medium">{currentQuestionIndex + 1} / {simulado.questoes.length}</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{currentQuestionIndex + 1} / {simulado.questoes.length}</span>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Finalizar Simulado</DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader><AlertDialogTitle>Finalizar Simulado?</AlertDialogTitle></AlertDialogHeader>
+                                        <AlertDialogDescription>
+                                            Você tem certeza que quer finalizar o simulado? Questões não respondidas serão contadas como erradas.
+                                        </AlertDialogDescription>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleFinish}>Finalizar</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </div>
                 <Progress value={progress} />
             </div>
@@ -320,22 +354,10 @@ export default function SimuladoExecutionPage() {
             )}
 
             <div className="mt-8 flex justify-end">
-                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="destructive">Finalizar Simulado</Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader><AlertDialogTitle>Finalizar Simulado?</AlertDialogTitle></AlertDialogHeader>
-                        <AlertDialogDescription>
-                            Você tem certeza que quer finalizar o simulado? Questões não respondidas serão contadas como erradas.
-                        </AlertDialogDescription>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleFinish}>Finalizar</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                 <Button variant="outline" onClick={() => router.push('/simulados')}>Pausar e Sair</Button>
             </div>
         </div>
     )
 }
+
+    
