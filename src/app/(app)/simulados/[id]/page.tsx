@@ -188,9 +188,10 @@ export default function SimuladoExecutionPage() {
 
     useEffect(() => {
         if (simulado) {
-            if (simulado.status === 'Rascunho') {
-                updateSimuladoMutation.mutate({ status: 'Em andamento' });
-            }
+            // This was causing the error. The status update should be handled before navigating to this page.
+            // if (simulado.status === 'Rascunho') {
+            //     updateSimuladoMutation.mutate({ status: 'Em andamento' });
+            // }
             const lastAnsweredIndex = simulado.questoes.findLastIndex((q: any) => q.respostaUsuario !== undefined) ?? -1;
             setCurrentQuestionIndex(lastAnsweredIndex + 1);
             setStartTime(Date.now());
