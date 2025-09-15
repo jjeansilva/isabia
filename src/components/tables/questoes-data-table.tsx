@@ -18,6 +18,8 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
+import { useQuery } from "@tanstack/react-query";
+import { useData } from "@/hooks/use-data";
 
 import {
   Table,
@@ -33,20 +35,15 @@ import { DataTableToolbar } from "./data-table-toolbar"
 import { Disciplina, Questao, Topico } from "@/types"
 import { Skeleton } from "../ui/skeleton"
 import { Card, CardContent } from "../ui/card"
+import { getColumns } from "./questoes-columns";
 
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
-  isLoading: boolean;
+interface DataTableProps {
+  onEdit: (questao: Questao) => void;
 }
 
-export function QuestoesDataTable<TData, TValue>({
-  columns,
-  data,
-  isLoading
-}: DataTableProps<TData, TValue>) {
-
+export function QuestoesDataTable({ onEdit }: DataTableProps) {
+  const dataSource = useData();
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
@@ -54,9 +51,38 @@ export function QuestoesDataTable<TData, TValue>({
     []
   )
   const [sorting, setSorting] = React.useState<SortingState>([])
+  
+  const { data: disciplinas, isLoading: isLoadingDisciplinas } = useQuery({
+    queryKey: ['disciplinas'],
+    queryFn: () => dataSource.list<Disciplina>('disciplinas_abcde1')
+  });
+
+  const { data: topicos, isLoading: isLoadingTopicos } = useQuery({
+    queryKey: ['topicos'],
+    queryFn: () => dataSource.list<Topico>('topicos_abcde1')
+  });
+
+  const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
+      queryKey: ['questoes'],
+      queryFn: async () => {
+          return dataSource.list<Questao>('questoes_abcde1');
+      },
+  });
+
+  const isLoading = isLoadingDisciplinas || isLoadingTopicos || isLoadingQuestoes;
+  const data = questoes ?? [];
+
+  const columns = React.useMemo(
+    () => getColumns({
+      onEdit,
+      disciplinas: disciplinas ?? [],
+      topicos: topicos ?? [],
+    }),
+    [onEdit, disciplinas, topicos]
+  );
 
   const table = useReactTable({
-    data: data,
+    data,
     columns,
     state: {
       sorting,
