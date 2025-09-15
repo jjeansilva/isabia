@@ -167,6 +167,8 @@ export default function SimuladoExecutionPage() {
     const id = params.id as string;
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [startTime, setStartTime] = useState(Date.now());
+
 
     const { data: simuladoResult, isLoading: isLoadingSimulado } = useQuery({
         queryKey: ['simulado', id],
@@ -191,6 +193,7 @@ export default function SimuladoExecutionPage() {
             }
             const lastAnsweredIndex = simulado.questoes.findLastIndex((q: any) => q.respostaUsuario !== undefined) ?? -1;
             setCurrentQuestionIndex(lastAnsweredIndex + 1);
+            setStartTime(Date.now());
         }
     }, [simulado?.id]); // Rerun only when simulado id changes to set initial state
 
@@ -229,6 +232,8 @@ export default function SimuladoExecutionPage() {
 
     const handleAnswer = (answer: any, confianca: RespostaConfianca) => {
         if (!simulado || !questao) return;
+        
+        const tempoSegundos = Math.round((Date.now() - startTime) / 1000);
 
         let parsedRespostaCorreta = questao.respostaCorreta;
         try {
@@ -243,7 +248,7 @@ export default function SimuladoExecutionPage() {
 
         const updatedQuestoes = simulado.questoes.map((q, index) => 
             index === currentQuestionIndex 
-                ? { ...q, respostaUsuario: answer, correta: isCorrect, confianca } 
+                ? { ...q, respostaUsuario: answer, correta: isCorrect, confianca, tempoSegundos } 
                 : q
         );
         
@@ -253,25 +258,25 @@ export default function SimuladoExecutionPage() {
     const handleNext = () => {
         if (currentQuestionIndex < (simulado?.questoes.length ?? 0) - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
+            setStartTime(Date.now());
         }
     }
     
     const handleFinish = () => {
         if (!simulado) return;
 
-        const respostasToCreate: Omit<Resposta, 'id' | 'user' | 'createdAt' | 'updatedAt'>[] = simulado.questoes
-            .filter(q => q.respostaUsuario !== undefined) // Only answered questions
-            .map(q => ({
+        const questoesRespondidas = simulado.questoes.filter(q => q.respostaUsuario !== undefined);
+
+        if (questoesRespondidas.length > 0) {
+            const respostasToCreate = questoesRespondidas.map(q => ({
                 acertou: !!q.correta,
                 confianca: q.confianca || 'Dúvida',
                 questaoId: q.questaoId,
                 respostaUsuario: q.respostaUsuario,
                 simuladoId: simulado.id,
                 respondedAt: new Date().toISOString(),
-                tempoSegundos: q.tempoSegundos || 30, // Placeholder
+                tempoSegundos: q.tempoSegundos || 0,
             }));
-        
-        if (respostasToCreate.length > 0) {
             createRespostasMutation.mutate(respostasToCreate);
         }
 
@@ -297,7 +302,7 @@ export default function SimuladoExecutionPage() {
         return <p>Simulado não encontrado.</p>
     }
     
-    if(currentQuestionIndex >= simulado.questoes.length) {
+    if(currentQuestionIndex >= simulado.questoes.length && simulado.status !== 'Concluído') {
         return (
             <Card className="text-center p-8">
                 <CardTitle className="mb-4">Parabéns!</CardTitle>
@@ -315,7 +320,7 @@ export default function SimuladoExecutionPage() {
                 <div className="flex justify-between items-center mb-2">
                     <h1 className="text-xl font-bold">{simulado.nome}</h1>
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{currentQuestionIndex + 1} / {simulado.questoes.length}</span>
+                        <span className="text-sm font-medium">{Math.min(currentQuestionIndex + 1, simulado.questoes.length)} / {simulado.questoes.length}</span>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
@@ -329,7 +334,7 @@ export default function SimuladoExecutionPage() {
                                     <AlertDialogContent>
                                         <AlertDialogHeader><AlertDialogTitle>Finalizar Simulado?</AlertDialogTitle></AlertDialogHeader>
                                         <AlertDialogDescription>
-                                            Você tem certeza que quer finalizar o simulado? Questões não respondidas serão contadas como erradas.
+                                            Você tem certeza que quer finalizar o simulado? Questões não respondidas serão ignoradas.
                                         </AlertDialogDescription>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -359,5 +364,3 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
-
-    
