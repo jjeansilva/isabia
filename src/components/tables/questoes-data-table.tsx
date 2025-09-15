@@ -29,8 +29,6 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination"
 import { DataTableToolbar } from "./questoes-toolbar"
-import { useQuery } from "@tanstack/react-query"
-import { useData } from "@/hooks/use-data"
 import { Disciplina, Questao, Topico } from "@/types"
 import { Skeleton } from "../ui/skeleton"
 import { Card, CardContent } from "../ui/card"
@@ -38,6 +36,7 @@ import { Card, CardContent } from "../ui/card"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
+  data: TData[]
   disciplinas: Disciplina[]
   topicos: Topico[]
   isLoading: boolean;
@@ -45,11 +44,11 @@ interface DataTableProps<TData, TValue> {
 
 export function QuestoesDataTable<TData, TValue>({
   columns,
+  data,
   disciplinas,
   topicos,
-  isLoading: isLoadingTaxonomy
+  isLoading
 }: DataTableProps<TData, TValue>) {
-  const dataSource = useData();
 
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] =
@@ -59,17 +58,8 @@ export function QuestoesDataTable<TData, TValue>({
   )
   const [sorting, setSorting] = React.useState<SortingState>([])
 
-  const { data, isLoading: isLoadingQuestoes } = useQuery({
-      queryKey: ['questoes'],
-      queryFn: async () => {
-          const result = await dataSource.list<Questao>('questoes_abcde1');
-          return result as TData[];
-      },
-      placeholderData: (prev) => prev,
-  });
-  
   const table = useReactTable({
-    data: data ?? [],
+    data: data,
     columns,
     state: {
       sorting,
@@ -89,8 +79,6 @@ export function QuestoesDataTable<TData, TValue>({
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
   })
-
-  const isLoading = isLoadingTaxonomy || isLoadingQuestoes;
 
   return (
     <div className="space-y-4">
@@ -165,4 +153,3 @@ export function QuestoesDataTable<TData, TValue>({
     </div>
   )
 }
-

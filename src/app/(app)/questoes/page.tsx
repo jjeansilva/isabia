@@ -36,6 +36,13 @@ export default function QuestoesPage() {
     queryKey: ['topicos'],
     queryFn: () => dataSource.list<Topico>('topicos_abcde1')
   });
+
+  const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
+      queryKey: ['questoes'],
+      queryFn: async () => {
+          return dataSource.list<Questao>('questoes_abcde1');
+      },
+  });
   
   const handleEdit = useCallback((q: Questao) => {
     setSelectedQuestao(q);
@@ -50,6 +57,7 @@ export default function QuestoesPage() {
     }
   }, [searchParams]);
 
+  const isLoading = isLoadingDisciplinas || isLoadingTopicos || isLoadingQuestoes;
 
   return (
     <>
@@ -68,9 +76,10 @@ export default function QuestoesPage() {
       
       <QuestoesDataTable 
         columns={columns} 
+        data={questoes ?? []}
         disciplinas={disciplinas ?? []} 
         topicos={topicos ?? []}
-        isLoading={isLoadingDisciplinas || isLoadingTopicos}
+        isLoading={isLoading}
       />
     </>
   );
