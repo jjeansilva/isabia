@@ -31,13 +31,11 @@ function SimuladoLayoutManager({ children, showLayoutElements }: { children: Rea
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const pathname = usePathname();
-  const [showLayoutElements, setShowLayoutElements] = useState(true);
   
-  // We need to use a state that is managed in the client to avoid hydration errors.
-  useEffect(() => {
-    const isSimuladoPage = /^\/simulados\/[^/]+(\/)?$/.test(pathname) && !pathname.endsWith('/resultado');
-    setShowLayoutElements(!isSimuladoPage);
-  }, [pathname]);
+  // Directly calculate layout visibility based on the current path.
+  // This avoids state updates during render that can cause lifecycle errors.
+  const isSimuladoExecutionPage = /^\/simulados\/[^/]+(\/)?$/.test(pathname) && !pathname.endsWith('/resultado');
+  const showLayoutElements = !isSimuladoExecutionPage;
 
   return (
     <SidebarProvider defaultOpen={!isMobile}>
