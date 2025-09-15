@@ -188,6 +188,8 @@
             { "id": "9gq8wlnx", "name": "version", "type": "number", "required": true },
             { "id": "d0n8k3lq", "name": "isActive", "type": "bool" },
             { "id": "4gczwz9j", "name": "hashConteudo", "type": "text", "required": true },
+            { "id": "bool_necessita_revisao", "name": "necessitaRevisao", "type": "bool", "required": false },
+            { "id": "text_motivo_revisao", "name": "motivoRevisao", "type": "text", "required": false },
             { "id": "relation853048275", "name": "disciplinaId", "type": "relation", "required": true, "options": { "collectionId": "disciplinas_abcde1", "maxSelect": 1, "cascadeDelete": false } },
             { "id": "relation2931482895", "name": "topicoId", "type": "relation", "required": true, "options": { "collectionId": "topicos_abcde1", "maxSelect": 1, "cascadeDelete": false } },
             { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
