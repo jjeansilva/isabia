@@ -52,6 +52,15 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [progress, setProgress] = useState<ImportProgress | null>(null);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      tipo: "Múltipla Escolha",
+      origem: "Autoral",
+      csvFile: undefined,
+    },
+  });
   
   const handleClose = () => {
     if (mutation.isPending) return;
