@@ -44,7 +44,7 @@ interface DataTableProps<TData, TValue> {
 }
 
 export function QuestoesDataTable<TData, TValue>({
-  columns: initialColumns,
+  columns,
   disciplinas,
   topicos,
   isLoading: isLoadingTaxonomy
@@ -69,30 +69,9 @@ export function QuestoesDataTable<TData, TValue>({
       placeholderData: (prev) => prev,
   });
   
-  const getDisciplinaName = React.useCallback((id: string) => disciplinas?.find(d => d.id === id)?.nome || '...', [disciplinas]);
-  const getTopicoName = React.useCallback((id: string) => topicos?.find(t => t.id === id)?.nome || '...', [topicos]);
-
-  const columns = React.useMemo(() => initialColumns.map(col => {
-    if ((col as any).accessorKey === 'disciplinaId') {
-      return {
-        ...col,
-        cell: ({ row }: any) => getDisciplinaName(row.getValue('disciplinaId')),
-      };
-    }
-    if ((col as any).accessorKey === 'topicoId') {
-      return {
-        ...col,
-        cell: ({ row }: any) => getTopicoName(row.getValue('topicoId')),
-      };
-    }
-    return col;
-  }), [initialColumns, getDisciplinaName, getTopicoName]);
-
-
   const table = useReactTable({
     data: data ?? [],
     columns,
-    autoResetPageIndex: false,
     state: {
       sorting,
       columnVisibility,
