@@ -23,12 +23,12 @@ const PUBLIC_ROUTES = ['/login', '/signup'];
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = usePathname();
   const navRouter = useRouter();
-  const usePocketBase = !!process.env.NEXT_PUBLIC_PB_URL;
+  const usePocketBase = !!process.env.NEXT_PUBLIC_PB_URL || true; // Force pocketbase
 
   // Create a single, memoized PocketBase instance and DataSource
   const { pb, dataSource } = useMemo(() => {
     if (usePocketBase) {
-      const pocketbaseInstance = new PocketBase(process.env.NEXT_PUBLIC_PB_URL);
+      const pocketbaseInstance = new PocketBase("https://isabia-bd.wartiger.com.br/");
       const ds = new PocketBaseDataSource(pocketbaseInstance);
       return { pb: pocketbaseInstance, dataSource: ds };
     } else {
