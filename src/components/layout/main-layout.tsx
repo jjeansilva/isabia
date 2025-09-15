@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect } from "react";
@@ -17,7 +18,7 @@ function SimuladoLayoutManager({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { setOpen, setOpenMobile, isMobile } = useSidebar();
 
-    const isSimuladoPage = /^\/simulados\/[^/]+(\/)?$/.test(pathname);
+    const isSimuladoPage = /^\/simulados\/[^/]+(\/)?$/.test(pathname) && !pathname.endsWith('/resultado');
 
     useEffect(() => {
         if (isSimuladoPage) {
@@ -31,7 +32,7 @@ function SimuladoLayoutManager({ children }: { children: React.ReactNode }) {
 
     return (
         <SidebarInset className="flex flex-col">
-            <Header />
+            {!isSimuladoPage && <Header />}
             <main className="flex-1 p-4 md:p-6 lg:p-8">
                 {children}
             </main>
