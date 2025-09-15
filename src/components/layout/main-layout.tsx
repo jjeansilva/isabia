@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { usePathname } from "next/navigation";
 import {
   Sidebar,
@@ -32,10 +32,12 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile();
   const pathname = usePathname();
   
-  // Directly calculate layout visibility based on the current path.
-  // This avoids state updates during render that can cause lifecycle errors.
   const isSimuladoExecutionPage = /^\/simulados\/[^/]+(\/)?$/.test(pathname) && !pathname.endsWith('/resultado');
   const showLayoutElements = !isSimuladoExecutionPage;
+
+  if (isMobile === undefined) {
+    return null; // Render nothing on the server and during initial client render
+  }
 
   return (
     <SidebarProvider defaultOpen={!isMobile}>
@@ -45,7 +47,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
       <SimuladoLayoutManager showLayoutElements={showLayoutElements}>
         {children}
       </SimuladoLayoutManager>
-      <MobileNav />
+      {isMobile && <MobileNav />}
     </SidebarProvider>
   )
 }
