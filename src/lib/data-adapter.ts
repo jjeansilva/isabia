@@ -447,106 +447,128 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async getDashboardStats(): Promise<any> {
-    if (!this.pb.authStore.model?.id) return {};
-    const userFilter = `user = "${this.pb.authStore.model.id}"`;
+    if (!this.pb.authStore.model?.id) {
+        return {
+            totalRespostas: 0,
+            acertoGeral: 0,
+            tempoMedioGeral: 0,
+            acertoUltimos30d: 0,
+            historicoAcertos: [],
+            desempenhoPorDisciplina: [],
+            desempenhoPorDificuldade: [],
+            desempenhoPorTipo: [],
+            simuladoEmAndamento: null,
+            questoesParaRevisarHoje: 0,
+        };
+    }
+    const userId = this.pb.authStore.model.id;
+    const userFilter = `user = "${userId}"`;
 
-    const [simulados, respostas, disciplinas, revisoes] = await Promise.all([
+    const [simulados, respostas, disciplinas, revisoes, stats] = await Promise.all([
         this.list<Simulado>('simulados', { filter: userFilter }),
         this.list<Resposta>('respostas', { filter: userFilter, expand: 'questaoId' }),
         this.list<Disciplina>('disciplinas', { filter: userFilter }),
-        this.list<Revisao>('revisoes', { filter: userFilter })
+        this.list<Revisao>('revisoes', { filter: userFilter }),
+        this.list<StatsDia>('stats', { filter: userFilter, sort: '-data' }),
     ]);
-    
+
     const totalRespostas = respostas.length;
     const totalAcertos = respostas.filter(r => r.acertou).length;
     const acertoGeral = totalRespostas > 0 ? (totalAcertos / totalRespostas) * 100 : 0;
-    const tempoMedioGeral = totalRespostas > 0 ? respostas.reduce((acc, r) => acc + r.tempoSegundos, 0) / totalRespostas : 0;
-    
-    // --- Performance (last 30d) ---
-    const umMesAtras = new Date();
-    umMesAtras.setDate(umMesAtras.getDate() - 30);
-    const respostasUltimos30d = respostas.filter(r => new Date(r.respondedAt) >= umMesAtras);
-    const acertosUltimos30d = respostasUltimos30d.filter(r => r.acertou).length;
-    const acertoUltimos30dPercent = respostasUltimos30d.length > 0 ? (acertosUltimos30d / respostasUltimos30d.length) * 100 : 0;
 
-    // --- Chart data (last 30d) ---
+    const tempoTotal = respostas.reduce((acc, r) => acc + r.tempoSegundos, 0);
+    const tempoMedioGeral = totalRespostas > 0 ? tempoTotal / totalRespostas : 0;
+
+    const umMesAtras = new Date();
+    umMesAtras.setMonth(umMesAtras.getMonth() - 1);
+
+    const statsUltimos30d = stats.filter(s => new Date(s.data) >= umMesAtras);
+    const totalQuestoes30d = statsUltimos30d.reduce((acc, s) => acc + s.totalQuestoes, 0);
+    const totalAcertos30d = statsUltimos30d.reduce((acc, s) => acc + s.acertos, 0);
+    const acertoUltimos30d = totalQuestoes30d > 0 ? (totalAcertos30d / totalQuestoes30d) * 100 : 0;
+
     const historicoAcertos = Array.from({ length: 30 }, (_, i) => {
         const date = new Date();
         date.setDate(date.getDate() - (29 - i));
         const dateString = date.toISOString().split('T')[0];
-        const respostasDoDia = respostas.filter(r => new Date(r.respondedAt).toISOString().startsWith(dateString));
-        const acertosDoDia = respostasDoDia.filter(r => r.acertou).length;
+        const statDoDia = stats.find(s => new Date(s.data).toISOString().startsWith(dateString));
+        const acerto = statDoDia && statDoDia.totalQuestoes > 0 ? (statDoDia.acertos / statDodia.totalQuestoes) * 100 : 0;
         return {
             date: dateString,
-            acerto: respostasDoDia.length > 0 ? (acertosDoDia / respostasDoDia.length) * 100 : 0,
+            acerto: acerto,
         };
     });
-
-    // --- Performance by criteria ---
-    const reducePerformance = (map: Map<string, { total: number; acertos: number }>, key: string, acertou: boolean) => {
-        if (!map.has(key)) map.set(key, { total: 0, acertos: 0 });
-        const current = map.get(key)!;
-        current.total++;
-        if (acertou) {
-            current.acertos++;
-        }
-    };
 
     const desempenhoMap = new Map<string, { total: number; acertos: number }>();
     const dificuldadeMap = new Map<string, { total: number; acertos: number }>();
     const tipoMap = new Map<string, { total: number; acertos: number }>();
-    
+
     for (const resposta of respostas) {
         const questao = resposta.expand?.questaoId as Questao | undefined;
         if (!questao) continue;
 
-        reducePerformance(desempenhoMap, questao.disciplinaId, resposta.acertou);
-        reducePerformance(dificuldadeMap, questao.dificuldade, resposta.acertou);
-        reducePerformance(tipoMap, questao.tipo, resposta.acertou);
-    }
+        const updateMap = (map: Map<string, { total: number; acertos: number }>, key: string) => {
+            const current = map.get(key) || { total: 0, acertos: 0 };
+            current.total++;
+            if (resposta.acertou) {
+                current.acertos++;
+            }
+            map.set(key, current);
+        };
 
-    const formatPerformanceData = (map: Map<string, { total: number; acertos: number }>, nameMap: Map<string, string>): PerformancePorCriterio[] => {
-        return Array.from(map.entries()).map(([id, data]) => ({
-            nome: nameMap.get(id) || id,
-            totalQuestoes: data.total,
-            percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
-        })).sort((a, b) => b.totalQuestoes - a.totalQuestoes);
-    };
+        updateMap(desempenhoMap, questao.disciplinaId);
+        updateMap(dificuldadeMap, questao.dificuldade);
+        updateMap(tipoMap, questao.tipo);
+    }
     
-    const formatPerformanceFromKeys = (keys: string[], map: Map<string, { total: number, acertos: number }>): PerformancePorCriterio[] => {
-        return keys.map(key => {
-            const data = map.get(key) || { total: 0, acertos: 0 };
-            return {
-                nome: key,
-                totalQuestoes: data.total,
-                percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
-            };
-        });
+    const formatPerformanceData = (map: Map<string, { total: number; acertos: number }>, nameMap: Map<string, string>): PerformancePorCriterio[] => {
+      return Array.from(map.entries()).map(([id, data]) => ({
+          nome: nameMap.get(id) || id,
+          totalQuestoes: data.total,
+          percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
+      })).sort((a, b) => b.totalQuestoes - a.totalQuestoes);
     };
 
     const disciplinaNameMap = new Map(disciplinas.map(d => [d.id, d.nome]));
     const desempenhoPorDisciplina = formatPerformanceData(desempenhoMap, disciplinaNameMap);
     
-    const desempenhoPorDificuldade = formatPerformanceFromKeys(['Fácil', 'Médio', 'Difícil'], dificuldadeMap);
-    const desempenhoPorTipo = formatPerformanceFromKeys(['Múltipla Escolha', 'Certo ou Errado', 'Completar Lacuna', 'Flashcard'], tipoMap);
+    const allDificuldades = ['Fácil', 'Médio', 'Difícil'];
+    const desempenhoPorDificuldade = allDificuldades.map(d => {
+        const data = dificuldadeMap.get(d) || { total: 0, acertos: 0 };
+        return {
+            nome: d,
+            totalQuestoes: data.total,
+            percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
+        };
+    });
 
-    // --- Other stats ---
+    const allTipos = ['Múltipla Escolha', 'Certo ou Errado', 'Completar Lacuna', 'Flashcard'];
+     const desempenhoPorTipo = allTipos.map(t => {
+        const data = tipoMap.get(t) || { total: 0, acertos: 0 };
+        return {
+            nome: t,
+            totalQuestoes: data.total,
+            percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
+        };
+    });
+
     const simuladoEmAndamento = simulados.find(s => s.status === 'Em andamento');
-    const questoesParaRevisarHoje = revisoes.filter(r => new Date(r.proximaRevisao) <= new Date()).length;
+    const hoje = new Date().toISOString().split('T')[0];
+    const questoesParaRevisarHoje = revisoes.filter(r => r.proximaRevisao <= hoje).length;
 
-    return Promise.resolve({
+    return {
         totalRespostas,
         acertoGeral,
         tempoMedioGeral,
-        acertoUltimos30d: acertoUltimos30dPercent,
+        acertoUltimos30d,
         historicoAcertos,
         desempenhoPorDisciplina,
         desempenhoPorDificuldade,
         desempenhoPorTipo,
         simuladoEmAndamento,
         questoesParaRevisarHoje,
-    });
-}
+    };
+  }
 
   async getQuestoesParaRevisar(): Promise<Questao[]> {
     const hoje = new Date().toISOString().split('T')[0];
@@ -711,7 +733,7 @@ class PocketBaseDataSource implements IDataSource {
              const outrasAlternativas = header.filter(h => h.startsWith('alternativa_')).map(key => values[colMap[key]]).filter(Boolean);
              const todasAlternativas = [resp, ...outrasAlternativas];
              alternativas = JSON.stringify(todasAlternativas);
-             respostaCorreta = resp;
+             respostaCorreta = JSON.stringify(resp);
         } else if (tipo === 'Certo ou Errado') {
             const lowerCaseAnswer = respostaCorreta.toLowerCase();
             respostaCorreta = JSON.stringify(['certo', 'verdadeiro', 'v'].includes(lowerCaseAnswer));
