@@ -207,7 +207,7 @@ export default function TaxonomiaPage() {
 
   const { data: disciplinas, isLoading } = useQuery({
     queryKey: ["disciplinas"],
-    queryFn: () => dataSource.list<Disciplina>("disciplinas"),
+    queryFn: () => dataSource.list<Disciplina>("disciplinas", { sort: 'ordem' }),
   });
   
   const handleNewDisciplina = () => {
@@ -242,56 +242,11 @@ export default function TaxonomiaPage() {
   }
 
   // --- Deletion Logic ---
-
-  const deleteQuestoesByFilter = async (filter: string) => {
-    const questoesToDelete = await dataSource.list<Questao>('questoes', { filter: filter, fields: 'id' });
-    if (questoesToDelete.length > 0) {
-      await dataSource.bulkDelete('questoes', questoesToDelete.map(q => q.id));
-    }
-  };
-  
-  const deleteTopicosAndSubtopicos = async (topicoIds: string[]) => {
-    if (topicoIds.length === 0) return;
-
-    // 1. Find all sub-topics recursively
-    let allTopicsToDelete = [...topicoIds];
-    let currentIds = [...topicoIds];
-    while (currentIds.length > 0) {
-        const subtopicFilter = currentIds.map(id => `topicoPaiId = "${id}"`).join(' || ');
-        const subtopics = await dataSource.list<Topico>('topicos', { filter: subtopicFilter, fields: 'id' });
-        if (subtopics.length === 0) break;
-        const subtopicIds = subtopics.map(st => st.id);
-        allTopicsToDelete.push(...subtopicIds);
-        currentIds = subtopicIds;
-    }
-
-    // 2. Delete all questions associated with any of the topics or sub-topics
-    const allTopicsFilter = allTopicsToDelete.map(id => `topicoId = "${id}"`).join(' || ');
-    await deleteQuestoesByFilter(allTopicsFilter);
-
-    // 3. Delete all topics and sub-topics at once
-    await dataSource.bulkDelete('topicos', allTopicsToDelete);
-};
-
   
   const deleteDisciplinaMutation = useMutation({
       mutationFn: async (disciplina: Disciplina) => {
-        // Since cascadeDelete is on for user -> disciplina, we just need to delete the disciplina
-        // But other relations (disciplina -> topico, topico -> questao) might not be cascade.
-        // It's safer to delete dependencies manually in the correct order.
-        
-        // 1. Find all topicos in the disciplina
-        const topicosToDelete = await dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}"`, fields: 'id' });
-        
-        if (topicosToDelete.length > 0) {
-             // 2. This will handle recursive deletion of sub-topics and their questions
-            await deleteTopicosAndSubtopicos(topicosToDelete.map(t => t.id));
-        }
-        
-        // 3. Delete any remaining questions tied directly to the disciplina (if any)
-        await deleteQuestoesByFilter(`disciplinaId = "${disciplina.id}"`);
-
-        // 4. Finally, delete the disciplina itself
+        // PocketBase `cascadeDelete` on the user relation handles this automatically.
+        // We only need to delete the top-level record.
         await dataSource.delete('disciplinas', disciplina.id);
       },
       onSuccess: () => {
@@ -307,7 +262,24 @@ export default function TaxonomiaPage() {
   });
 
   const deleteTopicoMutation = useMutation({
-    mutationFn: (topico: Topico) => deleteTopicosAndSubtopicos([topico.id]),
+    mutationFn: async (topico: Topico) => {
+      // Manual cascade delete for topics and sub-topics because cascade delete is not on for this relation
+      const allSubtopics = await dataSource.list<Topico>('topicos', { filter: `topicoPaiId = "${topico.id}"`, fields: 'id' });
+      const subtopicIds = allSubtopics.map(st => st.id);
+      const allTopicIdsToDelete = [topico.id, ...subtopicIds];
+
+      const questionsFilter = allTopicIdsToDelete.map(id => `topicoId = "${id}"`).join(' || ');
+      const questionsToDelete = await dataSource.list<Questao>('questoes', { filter: questionsFilter, fields: 'id' });
+      if (questionsToDelete.length > 0) {
+        await dataSource.bulkDelete('questoes', questionsToDelete.map(q => q.id));
+      }
+      
+      if (subtopicIds.length > 0) {
+        await dataSource.bulkDelete('topicos', subtopicIds);
+      }
+      
+      await dataSource.delete('topicos', topico.id);
+    },
     onSuccess: (_, topico) => {
       toast({ title: "Tópico Excluído!", description: `O tópico "${topico.nome}" e seus dados foram removidos.` });
       queryClient.invalidateQueries({ queryKey: ["topicos"] });
@@ -406,3 +378,5 @@ export default function TaxonomiaPage() {
     </>
   );
 }
+
+    

@@ -124,9 +124,19 @@ export async function seedPocketBase(dataSource: IDataSource) {
     console.log("Seeding PocketBase with mock data...");
     const { disciplinas, topicosData, questoesData, stats } = createMockData();
 
-    // NOTE: We are not clearing data anymore as it requires admin privileges 
-    // that a normal user session doesn't have. The user should clear manually if needed
-    // or we can provide a dedicated admin function later.
+    // Clear existing data for a clean slate
+    const collectionsToClear: CollectionName[] = ['disciplinas', 'topicos', 'questoes', 'simulados', 'respostas', 'revisoes', 'stats'];
+    for (const collection of collectionsToClear) {
+        try {
+            console.log(`Clearing collection: ${collection}...`);
+            const items = await dataSource.list(collection, { fields: 'id' });
+            if (items.length > 0) {
+              await dataSource.bulkDelete(collection, items.map((i: any) => i.id));
+            }
+        } catch(e) {
+            console.error(`Could not clear collection ${collection}:`, e);
+        }
+    }
     
     // Seed Disciplinas
     console.log("Seeding disciplinas...");
@@ -228,3 +238,5 @@ export function resetLocalStorage() {
         seedLocalStorage();
     }
 }
+
+    
