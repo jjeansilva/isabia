@@ -136,14 +136,16 @@ export default function QuestoesPage() {
         </Button>
       </PageHeader>
       
-      <div className="space-y-6">
-        <ReportedQuestionsList 
-          questoes={reportedQuestoes}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onMarkAsCorrected={handleMarkAsCorrected}
-        />
+      <Card className="mb-6">
+        <CardHeader>
+            <CardTitle>Card de Teste</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <p>Este é um card de teste estático.</p>
+        </CardContent>
+      </Card>
       
+      <div className="space-y-6">
         {isLoading ? (
            <div className="space-y-4">
               <Skeleton className="h-24 w-full" />
@@ -186,5 +188,3 @@ export default function QuestoesPage() {
     </>
   );
 }
-
-    
