@@ -503,6 +503,8 @@ class PocketBaseDataSource implements IDataSource {
     const dificuldadeMap = new Map<string, { total: number; acertos: number }>();
     const tipoMap = new Map<string, { total: number; acertos: number }>();
 
+    const disciplinaNameMap = new Map(disciplinas.map(d => [d.id, d.nome]));
+
     const updateMap = (map: Map<string, { total: number; acertos: number }>, key: string, acertou: boolean) => {
         const current = map.get(key) || { total: 0, acertos: 0 };
         current.total++;
@@ -515,27 +517,26 @@ class PocketBaseDataSource implements IDataSource {
     for (const resposta of respostas) {
         const questao = resposta.expand?.questaoId as Questao | undefined;
         if (!questao) continue;
-        updateMap(desempenhoMap, questao.disciplinaId, resposta.acertou);
+        
+        const disciplinaNome = disciplinaNameMap.get(questao.disciplinaId);
+        if (disciplinaNome) {
+            updateMap(desempenhoMap, disciplinaNome, resposta.acertou);
+        }
         updateMap(dificuldadeMap, questao.dificuldade, resposta.acertou);
         updateMap(tipoMap, questao.tipo, resposta.acertou);
     }
     
-    const formatPerformanceData = (map: Map<string, { total: number; acertos: number }>, nameMap: Map<string, string>): PerformancePorCriterio[] => {
-      return Array.from(map.entries()).map(([id, data]) => ({
-          nome: nameMap.get(id) || id,
+    const formatPerformanceData = (map: Map<string, { total: number; acertos: number }>): PerformancePorCriterio[] => {
+      return Array.from(map.entries()).map(([nome, data]) => ({
+          nome,
           totalQuestoes: data.total,
           percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
       })).sort((a, b) => b.totalQuestoes - a.totalQuestoes);
     };
 
-    const disciplinaNameMap = new Map(disciplinas.map(d => [d.id, d.nome]));
-    const desempenhoPorDisciplina = formatPerformanceData(desempenhoMap, disciplinaNameMap);
-    
-    const dificuldadeNameMap = new Map(Array.from(dificuldadeMap.keys()).map(dificuldade => [dificuldade, dificuldade]));
-    const desempenhoPorDificuldade = formatPerformanceData(dificuldadeMap, dificuldadeNameMap);
-
-    const tipoNameMap = new Map(Array.from(tipoMap.keys()).map(tipo => [tipo, tipo]));
-    const desempenhoPorTipo = formatPerformanceData(tipoMap, tipoNameMap);
+    const desempenhoPorDisciplina = formatPerformanceData(desempenhoMap);
+    const desempenhoPorDificuldade = formatPerformanceData(dificuldadeMap);
+    const desempenhoPorTipo = formatPerformanceData(tipoMap);
 
     const simuladoEmAndamento = simulados.find(s => s.status === 'Em andamento');
     const hoje = new Date().toISOString().split('T')[0];
