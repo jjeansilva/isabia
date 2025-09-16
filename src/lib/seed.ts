@@ -1,5 +1,4 @@
 
-
 import { v4 as uuidv4 } from 'uuid';
 import { CollectionName, Disciplina, Topico, Questao, Simulado, Resposta, Revisao, StatsDia } from '@/types';
 import { IDataSource } from './data-adapter';
@@ -9,11 +8,11 @@ function createMockData() {
 
   // Disciplinas
   const disciplinas: Omit<Disciplina, 'id'|'createdAt'|'updatedAt'|'user'>[] = [
-    { nome: 'Direito Constitucional', cor: '#00329C', ordem: 1 },
-    { nome: 'Direito Administrativo', cor: '#32BAD9', ordem: 2 },
-    { nome: 'Português', cor: '#03A688', ordem: 3 },
-    { nome: 'Raciocínio Lógico', cor: '#F2B705', ordem: 4 },
-    { nome: 'Informática', cor: '#D95204', ordem: 5 },
+    { nome: 'Direito Constitucional', cor: '#00329C', ordem: 1, descricao: 'Estudo da constituição e organização dos poderes.' },
+    { nome: 'Direito Administrativo', cor: '#32BAD9', ordem: 2, descricao: 'Normas que regem a função administrativa.' },
+    { nome: 'Português', cor: '#03A688', ordem: 3, descricao: 'Estudo da língua portuguesa.' },
+    { nome: 'Raciocínio Lógico', cor: '#F2B705', ordem: 4, descricao: 'Fundamentos do raciocínio lógico e matemática.' },
+    { nome: 'Informática', cor: '#D95204', ordem: 5, descricao: 'Conceitos de hardware, software e redes.' },
   ];
 
   // Tópicos - agora dependerão dos IDs das disciplinas criadas
@@ -34,8 +33,8 @@ function createMockData() {
       dificuldade: 'Fácil',
       origem: 'Já caiu',
       enunciado: 'Qual remédio constitucional é utilizado para proteger o direito de locomoção?',
-      alternativas: JSON.stringify(['Habeas Corpus', 'Habeas Data', 'Mandado de Segurança', 'Mandado de Injunção']),
-      respostaCorreta: JSON.stringify('Habeas Corpus'),
+      alternativas: '["Habeas Corpus", "Habeas Data", "Mandado de Segurança", "Mandado de Injunção"]',
+      respostaCorreta: '"Habeas Corpus"',
       explicacao: 'O Habeas Corpus, previsto no art. 5º, LXVIII, da CF, protege o direito de ir e vir.',
       tags: ['direitos_fundamentais', 'remedios'],
       version: 1,
@@ -51,7 +50,7 @@ function createMockData() {
       dificuldade: 'Médio',
       origem: 'Autoral',
       enunciado: 'A presunção de legitimidade é um atributo do ato administrativo que admite prova em contrário.',
-      respostaCorreta: JSON.stringify(true),
+      respostaCorreta: 'true',
       explicacao: 'Correto, a presunção é relativa (juris tantum), podendo ser afastada por prova em contrário.',
       tags: ['atos', 'atributos'],
       version: 1,
@@ -67,7 +66,7 @@ function createMockData() {
       dificuldade: 'Difícil',
       origem: 'Conteúdo',
       enunciado: 'A maioria dos presentes [[votou]] a favor da proposta.',
-      respostaCorreta: JSON.stringify('votou'),
+      respostaCorreta: '"votou"',
       explicacao: 'O verbo concorda com o núcleo do sujeito "maioria", que está no singular.',
       tags: ['concordancia', 'sujeito_coletivo'],
       version: 1,
@@ -83,7 +82,7 @@ function createMockData() {
       dificuldade: 'Médio',
       origem: 'Autoral',
       enunciado: 'O que é o controle difuso de constitucionalidade?',
-      respostaCorreta: JSON.stringify('É aquele realizado por qualquer juiz ou tribunal, no caso concreto, com efeitos inter partes.'),
+      respostaCorreta: '"É aquele realizado por qualquer juiz ou tribunal, no caso concreto, com efeitos inter partes."',
       version: 1,
       isActive: true,
       hashConteudo: 'hash4',
@@ -97,7 +96,7 @@ function createMockData() {
       dificuldade: 'Fácil',
       origem: 'Já caiu',
       enunciado: 'Firewall é um software ou hardware que verifica informações provenientes da Internet ou de uma rede, e as bloqueia ou permite que cheguem ao seu computador.',
-      respostaCorreta: JSON.stringify(true),
+      respostaCorreta: 'true',
       explicacao: 'Essa é a definição básica de um firewall, que atua como uma barreira de proteção.',
       tags: ['seguranca', 'redes'],
       version: 1,
@@ -109,7 +108,7 @@ function createMockData() {
   ];
 
   // Stats
-  const stats: Omit<StatsDia, 'id' | 'user'>[] = Array.from({ length: 7 }, (_, i) => ({
+  const stats: Omit<StatsDia, 'id' | 'user' | 'createdAt' | 'updatedAt'>[] = Array.from({ length: 7 }, (_, i) => ({
     data: new Date(new Date().setDate(now.getDate() - (6 - i))).toISOString().split('T')[0],
     totalQuestoes: Math.floor(Math.random() * 40) + 10,
     acertos: Math.floor(Math.random() * 30) + 5,
@@ -121,26 +120,35 @@ function createMockData() {
 }
 
 export async function seedPocketBase(dataSource: IDataSource) {
+    if (!dataSource.pb) {
+        console.warn("Seeding aborted: Not a PocketBase data source.");
+        return;
+    }
     console.log("Seeding PocketBase with mock data...");
     const { disciplinas, topicosData, questoesData, stats } = createMockData();
 
     // Clear existing data for a clean slate
-    const collectionsToClear: CollectionName[] = ['disciplinas', 'topicos', 'questoes', 'simulados', 'respostas', 'revisoes', 'stats'];
+    const collectionsToClear: CollectionName[] = ['respostas', 'revisoes', 'simulados', 'questoes', 'topicos', 'disciplinas', 'stats'];
+    
     for (const collection of collectionsToClear) {
         try {
             console.log(`Clearing collection: ${collection}...`);
             const items = await dataSource.list(collection, { fields: 'id' });
-            if (items.length > 0) {
+            if (items && items.length > 0) {
               await dataSource.bulkDelete(collection, items.map((i: any) => i.id));
+              console.log(`-> Cleared ${items.length} items from ${collection}.`);
+            } else {
+              console.log(`-> Collection ${collection} is already empty.`);
             }
         } catch(e) {
-            console.error(`Could not clear collection ${collection}:`, e);
+            console.error(`Could not clear collection ${collection}:`, (e as any).message);
         }
     }
     
     // Seed Disciplinas
     console.log("Seeding disciplinas...");
     const createdDisciplinas = await dataSource.bulkCreate<Omit<Disciplina, 'id' | 'createdAt' | 'updatedAt'| 'user'>>('disciplinas', disciplinas);
+    console.log(`-> Seeded ${createdDisciplinas.length} disciplinas.`);
     
     // Map names to IDs for relation
     const disciplinaMap = createdDisciplinas.reduce((acc, d) => {
@@ -155,6 +163,7 @@ export async function seedPocketBase(dataSource: IDataSource) {
         disciplinaId: disciplinaMap[t.disciplina],
     }));
     const createdTopicos = await dataSource.bulkCreate('topicos', topicosToCreate);
+    console.log(`-> Seeded ${createdTopicos.length} tópicos.`);
 
     const topicoMap = createdTopicos.reduce((acc, t) => {
         const key = `${t.disciplinaId}-${t.nome}`;
@@ -169,11 +178,13 @@ export async function seedPocketBase(dataSource: IDataSource) {
       const topicoId = topicoMap[`${disciplinaId}-${q.topico}`];
       return { ...q, disciplinaId, topicoId };
     });
-    await dataSource.bulkCreate('questoes', questoesToCreate);
+    const createdQuestoes = await dataSource.bulkCreate('questoes', questoesToCreate);
+    console.log(`-> Seeded ${createdQuestoes.length} questões.`);
 
     // Seed Stats
     console.log("Seeding stats...");
     await dataSource.bulkCreate('stats', stats);
+    console.log(`-> Seeded ${stats.length} stats records.`);
 
     console.log("Seeding finished.");
 }
@@ -186,13 +197,13 @@ export function seedLocalStorage() {
     const now = new Date().toISOString();
     const user = "localuser";
 
-    const seededDisciplinas: Disciplina[] = rawData.disciplinas.map(d => ({...d, id: uuidv4(), createdAt: now, updatedAt: now, user }));
+    const seededDisciplinas: Disciplina[] = rawData.disciplinas.map(d => ({...d, id: uuidv4(), createdAt: now, updatedAt: now, user } as Disciplina));
     const disciplinaMap = seededDisciplinas.reduce((acc, d) => {
         acc[d.nome] = d.id;
         return acc;
     }, {} as Record<string, string>);
     
-    const seededTopicos: Topico[] = rawData.topicosData.map(t => ({...t, id: uuidv4(), disciplinaId: disciplinaMap[t.disciplina], createdAt: now, updatedAt: now, user}));
+    const seededTopicos: Topico[] = rawData.topicosData.map(t => ({...t, id: uuidv4(), disciplinaId: disciplinaMap[t.disciplina], createdAt: now, updatedAt: now, user} as Topico));
      const topicoMap = seededTopicos.reduce((acc, t) => {
         const key = `${t.disciplinaId}-${t.nome}`;
         acc[key] = t.id;
@@ -213,7 +224,7 @@ export function seedLocalStorage() {
         } as Questao;
     });
 
-    const seededStats: StatsDia[] = rawData.stats.map(s => ({...s, id: uuidv4(), user }));
+    const seededStats: StatsDia[] = rawData.stats.map(s => ({...s, id: uuidv4(), user } as StatsDia));
 
 
     localStorage.setItem('isab_disciplinas', JSON.stringify(seededDisciplinas));
@@ -238,5 +249,3 @@ export function resetLocalStorage() {
         seedLocalStorage();
     }
 }
-
-    
