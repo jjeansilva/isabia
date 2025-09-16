@@ -14,6 +14,7 @@ import { QuestoesDataTable } from "@/components/tables/questoes-data-table";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { ReportedQuestionsList } from "@/components/tables/reported-questions-list";
 
 export default function QuestoesPage() {
   const dataSource = useData();
@@ -42,6 +43,11 @@ export default function QuestoesPage() {
   });
 
   const isLoading = isLoadingDisciplinas || isLoadingTopicos || isLoadingQuestoes;
+  
+  const reportedQuestoes = useMemo(() => {
+    return (questoes ?? []).filter(q => q.necessitaRevisao);
+  }, [questoes]);
+
 
   const handleEdit = useCallback((q: Questao) => {
     setSelectedQuestao(q);
@@ -79,6 +85,15 @@ export default function QuestoesPage() {
         </Button>
       </PageHeader>
       
+      {reportedQuestoes.length > 0 && (
+        <div className="mb-6">
+          <ReportedQuestionsList 
+            questoes={reportedQuestoes}
+            onCorrect={handleEdit}
+          />
+        </div>
+      )}
+      
       {(showCreateModal || isFormOpen) ? <QuestionForm open={showCreateModal || isFormOpen} onOpenChange={handleCloseForm} questao={selectedQuestao} /> : null}
       {showImportModal ? <ImportQuestionsForm open={showImportModal} onOpenChange={setShowImportModal} /> : null}
       
@@ -104,7 +119,7 @@ export default function QuestoesPage() {
         </div>
       ) : (
         <Card>
-          <CardContent className="p-2 sm:p-4">
+          <CardContent className="p-2 xs:p-4 sm:p-6">
             <QuestoesDataTable 
               questoes={questoes ?? []} 
               disciplinas={disciplinas ?? []} 
