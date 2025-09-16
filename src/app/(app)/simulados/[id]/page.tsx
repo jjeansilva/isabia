@@ -200,6 +200,8 @@ export default function SimuladoExecutionPage() {
 
 
     const currentSimuladoQuestao = simulado?.questoes[currentQuestionIndex];
+    const isLastQuestion = currentQuestionIndex === (simulado?.questoes.length ?? 0) - 1;
+
 
     const { data: questao, isLoading: isLoadingQuestao } = useQuery({
         queryKey: ['questao', currentSimuladoQuestao?.questaoId],
@@ -257,7 +259,7 @@ export default function SimuladoExecutionPage() {
     };
 
     const handleNext = () => {
-        if (currentQuestionIndex < (simulado?.questoes.length ?? 0) - 1) {
+        if (currentQuestionIndex < (simulado?.questoes.length ?? 0)) {
             setCurrentQuestionIndex(prev => prev + 1);
             setStartTime(Date.now());
         }
@@ -355,7 +357,11 @@ export default function SimuladoExecutionPage() {
             {isCurrentQuestionAnswered && questao && (
                 <div className="mt-4 space-y-4">
                     <AnswerFeedback isCorrect={currentSimuladoQuestao.correta!} explanation={questao.explicacao} />
-                     <Button onClick={handleNext} className="w-full">Próxima Questão</Button>
+                    {isLastQuestion ? (
+                        <Button onClick={handleFinish} className="w-full">Finalizar Simulado</Button>
+                    ) : (
+                        <Button onClick={handleNext} className="w-full">Próxima Questão</Button>
+                    )}
                 </div>
             )}
 
