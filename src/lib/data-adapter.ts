@@ -531,9 +531,11 @@ class PocketBaseDataSource implements IDataSource {
     const disciplinaNameMap = new Map(disciplinas.map(d => [d.id, d.nome]));
     const desempenhoPorDisciplina = formatPerformanceData(desempenhoMap, disciplinaNameMap);
     
-    // Create the name map dynamically from the keys of the map itself
-    const desempenhoPorDificuldade = formatPerformanceData(dificuldadeMap, new Map(Array.from(dificuldadeMap.keys()).map(k => [k,k])));
-    const desempenhoPorTipo = formatPerformanceData(tipoMap, new Map(Array.from(tipoMap.keys()).map(k => [k,k])));
+    const dificuldadeNameMap = new Map(Array.from(dificuldadeMap.keys()).map(dificuldade => [dificuldade, dificuldade]));
+    const desempenhoPorDificuldade = formatPerformanceData(dificuldadeMap, dificuldadeNameMap);
+
+    const tipoNameMap = new Map(Array.from(tipoMap.keys()).map(tipo => [tipo, tipo]));
+    const desempenhoPorTipo = formatPerformanceData(tipoMap, tipoNameMap);
 
     const simuladoEmAndamento = simulados.find(s => s.status === 'Em andamento');
     const hoje = new Date().toISOString().split('T')[0];
