@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
@@ -29,15 +30,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { pb, dataSource } = useMemo(() => {
     if (usePocketBase) {
       const pocketbaseInstance = new PocketBase("https://isabia-bd.wartiger.com.br/");
-      
-      // Hook to fix the "Content-Type on GET" issue.
-      pocketbaseInstance.beforeSend = (url, options) => {
-        if (options.method === 'GET') {
-          delete options.headers['Content-Type'];
-        }
-        return { url, options };
-      };
-
       const ds = new PocketBaseDataSource(pocketbaseInstance);
       return { pb: pocketbaseInstance, dataSource: ds };
     } else {

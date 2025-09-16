@@ -303,6 +303,14 @@ class PocketBaseDataSource implements IDataSource {
   constructor(pocketbaseInstance: PocketBase) {
     this.pb = pocketbaseInstance;
     this.pb.authStore.loadFromCookie(this.pb.authStore.exportToCookie());
+    
+    // Hook to fix the "Content-Type on GET" issue.
+    this.pb.beforeSend = (url, options) => {
+      if (options.method === 'GET') {
+        delete (options.headers as any)['Content-Type'];
+      }
+      return { url, options };
+    };
   }
   
   private addUserData(data: any): any {
@@ -448,29 +456,29 @@ class PocketBaseDataSource implements IDataSource {
 
   async getDashboardStats(): Promise<any> {
     if (!this.pb.authStore.model?.id) {
-        return {
-            totalRespostas: 0,
-            acertoGeral: 0,
-            tempoMedioGeral: 0,
-            acertoUltimos30d: 0,
-            historicoAcertos: [],
-            desempenhoPorDisciplina: [],
-            desempenhoPorDificuldade: [],
-            desempenhoPorTipo: [],
-            simuladoEmAndamento: null,
-            questoesParaRevisarHoje: 0,
-        };
+      return {
+        totalRespostas: 0,
+        acertoGeral: 0,
+        tempoMedioGeral: 0,
+        acertoUltimos30d: 0,
+        historicoAcertos: [],
+        desempenhoPorDisciplina: [],
+        desempenhoPorDificuldade: [],
+        desempenhoPorTipo: [],
+        simuladoEmAndamento: null,
+        questoesParaRevisarHoje: 0,
+      };
     }
     const userId = this.pb.authStore.model.id;
     const userFilter = `user = "${userId}"`;
 
-    const [simulados, respostas, disciplinas, revisoes] = await Promise.all([
-        this.list<Simulado>('simulados', { filter: userFilter, sort: '-created' }),
-        this.list<Resposta>('respostas', { filter: userFilter, expand: 'questaoId', sort: '-respondedAt' }),
+    const [respostas, disciplinas, revisoes, simuladosEmAndamento] = await Promise.all([
+        this.list<Resposta>('respostas', { filter: userFilter, expand: 'questaoId' }),
         this.list<Disciplina>('disciplinas', { filter: userFilter }),
         this.list<Revisao>('revisoes', { filter: userFilter }),
+        this.list<Simulado>('simulados', { filter: `${userFilter} && status = "Em andamento"` })
     ]);
-
+    
     // General Stats
     const totalRespostas = respostas.length;
     const totalAcertos = respostas.filter(r => r.acertou).length;
@@ -520,7 +528,9 @@ class PocketBaseDataSource implements IDataSource {
         if (!questao) continue;
         
         const disciplinaNome = disciplinaNameMap.get(questao.disciplinaId);
-        updateMap(desempenhoMap, disciplinaNome!, resposta.acertou);
+        if (disciplinaNome) {
+            updateMap(desempenhoMap, disciplinaNome, resposta.acertou);
+        }
         updateMap(dificuldadeMap, questao.dificuldade, resposta.acertou);
         updateMap(tipoMap, questao.tipo, resposta.acertou);
     }
@@ -537,7 +547,6 @@ class PocketBaseDataSource implements IDataSource {
     const desempenhoPorDificuldade = formatPerformanceData(dificuldadeMap);
     const desempenhoPorTipo = formatPerformanceData(tipoMap);
 
-    const simuladoEmAndamento = simulados.find(s => s.status === 'Em andamento');
     const hoje = new Date().toISOString().split('T')[0];
     const questoesParaRevisarHoje = revisoes.filter(r => r.proximaRevisao.split(' ')[0] <= hoje).length;
 
@@ -550,7 +559,7 @@ class PocketBaseDataSource implements IDataSource {
         desempenhoPorDisciplina,
         desempenhoPorDificuldade,
         desempenhoPorTipo,
-        simuladoEmAndamento,
+        simuladoEmAndamento: simuladosEmAndamento[0] || null,
         questoesParaRevisarHoje,
     };
   }
