@@ -53,7 +53,7 @@ export function DataTablePagination<TData>({
             </SelectContent>
           </Select>
         </div>
-        <div className="hidden w-[100px] items-center justify-center text-sm font-medium sm:flex">
+        <div className="hidden w-[100px] items-center justify-center text-sm font-medium xs:flex">
           Página {table.getState().pagination.pageIndex + 1} de{" "}
           {table.getPageCount()}
         </div>

@@ -71,7 +71,7 @@ function CriterioRow({ index, remove }: { index: number; remove: (index: number)
 
   return (
     <div className="flex flex-col md:flex-row items-start md:items-end gap-2 p-2 sm:p-4 border rounded-lg relative">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 sm:gap-4 w-full">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-2 sm:gap-4 w-full">
             <FormField
                 control={form.control}
                 name={`criterios.${index}.disciplinaId`}

@@ -45,7 +45,7 @@ function TopicoItem({ topico, subtopicos, onEdit, onDelete, onAddSubtopic, onEdi
     return (
         <div className="flex flex-col pl-4 border-l border-border ml-2">
             <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted -ml-2 -mr-2 pl-4 pr-2">
-                <span>{topico.nome}</span>
+                <span className="truncate max-w-[120px] xs:max-w-xs">{topico.nome}</span>
                 <div className="flex gap-1">
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onAddSubtopic} title="Adicionar Subtópico">
                         <PlusCircle className="h-3 w-3" />
@@ -74,7 +74,7 @@ function TopicoItem({ topico, subtopicos, onEdit, onDelete, onAddSubtopic, onEdi
                 <div className="ml-4 mt-2 space-y-1 border-l border-border pl-4">
                     {subtopicos.map(sub => (
                         <div key={sub.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted -ml-2 -mr-2 pl-4 pr-2 text-sm">
-                            <span>{sub.nome}</span>
+                            <span className="truncate max-w-[100px] xs:max-w-[150px]">{sub.nome}</span>
                             <div className="flex gap-1">
                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEditSubtopic(sub)}><Edit2 className="h-3 w-3" /></Button>
                                 <AlertDialog>
@@ -136,10 +136,10 @@ function DisciplinaAccordionItem({
   return (
     <AccordionItem value={disciplina.id} className="border-b-0">
         <div className="flex items-center justify-between w-full p-4 rounded-lg bg-card border" style={{ borderLeftColor: disciplina.cor, borderLeftWidth: 4 }}>
-            <AccordionTrigger className="p-0 hover:no-underline flex-1 text-left font-semibold text-lg">
-                {disciplina.nome}
+            <AccordionTrigger className="p-0 hover:no-underline flex-1 text-left">
+                <span className="font-semibold text-lg truncate max-w-[150px] xs:max-w-xs">{disciplina.nome}</span>
             </AccordionTrigger>
-            <div className="flex items-center gap-2 pl-4">
+            <div className="flex items-center gap-2 pl-2 xs:pl-4">
                 <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(disciplina)}}>Editar</Button>
                  <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -406,6 +406,7 @@ export default function TaxonomiaPage() {
     </>
   );
 }
+
 
 
 

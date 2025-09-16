@@ -41,7 +41,7 @@ function PerformanceTable({ title, data, isLoading }: { title: string, data: Per
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Critério</TableHead>
+                            <TableHead className="w-[50%]">Critério</TableHead>
                             <TableHead className="text-center">Questões</TableHead>
                             <TableHead className="text-right">Acerto</TableHead>
                         </TableRow>
@@ -61,12 +61,12 @@ function PerformanceTable({ title, data, isLoading }: { title: string, data: Per
                         )}
                         {!isLoading && data.map(item => (
                             <TableRow key={item.nome}>
-                                <TableCell className="font-medium truncate max-w-24 xs:max-w-none">{item.nome}</TableCell>
+                                <TableCell className="font-medium truncate max-w-[120px] sm:max-w-xs">{item.nome}</TableCell>
                                 <TableCell className="text-center">{item.totalQuestoes}</TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex items-center justify-end gap-2">
-                                        <span className="text-xs xs:text-sm">{item.percentualAcerto.toFixed(1)}%</span>
-                                        <Progress value={item.percentualAcerto} className="w-12 xs:w-24 h-2" />
+                                        <span className="text-xs">{item.percentualAcerto.toFixed(1)}%</span>
+                                        <Progress value={item.percentualAcerto} className="w-12 h-2" />
                                     </div>
                                 </TableCell>
                             </TableRow>
