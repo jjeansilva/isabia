@@ -20,7 +20,7 @@ function SimuladoLayoutManager({ children, showLayoutElements }: { children: Rea
     return (
         <SidebarInset className="flex flex-col">
             {showLayoutElements && <Header />}
-            <main className="flex-1 p-4 md:p-6 lg:p-8">
+            <main className="flex-1 px-2 py-4 md:p-6 lg:p-8">
                 {children}
             </main>
             {isMobile && <div className="h-16" />} 

@@ -59,7 +59,13 @@ export default function QuestoesPage() {
   }
 
   useEffect(() => {
-    if (searchParams.get('import') === 'true') {
+    const newQuestionParam = searchParams.get('new');
+    const importParam = searchParams.get('import');
+
+    if (newQuestionParam === 'true') {
+      handleNewQuestion();
+    }
+    if (importParam === 'true') {
       setShowImportModal(true);
     }
   }, [searchParams]);
@@ -98,7 +104,7 @@ export default function QuestoesPage() {
         </div>
       ) : (
         <Card>
-          <CardContent className="p-2 xs:p-4 sm:p-6">
+          <CardContent className="p-2 sm:p-4">
             <QuestoesDataTable 
               questoes={questoes ?? []} 
               disciplinas={disciplinas ?? []} 
