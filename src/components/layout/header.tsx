@@ -17,22 +17,22 @@ export function Header() {
   const { logout } = useAuth();
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-2 xs:gap-4 border-b bg-background px-4 md:px-6">
       <div className="flex items-center gap-2">
         <SidebarTrigger className="md:hidden" />
       </div>
       
-      <div className="flex w-full items-center justify-end gap-2 md:ml-auto">
-        <Button variant="outline" size="sm" asChild>
+      <div className="flex w-full items-center justify-end gap-1 xs:gap-2 md:ml-auto">
+        <Button variant="outline" size="sm" asChild className="xs:w-auto w-9 p-0 xs:px-3">
           <Link href="/questoes?import=true">
-            <Upload className="mr-2 h-4 w-4" />
-            Importar
+            <Upload className="h-4 w-4 xs:mr-2" />
+            <span className="hidden xs:inline">Importar</span>
           </Link>
         </Button>
-        <Button size="sm" asChild>
+        <Button size="sm" asChild className="xs:w-auto w-9 p-0 xs:px-3">
           <Link href="/simulados/novo">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Criar Simulado
+            <PlusCircle className="h-4 w-4 xs:mr-2" />
+            <span className="hidden xs:inline">Criar Simulado</span>
           </Link>
         </Button>
          <Button variant="ghost" size="icon" onClick={logout} title="Sair">

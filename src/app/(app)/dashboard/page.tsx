@@ -32,7 +32,7 @@ function PerformanceTable({ title, data, isLoading }: { title: string, data: Per
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-2xl">
                     <BarChart3 className="h-5 w-5 text-primary" />
                     {title}
                 </CardTitle>
@@ -61,12 +61,12 @@ function PerformanceTable({ title, data, isLoading }: { title: string, data: Per
                         )}
                         {!isLoading && data.map(item => (
                             <TableRow key={item.nome}>
-                                <TableCell className="font-medium">{item.nome}</TableCell>
+                                <TableCell className="font-medium max-w-24 xs:max-w-none truncate">{item.nome}</TableCell>
                                 <TableCell className="text-center">{item.totalQuestoes}</TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex items-center justify-end gap-2">
-                                        <span>{item.percentualAcerto.toFixed(1)}%</span>
-                                        <Progress value={item.percentualAcerto} className="w-24 h-2" />
+                                        <span className="text-xs xs:text-sm">{item.percentualAcerto.toFixed(1)}%</span>
+                                        <Progress value={item.percentualAcerto} className="w-12 xs:w-24 h-2" />
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -92,7 +92,7 @@ export default function DashboardPage() {
         title="Dashboard"
         description="Bem-vindo ao seu painel de estudos iSabIA."
       />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           title="Acerto Geral"
           value={`${stats?.acertoGeral?.toFixed(1) ?? '...'}%`}
@@ -133,7 +133,7 @@ export default function DashboardPage() {
             {stats?.simuladoEmAndamento && (
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className="flex items-center gap-2 text-base sm:text-2xl">
                             <PlayCircle className="h-5 w-5 text-primary" />
                             Continue de onde parou
                         </CardTitle>
@@ -150,7 +150,7 @@ export default function DashboardPage() {
             )}
              <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-2xl">
                         <History className="h-5 w-5 text-primary" />
                         Revisão do dia
                     </CardTitle>
@@ -171,7 +171,7 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
             <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><HelpCircle className="h-5 w-5 text-primary" />Desempenho por Dificuldade</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2 text-base sm:text-2xl"><HelpCircle className="h-5 w-5 text-primary" />Desempenho por Dificuldade</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                     {isLoading && <p>Carregando...</p>}
                     {!isLoading && stats?.desempenhoPorDificuldade?.map((item: PerformancePorCriterio) => (
@@ -183,7 +183,7 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
              <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" />Desempenho por Tipo</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2 text-base sm:text-2xl"><ListChecks className="h-5 w-5 text-primary" />Desempenho por Tipo</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                     {isLoading && <p>Carregando...</p>}
                     {!isLoading && stats?.desempenhoPorTipo?.map((item: PerformancePorCriterio) => (
