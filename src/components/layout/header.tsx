@@ -23,16 +23,16 @@ export function Header() {
       </div>
       
       <div className="flex w-full items-center justify-end gap-1 xs:gap-2 md:ml-auto">
-        <Button variant="outline" size="sm" asChild className="xs:w-auto w-9 p-0 xs:px-3">
+        <Button variant="outline" size="sm" asChild className="w-auto sm:w-auto p-0 px-2 sm:px-3">
           <Link href="/questoes?import=true">
-            <Upload className="h-4 w-4 xs:mr-2" />
-            <span className="hidden xs:inline">Importar</span>
+            <Upload className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Importar</span>
           </Link>
         </Button>
-        <Button size="sm" asChild className="xs:w-auto w-9 p-0 xs:px-3">
+        <Button size="sm" asChild className="w-auto sm:w-auto p-0 px-2 sm:px-3">
           <Link href="/simulados/novo">
-            <PlusCircle className="h-4 w-4 xs:mr-2" />
-            <span className="hidden xs:inline">Criar Simulado</span>
+            <PlusCircle className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Criar Simulado</span>
           </Link>
         </Button>
          <Button variant="ghost" size="icon" onClick={logout} title="Sair">

@@ -48,6 +48,16 @@ export default function QuestoesPage() {
     setIsFormOpen(true);
   }, []);
 
+  const handleNewQuestion = () => {
+    setSelectedQuestao(undefined);
+    setShowCreateModal(true);
+  }
+
+  const handleCloseForm = () => {
+    setShowCreateModal(false);
+    setIsFormOpen(false);
+  }
+
   useEffect(() => {
     if (searchParams.get('import') === 'true') {
       setShowImportModal(true);
@@ -57,17 +67,14 @@ export default function QuestoesPage() {
   return (
     <>
       <PageHeader title="Banco de Questões" description="Gerencie seu acervo de questões para simulados e revisões.">
-        <Button onClick={() => {
-            setShowCreateModal(true);
-        }}>
+        <Button onClick={handleNewQuestion}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Nova Questão
         </Button>
       </PageHeader>
       
-      {showCreateModal ? <QuestionForm open={showCreateModal} onOpenChange={setShowCreateModal} /> : null}
-      {isFormOpen ? <QuestionForm open={isFormOpen} onOpenChange={setIsFormOpen} questao={selectedQuestao} /> : null}
-      {showImportModal ? <ImportQuestionsForm open={showImportModal} onOpenChange={setShowImportModal} /> : null}
+      {(showCreateModal || isFormOpen) && <QuestionForm open={showCreateModal || isFormOpen} onOpenChange={handleCloseForm} questao={selectedQuestao} />}
+      {showImportModal && <ImportQuestionsForm open={showImportModal} onOpenChange={setShowImportModal} />}
       
       {isLoading ? (
         <div className="space-y-4">
