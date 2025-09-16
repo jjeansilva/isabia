@@ -68,8 +68,8 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
         <Card className="mt-4">
             <CardHeader>
                 <div className="flex justify-between items-start">
-                    <CardTitle>Enunciado</CardTitle>
-                    <div className="flex gap-2 items-center">
+                    <CardTitle className="text-xl">Enunciado</CardTitle>
+                    <div className="flex gap-2 items-center flex-shrink-0">
                         <Badge variant="secondary">{questao.tipo}</Badge>
                         <Badge variant="outline">{questao.dificuldade}</Badge>
                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => setShowReportModal(true)} title="Reportar Erro">
@@ -79,24 +79,24 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
                 </div>
             </CardHeader>
             <CardContent>
-                <p className="text-lg mb-6">{questao.enunciado}</p>
+                <p className="text-base sm:text-lg mb-6">{questao.enunciado}</p>
 
                 {/* Answer Area */}
-                <div className="space-y-4">
+                <div className="space-y-4 text-sm sm:text-base">
                     {questao.tipo === 'Múltipla Escolha' && Array.isArray(alternativas) && (
                         <RadioGroup onValueChange={setSelectedAnswer} disabled={isAnswered}>
                             {alternativas.map((alt, index) => (
                                 <div key={index} className="flex items-center space-x-2">
                                     <RadioGroupItem value={alt} id={`alt-${index}`} />
-                                    <Label htmlFor={`alt-${index}`} className="text-base">{alt}</Label>
+                                    <Label htmlFor={`alt-${index}`} className="text-sm sm:text-base">{alt}</Label>
                                 </div>
                             ))}
                         </RadioGroup>
                     )}
                     {questao.tipo === 'Certo ou Errado' && (
                         <RadioGroup onValueChange={(v) => setSelectedAnswer(v === 'true')} disabled={isAnswered}>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="true" id="ce-certo" /><Label htmlFor="ce-certo" className="text-base">Certo</Label></div>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="false" id="ce-errado" /><Label htmlFor="ce-errado" className="text-base">Errado</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="true" id="ce-certo" /><Label htmlFor="ce-certo" className="text-sm sm:text-base">Certo</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="false" id="ce-errado" /><Label htmlFor="ce-errado" className="text-sm sm:text-base">Errado</Label></div>
                         </RadioGroup>
                     )}
                     {questao.tipo === 'Completar Lacuna' && (
@@ -113,14 +113,14 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
                 {/* Confidence Area */}
                 {!isAnswered && (
                     <div className="mt-8">
-                        <Label className="mb-2 block">Nível de Confiança</Label>
-                        <RadioGroup defaultValue="Dúvida" onValueChange={(v: RespostaConfianca) => setConfianca(v)} className="flex gap-2 md:gap-4">
+                        <Label className="mb-2 block text-sm">Nível de Confiança</Label>
+                        <RadioGroup defaultValue="Dúvida" onValueChange={(v: RespostaConfianca) => setConfianca(v)} className="flex flex-col xs:flex-row gap-2 md:gap-4">
                             {[
                                 {value: 'Certeza', label: 'Certeza', icon: ThumbsUp},
                                 {value: 'Dúvida', label: 'Dúvida', icon: Lightbulb},
                                 {value: 'Chute', label: 'Chute', icon: Zap},
                             ].map(c => (
-                                <Label key={c.value} htmlFor={`conf-${c.value}`} className={cn("flex-1 flex items-center justify-center gap-2 rounded-lg border p-3 cursor-pointer hover:bg-accent", confianca === c.value && "bg-accent border-primary")}>
+                                <Label key={c.value} htmlFor={`conf-${c.value}`} className={cn("flex-1 flex items-center justify-center gap-2 rounded-lg border p-3 cursor-pointer hover:bg-accent text-xs sm:text-sm", confianca === c.value && "bg-accent border-primary")}>
                                     <RadioGroupItem value={c.value} id={`conf-${c.value}`} className="sr-only"/>
                                     <c.icon className="h-4 w-4"/>
                                     <span>{c.label}</span>
@@ -143,7 +143,7 @@ function AnswerFeedback({ isCorrect, explanation }: { isCorrect: boolean, explan
     return (
         <Card className={cn("mt-4", isCorrect ? "border-approval" : "border-destructive")}>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                     {isCorrect ? <Check className="text-approval" /> : <X className="text-destructive" />}
                     {isCorrect ? "Resposta Correta!" : "Resposta Incorreta"}
                 </CardTitle>
@@ -319,8 +319,8 @@ export default function SimuladoExecutionPage() {
         <div>
             <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
-                    <h1 className="text-xl font-bold">{simulado.nome}</h1>
-                    <div className="flex items-center gap-2">
+                    <h1 className="text-lg sm:text-xl font-bold truncate pr-4">{simulado.nome}</h1>
+                    <div className="flex items-center gap-2 flex-shrink-0">
                         <span className="text-sm font-medium">{Math.min(currentQuestionIndex + 1, simulado.questoes.length)} / {simulado.questoes.length}</span>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -353,10 +353,10 @@ export default function SimuladoExecutionPage() {
             {questao && <QuestionRunner questao={questao} onAnswer={handleAnswer} isAnswered={isCurrentQuestionAnswered} />}
 
             {isCurrentQuestionAnswered && questao && (
-                <>
+                <div className="mt-4 space-y-4">
                     <AnswerFeedback isCorrect={currentSimuladoQuestao.correta!} explanation={questao.explicacao} />
-                     <Button onClick={handleNext} className="mt-4 w-full">Próxima Questão</Button>
-                </>
+                     <Button onClick={handleNext} className="w-full">Próxima Questão</Button>
+                </div>
             )}
 
             <div className="mt-8 flex justify-end">

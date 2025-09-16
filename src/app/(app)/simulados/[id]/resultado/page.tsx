@@ -75,13 +75,13 @@ export default function ResultadoPage() {
             <Card>
                 <CardHeader><CardTitle>Detalhes das Questões</CardTitle></CardHeader>
                 <CardContent>
-                    <Table>
+                    <Table className="text-xs sm:text-sm">
                         <TableHeader>
                             <TableRow>
-                                <TableHead>#</TableHead>
+                                <TableHead className="w-[40px]">#</TableHead>
                                 <TableHead>Enunciado</TableHead>
-                                <TableHead>Resultado</TableHead>
-                                <TableHead>Confiança</TableHead>
+                                <TableHead className="w-[120px]">Resultado</TableHead>
+                                <TableHead className="w-[100px]">Confiança</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -90,7 +90,7 @@ export default function ResultadoPage() {
                                 return (
                                     <TableRow key={sq.id}>
                                         <TableCell>{sq.ordem}</TableCell>
-                                        <TableCell className="max-w-sm truncate">{questao?.enunciado ?? 'Carregando...'}</TableCell>
+                                        <TableCell className="max-w-[150px] sm:max-w-sm truncate">{questao?.enunciado ?? 'Carregando...'}</TableCell>
                                         <TableCell>
                                             {sq.correta === undefined ? (
                                                 <Badge variant="secondary">Não respondida</Badge>
