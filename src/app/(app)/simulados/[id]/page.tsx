@@ -275,7 +275,7 @@ export default function SimuladoExecutionPage() {
                 acertou: !!q.correta,
                 confianca: q.confianca || 'Dúvida',
                 questaoId: q.questaoId,
-                respostaUsuario: q.respostaUsuario,
+                respostaUsuario: JSON.stringify(q.respostaUsuario),
                 simuladoId: simulado.id,
                 respondedAt: new Date().toISOString(),
                 tempoSegundos: q.tempoSegundos || 0,
