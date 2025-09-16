@@ -13,7 +13,7 @@ import { ImportQuestionsForm } from "@/components/forms/import-questions-form";
 import { QuestoesDataTable } from "@/components/tables/questoes-data-table";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReportedQuestionsList } from "@/components/tables/reported-questions-list";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -136,6 +136,15 @@ export default function QuestoesPage() {
         </Button>
       </PageHeader>
       
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Card de Teste</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Se este card estiver visível, a página está renderizando corretamente.</p>
+        </CardContent>
+      </Card>
+
       {isLoading ? (
          <div className="space-y-4">
             <Skeleton className="h-24 w-full" />
