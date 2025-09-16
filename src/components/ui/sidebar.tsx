@@ -89,6 +89,13 @@ const SidebarProvider = React.forwardRef<
       [setOpenProp, open]
     )
 
+    // Ensure the sidebar state is correct on mount, preventing hydration issues.
+    React.useEffect(() => {
+      if (isMobile !== undefined) {
+        _setOpen(!isMobile);
+      }
+    }, [isMobile]);
+
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
       return isMobile
@@ -203,9 +210,9 @@ const Sidebar = React.forwardRef<
             )}
             {...props}
           >
-            <SheetHeader>
+            <SheetHeader className="p-4 border-b">
               <SheetTitle>
-                <span className="sr-only">Menu</span>
+                 <span className="sr-only">Menu</span>
               </SheetTitle>
             </SheetHeader>
             {children}
