@@ -136,42 +136,33 @@ export default function QuestoesPage() {
         </Button>
       </PageHeader>
       
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Card de Teste</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Se este card estiver visível, a página está renderizando corretamente.</p>
-        </CardContent>
-      </Card>
-
-      {isLoading ? (
-         <div className="space-y-4">
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-96 w-full" />
-         </div>
-      ) : (
-        <div className="space-y-6">
-            <ReportedQuestionsList 
-              questoes={reportedQuestoes}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onMarkAsCorrected={handleMarkAsCorrected}
-            />
-          
-            <Card>
-              <CardContent className="p-2 xs:p-4 sm:p-6">
-                <QuestoesDataTable 
-                  questoes={questoes ?? []} 
-                  disciplinas={disciplinas ?? []} 
-                  topicos={topicos ?? []}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              </CardContent>
-            </Card>
-        </div>
-      )}
+      <div className="space-y-6">
+        <ReportedQuestionsList 
+          questoes={reportedQuestoes}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onMarkAsCorrected={handleMarkAsCorrected}
+        />
+      
+        {isLoading ? (
+           <div className="space-y-4">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-96 w-full" />
+           </div>
+        ) : (
+          <Card>
+            <CardContent className="p-2 xs:p-4 sm:p-6">
+              <QuestoesDataTable 
+                questoes={questoes ?? []} 
+                disciplinas={disciplinas ?? []} 
+                topicos={topicos ?? []}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
       
       {isFormOpen && <QuestionForm open={isFormOpen} onOpenChange={handleCloseForm} questao={selectedQuestao} />}
       {showImportModal && <ImportQuestionsForm open={showImportModal} onOpenChange={setShowImportModal} />}
