@@ -25,6 +25,7 @@ export interface IDataSource {
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
   bulkDelete(collection: CollectionName, ids: string[]): Promise<void>;
+  bulkCreateFromCsv(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem, onProgress: (progress: ImportProgress) => void): Promise<number>;
   gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado>;
   getDashboardStats(): Promise<any>;
   getQuestoesParaRevisar(): Promise<Questao[]>;
@@ -279,6 +280,10 @@ class MockDataSource implements IDataSource {
     saveToStorage('revisoes', revisoes);
     return Promise.resolve();
   }
+
+  async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem, onProgress: (progress: ImportProgress) => void): Promise<number> {
+    throw new Error("CSV Import not implemented for MockDataSource");
+  }
 }
 
 class PocketBaseDataSource implements IDataSource {
@@ -288,12 +293,11 @@ class PocketBaseDataSource implements IDataSource {
     this.pb = pocketbaseInstance;
     this.pb.authStore.loadFromCookie(this.pb.authStore.exportToCookie());
     
-    // Hook to fix the "Content-Type on GET" issue.
     this.pb.beforeSend = (url, options) => {
-      if (options.method === 'GET') {
-        delete (options.headers as any)['Content-Type'];
-      }
-      return { url, options };
+        if (options.method === 'GET') {
+            delete (options.headers as any)['Content-Type'];
+        }
+        return { url, options };
     };
   }
   
@@ -431,114 +435,117 @@ class PocketBaseDataSource implements IDataSource {
 
   async getDashboardStats(): Promise<any> {
     if (!this.pb.authStore.model?.id) {
-      return {
-        totalRespostas: 0,
-        acertoGeral: 0,
-        tempoMedioGeral: 0,
-        acertoUltimos30d: 0,
-        historicoAcertos: [],
-        desempenhoPorDisciplina: [],
-        desempenhoPorDificuldade: [],
-        desempenhoPorTipo: [],
-        simuladoEmAndamento: null,
-        questoesParaRevisarHoje: 0,
-      };
+        return {
+            totalRespostas: 0,
+            acertoGeral: 0,
+            tempoMedioGeral: 0,
+            acertoUltimos30d: 0,
+            historicoAcertos: [],
+            desempenhoPorDisciplina: [],
+            desempenhoPorDificuldade: [],
+            desempenhoPorTipo: [],
+            simuladoEmAndamento: null,
+            questoesParaRevisarHoje: 0,
+        };
     }
     const userId = this.pb.authStore.model.id;
     const userFilter = `user = "${userId}"`;
 
-    const [respostas, disciplinas, revisoes, simulados] = await Promise.all([
-        this.list<Resposta>('respostas', { filter: userFilter, expand: 'questaoId' }),
-        this.list<Disciplina>('disciplinas', { filter: userFilter }),
-        this.list<Revisao>('revisoes', { filter: userFilter }),
-        this.list<Simulado>('simulados', { filter: userFilter, sort: '-created' })
-    ]);
-    
-    // General Stats
-    const totalRespostas = respostas.length;
-    const totalAcertos = respostas.filter(r => r.acertou).length;
-    const acertoGeral = totalRespostas > 0 ? (totalAcertos / totalRespostas) * 100 : 0;
-    const tempoTotal = respostas.reduce((acc, r) => acc + r.tempoSegundos, 0);
-    const tempoMedioGeral = totalRespostas > 0 ? tempoTotal / totalRespostas : 0;
+    try {
+        const [respostas, disciplinas, revisoes, simuladoEmAndamento] = await Promise.all([
+            this.list<Resposta>('respostas', { filter: userFilter, expand: 'questaoId' }),
+            this.list<Disciplina>('disciplinas', { filter: userFilter }),
+            this.list<Revisao>('revisoes', { filter: userFilter }),
+            this.list<Simulado>('simulados', { filter: `status = "Em andamento" && ${userFilter}` }).then(res => res[0] || null),
+        ]);
 
-    // Last 30 Days Stats
-    const umMesAtras = new Date();
-    umMesAtras.setDate(umMesAtras.getDate() - 30);
-    const respostasUltimos30d = respostas.filter(r => new Date(r.respondedAt) >= umMesAtras);
-    const acertosUltimos30d = respostasUltimos30d.filter(r => r.acertou).length;
-    const acertoUltimos30dPercent = respostasUltimos30d.length > 0 ? (acertosUltimos30d / respostasUltimos30d.length) * 100 : 0;
+        const totalRespostas = respostas.length;
+        const totalAcertos = respostas.filter(r => r.acertou).length;
+        const acertoGeral = totalRespostas > 0 ? (totalAcertos / totalRespostas) * 100 : 0;
+        const tempoTotal = respostas.reduce((acc, r) => acc + r.tempoSegundos, 0);
+        const tempoMedioGeral = totalRespostas > 0 ? tempoTotal / totalRespostas : 0;
 
-    const historicoAcertos = Array.from({ length: 30 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (29 - i));
-        const dateString = date.toISOString().split('T')[0];
+        const umMesAtras = new Date();
+        umMesAtras.setDate(umMesAtras.getDate() - 30);
+        const respostasUltimos30d = respostas.filter(r => new Date(r.respondedAt) >= umMesAtras);
+        const acertosUltimos30d = respostasUltimos30d.filter(r => r.acertou).length;
+        const acertoUltimos30dPercent = respostasUltimos30d.length > 0 ? (acertosUltimos30d / respostasUltimos30d.length) * 100 : 0;
+
+        const historicoAcertos = Array.from({ length: 30 }, (_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - (29 - i));
+            const dateString = date.toISOString().split('T')[0];
+            const respostasDoDia = respostas.filter(r => r.respondedAt.startsWith(dateString));
+            const acertosDoDia = respostasDoDia.filter(r => r.acertou).length;
+            return {
+                date: dateString,
+                acerto: respostasDoDia.length > 0 ? (acertosDoDia / respostasDoDia.length) * 100 : 0,
+            };
+        });
         
-        const respostasDoDia = respostas.filter(r => r.respondedAt.startsWith(dateString));
-        const acertosDoDia = respostasDoDia.filter(r => r.acertou).length;
-        
-        return {
-            date: dateString,
-            acerto: respostasDoDia.length > 0 ? (acertosDoDia / respostasDoDia.length) * 100 : 0,
+        const disciplinaNameMap = new Map(disciplinas.map(d => [d.id, d.nome]));
+
+        const desempenhoMap = new Map<string, { total: number; acertos: number }>();
+        const dificuldadeMap = new Map<string, { total: number; acertos: number }>();
+        const tipoMap = new Map<string, { total: number; acertos: number }>();
+
+        const updateMap = (map: Map<string, { total: number; acertos: number }>, key: string, acertou: boolean) => {
+            if (!key) return;
+            const current = map.get(key) || { total: 0, acertos: 0 };
+            current.total++;
+            if (acertou) current.acertos++;
+            map.set(key, current);
         };
-    });
 
-    const desempenhoMap = new Map<string, { total: number; acertos: number }>();
-    const dificuldadeMap = new Map<string, { total: number; acertos: number }>();
-    const tipoMap = new Map<string, { total: number; acertos: number }>();
-
-    const disciplinaNameMap = new Map(disciplinas.map(d => [d.id, d.nome]));
-
-    const updateMap = (map: Map<string, { total: number; acertos: number }>, key: string, acertou: boolean) => {
-        if (!key) return;
-        const current = map.get(key) || { total: 0, acertos: 0 };
-        current.total++;
-        if (acertou) {
-            current.acertos++;
+        for (const resposta of respostas) {
+            const questao = (resposta as any).expand?.questaoId as Questao | undefined;
+            if (!questao) continue;
+            
+            const disciplinaNome = disciplinaNameMap.get(questao.disciplinaId);
+            if (disciplinaNome) {
+                updateMap(desempenhoMap, disciplinaNome, resposta.acertou);
+            }
+            updateMap(dificuldadeMap, questao.dificuldade, resposta.acertou);
+            updateMap(tipoMap, questao.tipo, resposta.acertou);
         }
-        map.set(key, current);
-    };
-
-    for (const resposta of respostas) {
-        const questao = resposta.expand?.questaoId as Questao | undefined;
-        if (!questao) continue;
         
-        const disciplinaNome = disciplinaNameMap.get(questao.disciplinaId);
-        if (disciplinaNome) {
-            updateMap(desempenhoMap, disciplinaNome, resposta.acertou);
-        }
-        updateMap(dificuldadeMap, questao.dificuldade, resposta.acertou);
-        updateMap(tipoMap, questao.tipo, resposta.acertou);
-    }
+        const formatPerformanceData = (map: Map<string, { total: number; acertos: number }>): PerformancePorCriterio[] => {
+            return Array.from(map.entries()).map(([nome, data]) => ({
+                nome,
+                totalQuestoes: data.total,
+                percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
+            })).sort((a, b) => b.totalQuestoes - a.totalQuestoes);
+        };
     
-    const formatPerformanceData = (map: Map<string, { total: number; acertos: number }>): PerformancePorCriterio[] => {
-      return Array.from(map.entries()).map(([nome, data]) => ({
-          nome,
-          totalQuestoes: data.total,
-          percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
-      })).sort((a, b) => b.totalQuestoes - a.totalQuestoes);
-    };
+        const desempenhoPorDisciplina = formatPerformanceData(desempenhoMap);
+        const desempenhoPorDificuldade = formatPerformanceData(dificuldadeMap);
+        const desempenhoPorTipo = formatPerformanceData(tipoMap);
 
-    const desempenhoPorDisciplina = formatPerformanceData(desempenhoMap);
-    const desempenhoPorDificuldade = formatPerformanceData(dificuldadeMap);
-    const desempenhoPorTipo = formatPerformanceData(tipoMap);
+        const hoje = new Date().toISOString().split('T')[0];
+        const questoesParaRevisarHoje = revisoes.filter(r => r.proximaRevisao.split(' ')[0] <= hoje).length;
 
-    const hoje = new Date().toISOString().split('T')[0];
-    const questoesParaRevisarHoje = revisoes.filter(r => r.proximaRevisao.split(' ')[0] <= hoje).length;
-    const simuladoEmAndamento = simulados.find(s => s.status === 'Em andamento') || null;
+        return {
+            totalRespostas,
+            acertoGeral,
+            tempoMedioGeral,
+            acertoUltimos30d: acertoUltimos30dPercent,
+            historicoAcertos,
+            desempenhoPorDisciplina,
+            desempenhoPorDificuldade,
+            desempenhoPorTipo,
+            simuladoEmAndamento,
+            questoesParaRevisarHoje,
+        };
 
-    return {
-        totalRespostas,
-        acertoGeral,
-        tempoMedioGeral,
-        acertoUltimos30d: acertoUltimos30dPercent,
-        historicoAcertos,
-        desempenhoPorDisciplina,
-        desempenhoPorDificuldade,
-        desempenhoPorTipo,
-        simuladoEmAndamento: simuladoEmAndamento,
-        questoesParaRevisarHoje,
-    };
-  }
+    } catch (error) {
+        console.error("Failed to get dashboard stats:", error);
+        return {
+            totalRespostas: 0, acertoGeral: 0, tempoMedioGeral: 0, acertoUltimos30d: 0, historicoAcertos: [],
+            desempenhoPorDisciplina: [], desempenhoPorDificuldade: [], desempenhoPorTipo: [],
+            simuladoEmAndamento: null, questoesParaRevisarHoje: 0
+        };
+    }
+}
 
   async getQuestoesParaRevisar(): Promise<Questao[]> {
     const hoje = new Date().toISOString().split('T')[0];
@@ -595,6 +602,95 @@ class PocketBaseDataSource implements IDataSource {
     }
   }
 
+  async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem, onProgress: (progress: ImportProgress) => void): Promise<number> {
+    // This is a simplified CSV parser. A more robust library might be needed for complex CSVs.
+    const lines = csvData.split('\n').filter(line => line.trim() !== '');
+    const header = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const rows = lines.slice(1);
+    
+    let createdCount = 0;
+    const log: string[] = [];
+
+    const getColumn = (row: string[], name: string) => {
+        const index = header.indexOf(name);
+        return index > -1 ? row[index]?.trim().replace(/"/g, '') : undefined;
+    }
+
+    onProgress({ message: 'Iniciando processamento...', current: 0, total: rows.length, log });
+    
+    // Get all existing disciplines and topics to avoid creating duplicates
+    const allDisciplinas = await this.list<Disciplina>('disciplinas');
+    const allTopicos = await this.list<Topico>('topicos');
+    const disciplinaMap = new Map(allDisciplinas.map(d => [d.nome.toLowerCase(), d.id]));
+    const topicoMap = new Map(allTopicos.map(t => [`${t.disciplinaId}-${t.nome.toLowerCase()}`, t.id]));
+
+    for (let i = 0; i < rows.length; i++) {
+        const rowData = rows[i].split(',');
+        const disciplinaNome = getColumn(rowData, 'disciplina');
+        const topicoNome = getColumn(rowData, 'tópico da disciplina');
+        const enunciado = getColumn(rowData, 'questão');
+
+        if (!disciplinaNome || !topicoNome || !enunciado) {
+            log.push(`[Linha ${i + 2}] Ignorada: Disciplina, Tópico ou Enunciado faltando.`);
+            continue;
+        }
+
+        try {
+            let disciplinaId = disciplinaMap.get(disciplinaNome.toLowerCase());
+            if (!disciplinaId) {
+                const newDisciplina = await this.create<Disciplina>('disciplinas', { nome: disciplinaNome });
+                disciplinaId = newDisciplina.id;
+                disciplinaMap.set(disciplinaNome.toLowerCase(), disciplinaId);
+                log.push(`[Linha ${i + 2}] Nova disciplina criada: ${disciplinaNome}`);
+            }
+
+            let topicoId = topicoMap.get(`${disciplinaId}-${topicoNome.toLowerCase()}`);
+            if (!topicoId) {
+                const newTopico = await this.create<Topico>('topicos', { nome: topicoNome, disciplinaId });
+                topicoId = newTopico.id;
+                topicoMap.set(`${disciplinaId}-${topicoNome.toLowerCase()}`, topicoId);
+                 log.push(`[Linha ${i + 2}] Novo tópico criado: ${topicoNome}`);
+            }
+            
+            // Subtópico logic
+            const subtópicoNome = getColumn(rowData, 'subtópico');
+            if (subtópicoNome) {
+                let subtópicoId = topicoMap.get(`${disciplinaId}-${subtópicoNome.toLowerCase()}`);
+                 if (!subtópicoId) {
+                    const newSubTopico = await this.create<Topico>('topicos', { nome: subtópicoNome, disciplinaId, topicoPaiId: topicoId });
+                    subtópicoId = newSubTopico.id;
+                    topicoMap.set(`${disciplinaId}-${subtópicoNome.toLowerCase()}`, subtópicoId);
+                    log.push(`[Linha ${i + 2}] Novo subtópico criado: ${subtópicoNome}`);
+                 }
+                 topicoId = subtópicoId; // The question belongs to the subtopic
+            }
+
+            const questao: Partial<Questao> = {
+                disciplinaId,
+                topicoId,
+                tipo,
+                origem,
+                enunciado,
+                dificuldade: getColumn(rowData, 'dificuldade') as QuestionDificuldade || 'Fácil',
+                respostaCorreta: JSON.stringify(getColumn(rowData, 'resposta')),
+                explicacao: getColumn(rowData, 'explicação') || '',
+                alternativas: JSON.stringify(header.filter(h => h.startsWith('alternativa_')).map(h => getColumn(rowData, h)).filter(Boolean)),
+                isActive: true,
+                version: 1,
+                hashConteudo: 'csv_import_' + uuidv4(),
+            };
+            
+            await this.create<Questao>('questoes', questao as any);
+            createdCount++;
+            onProgress({ message: `Processando linha ${i + 2}...`, current: i + 1, total: rows.length, log });
+        } catch (error: any) {
+            log.push(`[Linha ${i + 2}] ERRO: ${error.message}`);
+             onProgress({ message: `Erro na linha ${i + 2}`, current: i + 1, total: rows.length, log, isError: true });
+        }
+    }
+    
+    return createdCount;
+  }
 }
 
 export { PocketBaseDataSource, MockDataSource };

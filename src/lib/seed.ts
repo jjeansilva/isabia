@@ -1,7 +1,7 @@
 
 
 import { v4 as uuidv4 } from 'uuid';
-import { CollectionName, Disciplina, Topico, Questao, Simulado, Resposta, Revisao, StatsDia } from '@/types';
+import { CollectionName, Disciplina, Topico, Questao, Simulado, Resposta, Revisao, StatsDia, QuestionTipo, QuestionOrigem } from '@/types';
 import { IDataSource } from './data-adapter';
 
 function createMockData() {
@@ -30,9 +30,9 @@ function createMockData() {
     {
       disciplina: 'Direito Constitucional',
       topico: 'Direitos Fundamentais',
-      tipo: 'Múltipla Escolha',
+      tipo: 'Múltipla Escolha' as QuestionTipo,
       dificuldade: 'Fácil',
-      origem: 'Já caiu',
+      origem: 'Já caiu' as QuestionOrigem,
       enunciado: 'Qual remédio constitucional é utilizado para proteger o direito de locomoção?',
       alternativas: '["Habeas Corpus", "Habeas Data", "Mandado de Segurança", "Mandado de Injunção"]',
       respostaCorreta: '"Habeas Corpus"',
@@ -47,9 +47,9 @@ function createMockData() {
     {
       disciplina: 'Direito Administrativo',
       topico: 'Atos Administrativos',
-      tipo: 'Certo ou Errado',
+      tipo: 'Certo ou Errado' as QuestionTipo,
       dificuldade: 'Médio',
-      origem: 'Autoral',
+      origem: 'Autoral' as QuestionOrigem,
       enunciado: 'A presunção de legitimidade é um atributo do ato administrativo que admite prova em contrário.',
       respostaCorreta: 'true',
       explicacao: 'Correto, a presunção é relativa (juris tantum), podendo ser afastada por prova em contrário.',
@@ -63,9 +63,9 @@ function createMockData() {
      {
       disciplina: 'Português',
       topico: 'Concordância Verbal',
-      tipo: 'Completar Lacuna',
+      tipo: 'Completar Lacuna' as QuestionTipo,
       dificuldade: 'Difícil',
-      origem: 'Conteúdo',
+      origem: 'Conteúdo' as QuestionOrigem,
       enunciado: 'A maioria dos presentes [[votou]] a favor da proposta.',
       respostaCorreta: '"votou"',
       explicacao: 'O verbo concorda com o núcleo do sujeito "maioria", que está no singular.',
@@ -79,9 +79,9 @@ function createMockData() {
     {
       disciplina: 'Direito Constitucional',
       topico: 'Controle de Constitucionalidade',
-      tipo: 'Flashcard',
+      tipo: 'Flashcard' as QuestionTipo,
       dificuldade: 'Médio',
-      origem: 'Autoral',
+      origem: 'Autoral' as QuestionOrigem,
       enunciado: 'O que é o controle difuso de constitucionalidade?',
       respostaCorreta: '"É aquele realizado por qualquer juiz ou tribunal, no caso concreto, com efeitos inter partes."',
       version: 1,
@@ -93,9 +93,9 @@ function createMockData() {
      {
       disciplina: 'Informática',
       topico: 'Segurança da Informação',
-      tipo: 'Certo ou Errado',
+      tipo: 'Certo ou Errado' as QuestionTipo,
       dificuldade: 'Fácil',
-      origem: 'Já caiu',
+      origem: 'Já caiu' as QuestionOrigem,
       enunciado: 'Firewall é um software ou hardware que verifica informações provenientes da Internet ou de uma rede, e as bloqueia ou permite que cheguem ao seu computador.',
       respostaCorreta: 'true',
       explicacao: 'Essa é a definição básica de um firewall, que atua como uma barreira de proteção.',
@@ -118,6 +118,20 @@ function createMockData() {
   }));
 
   return { disciplinas, topicosData, questoesData, stats };
+}
+
+async function bulkCreateWithFallBack<T extends {id?: string}>(dataSource: IDataSource, collection: CollectionName, records: T[]): Promise<any[]> {
+    const createdRecords = [];
+    for (const record of records) {
+        try {
+            const created = await dataSource.create(collection, record as any);
+            createdRecords.push(created);
+        } catch (error) {
+            console.error(`Failed to create record in ${collection}:`, record, error);
+            // Decide if you want to stop or continue
+        }
+    }
+    return createdRecords;
 }
 
 export async function seedPocketBase(dataSource: IDataSource) {
@@ -158,7 +172,7 @@ export async function seedPocketBase(dataSource: IDataSource) {
     
     // Seed Disciplinas
     console.log("Seeding disciplinas...");
-    const createdDisciplinas = await dataSource.bulkCreate<Omit<Disciplina, 'id' | 'createdAt' | 'updatedAt'| 'user'>>('disciplinas', disciplinas);
+    const createdDisciplinas = await bulkCreateWithFallBack(dataSource, 'disciplinas', disciplinas);
     console.log(`-> Seeded ${createdDisciplinas.length} disciplinas.`);
     
     // Map names to IDs for relation
@@ -173,7 +187,7 @@ export async function seedPocketBase(dataSource: IDataSource) {
         ...t,
         disciplinaId: disciplinaMap[t.disciplina],
     }));
-    const createdTopicos = await dataSource.bulkCreate('topicos', topicosToCreate);
+    const createdTopicos = await bulkCreateWithFallBack(dataSource, 'topicos', topicosToCreate);
     console.log(`-> Seeded ${createdTopicos.length} tópicos.`);
 
     const topicoMap = createdTopicos.reduce((acc, t) => {
@@ -189,12 +203,12 @@ export async function seedPocketBase(dataSource: IDataSource) {
       const topicoId = topicoMap[`${disciplinaId}-${q.topico}`];
       return { ...q, disciplinaId, topicoId };
     });
-    const createdQuestoes = await dataSource.bulkCreate('questoes', questoesToCreate);
+    const createdQuestoes = await bulkCreateWithFallBack(dataSource, 'questoes', questoesToCreate);
     console.log(`-> Seeded ${createdQuestoes.length} questões.`);
 
     // Seed Stats
     console.log("Seeding stats...");
-    await dataSource.bulkCreate('stats', stats);
+    await bulkCreateWithFallBack(dataSource, 'stats', stats);
     console.log(`-> Seeded ${stats.length} stats records.`);
 
     console.log("Seeding finished.");
