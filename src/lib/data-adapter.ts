@@ -483,7 +483,7 @@ class PocketBaseDataSource implements IDataSource {
     umMesAtras.setDate(umMesAtras.getDate() - 30);
     const respostasUltimos30d = respostas.filter(r => new Date(r.respondedAt) >= umMesAtras);
     const acertosUltimos30d = respostasUltimos30d.filter(r => r.acertou).length;
-    const acertoUltimos30d = respostasUltimos30d.length > 0 ? (acertosUltimos30d / respostasUltimos30d.length) * 100 : 0;
+    const acertoUltimos30dPercent = respostasUltimos30d.length > 0 ? (acertosUltimos30d / respostasUltimos30d.length) * 100 : 0;
 
     const historicoAcertos = Array.from({ length: 30 }, (_, i) => {
         const date = new Date();
@@ -503,22 +503,21 @@ class PocketBaseDataSource implements IDataSource {
     const dificuldadeMap = new Map<string, { total: number; acertos: number }>();
     const tipoMap = new Map<string, { total: number; acertos: number }>();
 
+    const updateMap = (map: Map<string, { total: number; acertos: number }>, key: string, acertou: boolean) => {
+        const current = map.get(key) || { total: 0, acertos: 0 };
+        current.total++;
+        if (acertou) {
+            current.acertos++;
+        }
+        map.set(key, current);
+    };
+
     for (const resposta of respostas) {
         const questao = resposta.expand?.questaoId as Questao | undefined;
         if (!questao) continue;
-
-        const updateMap = (map: Map<string, { total: number; acertos: number }>, key: string) => {
-            const current = map.get(key) || { total: 0, acertos: 0 };
-            current.total++;
-            if (resposta.acertou) {
-                current.acertos++;
-            }
-            map.set(key, current);
-        };
-
-        updateMap(desempenhoMap, questao.disciplinaId);
-        updateMap(dificuldadeMap, questao.dificuldade);
-        updateMap(tipoMap, questao.tipo);
+        updateMap(desempenhoMap, questao.disciplinaId, resposta.acertou);
+        updateMap(dificuldadeMap, questao.dificuldade, resposta.acertou);
+        updateMap(tipoMap, questao.tipo, resposta.acertou);
     }
     
     const formatPerformanceData = (map: Map<string, { total: number; acertos: number }>, nameMap: Map<string, string>): PerformancePorCriterio[] => {
@@ -532,25 +531,9 @@ class PocketBaseDataSource implements IDataSource {
     const disciplinaNameMap = new Map(disciplinas.map(d => [d.id, d.nome]));
     const desempenhoPorDisciplina = formatPerformanceData(desempenhoMap, disciplinaNameMap);
     
-    const allDificuldades = ['Fácil', 'Médio', 'Difícil'];
-    const desempenhoPorDificuldade = allDificuldades.map(d => {
-        const data = dificuldadeMap.get(d) || { total: 0, acertos: 0 };
-        return {
-            nome: d,
-            totalQuestoes: data.total,
-            percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
-        };
-    });
-
-    const allTipos = ['Múltipla Escolha', 'Certo ou Errado', 'Completar Lacuna', 'Flashcard'];
-     const desempenhoPorTipo = allTipos.map(t => {
-        const data = tipoMap.get(t) || { total: 0, acertos: 0 };
-        return {
-            nome: t,
-            totalQuestoes: data.total,
-            percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
-        };
-    });
+    // Create the name map dynamically from the keys of the map itself
+    const desempenhoPorDificuldade = formatPerformanceData(dificuldadeMap, new Map(Array.from(dificuldadeMap.keys()).map(k => [k,k])));
+    const desempenhoPorTipo = formatPerformanceData(tipoMap, new Map(Array.from(tipoMap.keys()).map(k => [k,k])));
 
     const simuladoEmAndamento = simulados.find(s => s.status === 'Em andamento');
     const hoje = new Date().toISOString().split('T')[0];
@@ -560,7 +543,7 @@ class PocketBaseDataSource implements IDataSource {
         totalRespostas,
         acertoGeral,
         tempoMedioGeral,
-        acertoUltimos30d,
+        acertoUltimos30d: acertoUltimos30dPercent,
         historicoAcertos,
         desempenhoPorDisciplina,
         desempenhoPorDificuldade,
