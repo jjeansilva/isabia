@@ -18,12 +18,10 @@ import {
   CommandSeparator,
 } from "@/components/ui/command"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
 
 interface DataTableFacetedFilterProps<TData, TValue> {
@@ -44,8 +42,8 @@ export function DataTableFacetedFilter<TData, TValue>({
   const selectedValues = new Set(column?.getFilterValue() as string[])
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
+    <Popover>
+      <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 border-dashed">
           <PlusCircle className="mr-2 h-4 w-4" />
           {title}
@@ -83,11 +81,8 @@ export function DataTableFacetedFilter<TData, TValue>({
             </>
           )}
         </Button>
-      </DialogTrigger>
-      <DialogContent>
-         <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
+      </PopoverTrigger>
+      <PopoverContent className="w-[200px] p-0" align="start">
         <Command>
           <CommandInput placeholder={title} />
           <CommandList>
@@ -148,7 +143,7 @@ export function DataTableFacetedFilter<TData, TValue>({
             )}
           </CommandList>
         </Command>
-      </DialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   )
 }
