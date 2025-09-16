@@ -21,7 +21,7 @@ export default function ResultadoPage() {
 
     const { data: simuladoResult, isLoading: isLoadingSimulado } = useQuery({
         queryKey: ['simuladoResultado', id],
-        queryFn: () => dataSource.get<Simulado>('simulados_abcde1', id),
+        queryFn: () => dataSource.get<Simulado>('simulados', id),
     });
 
     const simulado = useMemo(() => {
@@ -38,7 +38,7 @@ export default function ResultadoPage() {
 
     const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
         queryKey: ['questoes', 'all'], // Use a distinct key
-        queryFn: () => dataSource.list<Questao>('questoes_abcde1'),
+        queryFn: () => dataSource.list<Questao>('questoes'),
     });
     
     const getQuestaoById = (qid: string) => {
@@ -113,3 +113,5 @@ export default function ResultadoPage() {
         </>
     )
 }
+
+    

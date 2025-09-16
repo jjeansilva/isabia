@@ -72,7 +72,7 @@ export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit }: Da
   const [questaoToDelete, setQuestaoToDelete] = React.useState<Questao | null>(null);
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => dataSource.delete('questoes_abcde1', id),
+    mutationFn: (id: string) => dataSource.delete('questoes', id),
     onSuccess: () => {
       toast({ title: "Sucesso!", description: "Questão excluída." });
       queryClient.invalidateQueries({ queryKey: ["questoes"] });
@@ -213,3 +213,5 @@ export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit }: Da
     </div>
   )
 }
+
+    

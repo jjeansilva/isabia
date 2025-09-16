@@ -47,7 +47,7 @@ export function ReportErrorForm({ open, onOpenChange, questao }: { open: boolean
 
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
-        return dataSource.update("questoes_abcde1", questao.id, { 
+        return dataSource.update("questoes", questao.id, { 
             necessitaRevisao: true,
             motivoRevisao: values.motivoRevisao 
         });
@@ -107,3 +107,5 @@ export function ReportErrorForm({ open, onOpenChange, questao }: { open: boolean
     </Dialog>
   );
 }
+
+    

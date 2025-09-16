@@ -149,4 +149,6 @@ export interface PerformancePorCriterio {
 }
 
 
-export type CollectionName = 'users' | 'disciplinas_abcde1' | 'topicos_abcde1' | 'questoes_abcde1' | 'simulados_abcde1' | 'respostas_abcde1' | 'revisoes_abcde1' | 'stats_abcde1';
+export type CollectionName = 'users' | 'disciplinas' | 'topicos' | 'questoes' | 'simulados' | 'respostas' | 'revisoes' | 'stats';
+
+    

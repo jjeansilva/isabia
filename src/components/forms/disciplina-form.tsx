@@ -76,9 +76,9 @@ export function DisciplinaForm({ open, onOpenChange, disciplina }: { open: boole
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) => {
       if (disciplina) {
-        return dataSource.update("disciplinas_abcde1", disciplina.id, values);
+        return dataSource.update("disciplinas", disciplina.id, values);
       }
-      return dataSource.create("disciplinas_abcde1", values);
+      return dataSource.create("disciplinas", values);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["disciplinas"] });
@@ -168,3 +168,5 @@ export function DisciplinaForm({ open, onOpenChange, disciplina }: { open: boole
     </Dialog>
   );
 }
+
+    

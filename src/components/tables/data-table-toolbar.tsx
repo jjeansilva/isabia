@@ -50,7 +50,7 @@ export function DataTableToolbar<TData>({
   const { toast } = useToast()
 
   const deleteMutation = useMutation({
-    mutationFn: (ids: string[]) => dataSource.bulkDelete('questoes_abcde1', ids),
+    mutationFn: (ids: string[]) => dataSource.bulkDelete('questoes', ids),
     onSuccess: () => {
       toast({ title: "Sucesso!", description: "Questões selecionadas excluídas." });
       queryClient.invalidateQueries({ queryKey: ["questoes"] });
@@ -158,3 +158,5 @@ export function DataTableToolbar<TData>({
     </div>
   )
 }
+
+    

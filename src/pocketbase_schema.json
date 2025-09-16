@@ -161,8 +161,8 @@
         "schema": [
             { "id": "k7vjgz9w", "name": "nome", "type": "text", "required": true, "presentable": true },
             { "id": "bcfu7pqs", "name": "ordem", "type": "number" },
-            { "id": "relation2807848817", "name": "disciplinaId", "type": "relation", "required": true, "options": { "collectionId": "disciplinas_abcde1", "maxSelect": 1, "cascadeDelete": false } },
-            { "id": "relation_topico_pai", "name": "topicoPaiId", "type": "relation", "required": false, "options": { "collectionId": "topicos_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation2807848817", "name": "disciplinaId", "type": "relation", "required": true, "options": { "collectionId": "disciplinas", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation_topico_pai", "name": "topicoPaiId", "type": "relation", "required": false, "options": { "collectionId": "topicos", "maxSelect": 1, "cascadeDelete": false } },
             { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
         ]
     },
@@ -190,8 +190,8 @@
             { "id": "4gczwz9j", "name": "hashConteudo", "type": "text", "required": true },
             { "id": "bool_necessita_revisao", "name": "necessitaRevisao", "type": "bool", "required": false },
             { "id": "text_motivo_revisao", "name": "motivoRevisao", "type": "text", "required": false },
-            { "id": "relation853048275", "name": "disciplinaId", "type": "relation", "required": true, "options": { "collectionId": "disciplinas_abcde1", "maxSelect": 1, "cascadeDelete": false } },
-            { "id": "relation2931482895", "name": "topicoId", "type": "relation", "required": true, "options": { "collectionId": "topicos_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation853048275", "name": "disciplinaId", "type": "relation", "required": true, "options": { "collectionId": "disciplinas", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation2931482895", "name": "topicoId", "type": "relation", "required": true, "options": { "collectionId": "topicos", "maxSelect": 1, "cascadeDelete": false } },
             { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
         ]
     },
@@ -232,8 +232,8 @@
             { "id": "select2929511165", "name": "confianca", "type": "select", "options": { "maxSelect": 1, "values": [ "Certeza", "Dúvida", "Chute" ] } },
             { "id": "jph7t0b7", "name": "tempoSegundos", "type": "number", "required": true },
             { "id": "f5k6cwqu", "name": "respondedAt", "type": "date", "required": true },
-            { "id": "relation377375640", "name": "questaoId", "type": "relation", "required": true, "options": { "collectionId": "questoes_abcde1", "maxSelect": 1, "cascadeDelete": false } },
-            { "id": "relation3158640492", "name": "simuladoId", "type": "relation", "options": { "collectionId": "simulados_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation377375640", "name": "questaoId", "type": "relation", "required": true, "options": { "collectionId": "questoes", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation3158640492", "name": "simuladoId", "type": "relation", "options": { "collectionId": "simulados", "maxSelect": 1, "cascadeDelete": false } },
             { "id": "relation2375276105", "name": "user", "type": "relation", "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
         ]
     },
@@ -250,7 +250,7 @@
         "schema": [
             { "id": "jph7t0b7", "name": "bucket", "type": "number", "required": true },
             { "id": "w3f5wct5", "name": "proximaRevisao", "type": "date", "required": true },
-            { "id": "relation377375640", "name": "questaoId", "type": "relation", "required": true, "options": { "collectionId": "questoes_abcde1", "maxSelect": 1, "cascadeDelete": false } },
+            { "id": "relation377375640", "name": "questaoId", "type": "relation", "required": true, "options": { "collectionId": "questoes", "maxSelect": 1, "cascadeDelete": false } },
             { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "maxSelect": 1, "cascadeDelete": true } }
         ]
     },
@@ -274,5 +274,7 @@
         ]
     }
 ]
+
+    
 
     

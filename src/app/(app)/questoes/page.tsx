@@ -26,18 +26,18 @@ export default function QuestoesPage() {
   
   const { data: disciplinas, isLoading: isLoadingDisciplinas } = useQuery({
     queryKey: ['disciplinas'],
-    queryFn: () => dataSource.list<Disciplina>('disciplinas_abcde1')
+    queryFn: () => dataSource.list<Disciplina>('disciplinas')
   });
 
   const { data: topicos, isLoading: isLoadingTopicos } = useQuery({
     queryKey: ['topicos'],
-    queryFn: () => dataSource.list<Topico>('topicos_abcde1')
+    queryFn: () => dataSource.list<Topico>('topicos')
   });
 
   const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
     queryKey: ['questoes'],
     queryFn: async () => {
-        return dataSource.list<Questao>('questoes_abcde1');
+        return dataSource.list<Questao>('questoes');
     },
     refetchOnWindowFocus: true,
   });
@@ -118,3 +118,5 @@ export default function QuestoesPage() {
     </>
   );
 }
+
+    
