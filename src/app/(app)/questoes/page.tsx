@@ -13,7 +13,7 @@ import { ImportQuestionsForm } from "@/components/forms/import-questions-form";
 import { QuestoesDataTable } from "@/components/tables/questoes-data-table";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReportedQuestionsList } from "@/components/tables/reported-questions-list";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -26,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AlertTriangle } from "lucide-react";
 
 export default function QuestoesPage() {
   const dataSource = useData();
@@ -136,12 +137,33 @@ export default function QuestoesPage() {
         </Button>
       </PageHeader>
       
-      <Card className="mb-6">
+      <Card className="mb-6 border-destructive">
         <CardHeader>
-            <CardTitle>Card de Teste</CardTitle>
+          <div className="flex items-start gap-4">
+              <div className="mt-1">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                  <CardTitle>Questões Reportadas para Correção</CardTitle>
+                  <CardDescription>As seguintes questões foram sinalizadas com problemas e precisam de sua atenção.</CardDescription>
+              </div>
+          </div>
         </CardHeader>
         <CardContent>
-            <p>Este é um card de teste estático.</p>
+            {isLoading ? (
+                <p>Carregando questões reportadas...</p>
+            ) : reportedQuestoes.length > 0 ? (
+                <ReportedQuestionsList 
+                    questoes={reportedQuestoes}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onMarkAsCorrected={handleMarkAsCorrected}
+                />
+            ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhuma questão reportada no momento. Bom trabalho!
+                </p>
+            )}
         </CardContent>
       </Card>
       
