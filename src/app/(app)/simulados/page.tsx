@@ -36,7 +36,7 @@ function SimuladoCard({ simulado }: { simulado: Simulado }) {
     <Card>
       <CardHeader>
         <div className="flex justify-between items-start">
-            <CardTitle>{simulado.nome}</CardTitle>
+            <CardTitle className="truncate mr-2">{simulado.nome}</CardTitle>
             {getStatusBadge(simulado.status)}
         </div>
         <CardDescription>{new Date(simulado.criadoEm).toLocaleDateString()}</CardDescription>
