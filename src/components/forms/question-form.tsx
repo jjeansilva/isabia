@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -91,7 +90,9 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
         
         let respostaCorreta = questao.respostaCorreta;
         try {
-            respostaCorreta = JSON.parse(respostaCorreta);
+            if (typeof respostaCorreta === 'string') {
+              respostaCorreta = JSON.parse(respostaCorreta);
+            }
         } catch(e) {
             // not a json, use as is
         }
@@ -327,7 +328,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
                     <FormItem className="space-y-3 rounded-md border p-4">
                         <FormLabel>Resposta Correta</FormLabel>
                         <FormControl>
-                            <RadioGroup onValueChange={(val) => field.onChange(val === 'true')} value={field.value?.toString()} className="flex gap-4">
+                            <RadioGroup onValueChange={(val) => field.onChange(val === 'true' || val === 'true')} value={String(field.value)} className="flex gap-4">
                                 <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="true"/></FormControl><FormLabel className="font-normal">Certo</FormLabel></FormItem>
                                 <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="false"/></FormControl><FormLabel className="font-normal">Errado</FormLabel></FormItem>
                             </RadioGroup>
@@ -393,5 +394,3 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
     </Dialog>
   );
 }
-
-    

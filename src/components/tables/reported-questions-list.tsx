@@ -44,14 +44,17 @@ export function ReportedQuestionsList({ questoes, onEdit, onDelete, onMarkAsCorr
                   </p>
                 </div>
                 <div className="flex-shrink-0 flex items-center gap-1">
-                  <Button variant="outline" size="sm" onClick={() => onMarkAsCorrected(q)} title="Marcar como corrigida">
-                    <Check className="h-4 w-4 text-approval" />
+                   <Button variant="outline" size="sm" onClick={() => onMarkAsCorrected(q)} title="Marcar como corrigida">
+                    <Check className="h-4 w-4 mr-1 text-approval" />
+                    Corrigida
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => onEdit(q)} title="Editar">
-                    <Edit className="h-3 w-3" />
+                  <Button variant="outline" size="sm" onClick={() => onEdit(q)}>
+                    <Edit className="h-3 w-3 mr-1" />
+                    Editar
                   </Button>
-                  <Button variant="destructive" size="sm" onClick={() => onDelete(q)} title="Excluir">
-                    <Trash2 className="h-4 w-4" />
+                   <Button variant="destructive-outline" size="sm" onClick={() => onDelete(q)}>
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Excluir
                   </Button>
                 </div>
               </div>

@@ -112,7 +112,7 @@ export default function QuestoesPage() {
         motivoRevisao: ''
     }),
     onSuccess: (_, questao) => {
-        toast({ title: "Questão Corrigida!", description: `A questão "${questao.enunciado.substring(0, 30)}..." foi marcada como corrigida.`});
+        toast({ title: "Questão Corrigida!", description: `A questão foi marcada como corrigida.`});
         queryClient.invalidateQueries({ queryKey: ["questoes"] });
     },
     onError: (error) => {
