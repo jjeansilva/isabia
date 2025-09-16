@@ -51,7 +51,7 @@ export default function QuestoesPage() {
 
   const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
     queryKey: ['questoes'],
-    queryFn: () => dataSource.list<Questao>('questoes'),
+    queryFn: () => dataSource.list<Questao>('questoes', { expand: 'disciplinaId,topicoId' }),
     refetchOnWindowFocus: true,
   });
 
@@ -186,3 +186,5 @@ export default function QuestoesPage() {
     </>
   );
 }
+
+    
