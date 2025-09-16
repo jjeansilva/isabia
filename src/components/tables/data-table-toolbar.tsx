@@ -87,15 +87,15 @@ export function DataTableToolbar<TData>({
 
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex flex-1 items-center space-x-2">
+    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-1 flex-wrap items-center gap-2">
         <Input
           placeholder="Filtrar por enunciado..."
           value={(table.getColumn("enunciado")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("enunciado")?.setFilterValue(event.target.value)
           }
-          className="h-8 w-[150px] lg:w-[250px]"
+          className="h-8 w-full sm:w-[150px] lg:w-[250px]"
         />
         {table.getColumn("disciplinaId") && (
           <DataTableFacetedFilter
@@ -129,7 +129,7 @@ export function DataTableToolbar<TData>({
           </Button>
         )}
       </div>
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center gap-2">
         {table.getFilteredSelectedRowModel().rows.length > 0 && (
            <AlertDialog>
               <AlertDialogTrigger asChild>
