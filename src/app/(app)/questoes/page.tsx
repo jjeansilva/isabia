@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useData } from "@/hooks/use-data";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
-import { Questao, Disciplina, Topico } from "@/types";
+import { Questao, Disciplina, Topico, Resposta, Revisao } from "@/types";
 import { QuestionForm } from "@/components/forms/question-form";
 import { ImportQuestionsForm } from "@/components/forms/import-questions-form";
 import { QuestoesDataTable } from "@/components/tables/questoes-data-table";
@@ -53,7 +53,6 @@ export default function QuestoesPage() {
   const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
     queryKey: ['questoes'],
     queryFn: () => dataSource.list<Questao>('questoes', { expand: 'disciplinaId,topicoId' }),
-    refetchOnWindowFocus: true,
   });
 
   // --- Memos ---
@@ -65,13 +64,33 @@ export default function QuestoesPage() {
 
   // --- Mutations ---
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => dataSource.delete('questoes', id),
+    mutationFn: async (questaoId: string) => {
+        // Find and delete dependent records first
+        const respostasFilter = `questaoId = "${questaoId}"`;
+        const revisoesFilter = `questaoId = "${questaoId}"`;
+
+        const [respostasToDelete, revisoesToDelete] = await Promise.all([
+            dataSource.list<Resposta>('respostas', { filter: respostasFilter, fields: 'id' }),
+            dataSource.list<Revisao>('revisoes', { filter: revisoesFilter, fields: 'id' })
+        ]);
+
+        if (respostasToDelete.length > 0) {
+            await dataSource.bulkDelete('respostas', respostasToDelete.map(r => r.id));
+        }
+        if (revisoesToDelete.length > 0) {
+            await dataSource.bulkDelete('revisoes', revisoesToDelete.map(r => r.id));
+        }
+
+        // Now delete the question itself
+        return dataSource.delete('questoes', questaoId);
+    },
     onSuccess: () => {
-      toast({ title: "Sucesso!", description: "Questão excluída." });
+      toast({ title: "Sucesso!", description: "Questão e seus dados associados foram excluídos." });
       queryClient.invalidateQueries({ queryKey: ["questoes"] });
     },
     onError: (error) => {
-      toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível excluir a questão." });
+      console.error("Erro ao excluir questão:", error);
+      toast({ variant: "destructive", title: "Erro!", description: (error as Error).message || "Não foi possível excluir a questão." });
     },
     onSettled: () => {
       setQuestaoToDelete(null);
@@ -88,7 +107,7 @@ export default function QuestoesPage() {
         queryClient.invalidateQueries({ queryKey: ["questoes"] });
     },
     onError: (error) => {
-        toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível marcar a questão como corrigida." });
+        toast({ variant: "destructive", title: "Erro!", description: (error as Error).message || "Não foi possível marcar a questão como corrigida." });
     }
   });
   
@@ -196,7 +215,7 @@ export default function QuestoesPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Excluir Questão?</AlertDialogTitle>
               <AlertDialogDescription>
-                Tem certeza que deseja excluir a questão "{questaoToDelete?.enunciado.substring(0, 50)}..."? Esta ação não pode ser desfeita.
+                Tem certeza que deseja excluir a questão "{questaoToDelete?.enunciado.substring(0, 50)}..."? Todos os dados de respostas e revisões associados a ela também serão perdidos. Esta ação não pode ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

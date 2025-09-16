@@ -21,13 +21,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-import { Disciplina, QuestionDificuldade, Questao, Topico } from "@/types"
+import { Disciplina, QuestionDificuldade, Questao, Topico, Resposta, Revisao } from "@/types"
+import { useData } from "@/hooks/use-data"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useToast } from "@/hooks/use-toast"
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
   disciplinas: Disciplina[];
   topicos: Topico[];
-  onDeleteSelected: (ids: string[]) => void;
+  onDeleteSelected: (ids: string[]) => void; // This will now be handled internally
 }
 
 const dificuldades: { label: string, value: QuestionDificuldade }[] = [
@@ -40,18 +43,56 @@ export function DataTableToolbar<TData>({
   table,
   disciplinas,
   topicos,
-  onDeleteSelected
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
+  
+  const dataSource = useData();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      // Find and delete dependent records for all selected questions
+      const filter = ids.map(id => `questaoId = "${id}"`).join(' || ');
+      
+      const [respostasToDelete, revisoesToDelete] = await Promise.all([
+        dataSource.list<Resposta>('respostas', { filter, fields: 'id' }),
+        dataSource.list<Revisao>('revisoes', { filter, fields: 'id' })
+      ]);
+
+      if (respostasToDelete.length > 0) {
+        await dataSource.bulkDelete('respostas', respostasToDelete.map(r => r.id));
+      }
+      if (revisoesToDelete.length > 0) {
+        await dataSource.bulkDelete('revisoes', revisoesToDelete.map(r => r.id));
+      }
+
+      // Now delete the questions themselves
+      return dataSource.bulkDelete('questoes', ids);
+    },
+    onSuccess: (_, variables) => {
+      toast({ title: "Sucesso!", description: `${variables.length} questões e seus dados associados foram excluídas.` });
+      queryClient.invalidateQueries({ queryKey: ["questoes"] });
+    },
+    onError: (error) => {
+      console.error("Erro ao excluir questões em massa:", error);
+      toast({ variant: "destructive", title: "Erro!", description: (error as Error).message || "Não foi possível excluir as questões selecionadas." });
+    },
+    onSettled: () => {
+      table.resetRowSelection();
+      setIsAlertOpen(false);
+    }
+  });
+
 
   const handleDeleteSelected = () => {
     const selectedIds = table.getFilteredSelectedRowModel().rows.map(row => (row.original as Questao).id);
     if (selectedIds.length > 0) {
-      onDeleteSelected(selectedIds);
-      table.resetRowSelection();
+      bulkDeleteMutation.mutate(selectedIds);
+    } else {
+      setIsAlertOpen(false);
     }
-    setIsAlertOpen(false);
   };
 
   const disciplinaOptions = React.useMemo(() => 
@@ -93,12 +134,14 @@ export function DataTableToolbar<TData>({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Excluir Questões?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Tem certeza que deseja excluir as {table.getFilteredSelectedRowModel().rows.length} questões selecionadas? Esta ação não pode ser desfeita.
+                    Tem certeza que deseja excluir as {table.getFilteredSelectedRowModel().rows.length} questões selecionadas? Todos os dados de respostas e revisões associados a elas também serão perdidos. Esta ação não pode ser desfeita.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteSelected}>Sim, Excluir</AlertDialogAction>
+                  <AlertDialogAction onClick={handleDeleteSelected} disabled={bulkDeleteMutation.isPending}>
+                    {bulkDeleteMutation.isPending ? 'Excluindo...' : 'Sim, Excluir'}
+                  </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

@@ -144,5 +144,3 @@ export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit, onDe
     </div>
   )
 }
-
-    
