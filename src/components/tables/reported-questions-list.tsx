@@ -64,5 +64,5 @@ export function ReportedQuestionsList({ questoes, onEdit, onDelete, onMarkAsCorr
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

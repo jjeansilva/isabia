@@ -53,10 +53,12 @@ export function ReportErrorForm({ open, onOpenChange, questao }: { open: boolean
         });
     },
     onSuccess: () => {
+      // Invalidate both the specific question query and the general list
       queryClient.invalidateQueries({ queryKey: ["questoes", questao.id] });
-      queryClient.invalidateQueries({ queryKey: ["questoes"] }); // Invalidate list view
+      queryClient.invalidateQueries({ queryKey: ["questoes"] }); 
       toast({ title: "Erro Reportado!", description: "Obrigado pela sua contribuição. A questão será revisada." });
       onOpenChange(false);
+      form.reset();
     },
     onError: (error) => {
       toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível reportar o erro." });
@@ -107,5 +109,3 @@ export function ReportErrorForm({ open, onOpenChange, questao }: { open: boolean
     </Dialog>
   );
 }
-
-    

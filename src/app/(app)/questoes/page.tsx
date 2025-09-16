@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useData } from "@/hooks/use-data";
@@ -26,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useEffect } from 'react';
 
 export default function QuestoesPage() {
   const dataSource = useData();
@@ -33,11 +34,12 @@ export default function QuestoesPage() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   
-  const [showImportModal, setShowImportModal] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [selectedQuestao, setSelectedQuestao] = useState<Questao | undefined>(undefined);
   const [questaoToDelete, setQuestaoToDelete] = useState<Questao | null>(null);
   
+  // --- Data Fetching ---
   const { data: disciplinas, isLoading: isLoadingDisciplinas } = useQuery({
     queryKey: ['disciplinas'],
     queryFn: () => dataSource.list<Disciplina>('disciplinas')
@@ -50,48 +52,18 @@ export default function QuestoesPage() {
 
   const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
     queryKey: ['questoes'],
-    queryFn: async () => {
-        return dataSource.list<Questao>('questoes');
-    },
+    queryFn: () => dataSource.list<Questao>('questoes'),
     refetchOnWindowFocus: true,
   });
 
-  const isLoading = isLoadingDisciplinas || isLoadingTopicos || isLoadingQuestoes;
-  
+  // --- Memos ---
   const reportedQuestoes = useMemo(() => {
     return (questoes ?? []).filter(q => q.necessitaRevisao);
   }, [questoes]);
-
-
-  const handleEdit = useCallback((q: Questao) => {
-    setSelectedQuestao(q);
-    setIsFormOpen(true);
-  }, []);
-
-  const handleNewQuestion = () => {
-    setSelectedQuestao(undefined);
-    setIsFormOpen(true);
-  }
-
-  const handleCloseForm = () => {
-    setIsFormOpen(false);
-    setSelectedQuestao(undefined);
-  }
-
-  useEffect(() => {
-    const newQuestionParam = searchParams.get('new');
-    const importParam = searchParams.get('import');
-
-    if (newQuestionParam === 'true') {
-      handleNewQuestion();
-    }
-    if (importParam === 'true') {
-      setShowImportModal(true);
-    }
-  }, [searchParams]);
+  
+  const isLoading = isLoadingDisciplinas || isLoadingTopicos || isLoadingQuestoes;
 
   // --- Mutations ---
-
   const deleteMutation = useMutation({
     mutationFn: (id: string) => dataSource.delete('questoes', id),
     onSuccess: () => {
@@ -119,15 +91,42 @@ export default function QuestoesPage() {
         toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível marcar a questão como corrigida." });
     }
   });
-
-  const handleDelete = (q: Questao) => {
-    setQuestaoToDelete(q);
-  };
   
-  const handleMarkAsCorrected = (q: Questao) => {
-    markAsCorrectedMutation.mutate(q);
-  };
+  // --- Handlers ---
+  const handleNewQuestion = useCallback(() => {
+    setSelectedQuestao(undefined);
+    setIsFormOpen(true);
+  }, []);
 
+  const handleEdit = useCallback((q: Questao) => {
+    setSelectedQuestao(q);
+    setIsFormOpen(true);
+  }, []);
+
+  const handleDelete = useCallback((q: Questao) => {
+    setQuestaoToDelete(q);
+  }, []);
+
+  const handleMarkAsCorrected = useCallback((q: Questao) => {
+    markAsCorrectedMutation.mutate(q);
+  }, [markAsCorrectedMutation]);
+
+  const handleCloseForm = useCallback(() => {
+    setIsFormOpen(false);
+    setSelectedQuestao(undefined);
+  }, []);
+
+  useEffect(() => {
+    const newQuestionParam = searchParams.get('new');
+    const importParam = searchParams.get('import');
+
+    if (newQuestionParam === 'true') {
+      handleNewQuestion();
+    }
+    if (importParam === 'true') {
+      setShowImportModal(true);
+    }
+  }, [searchParams, handleNewQuestion]);
 
   return (
     <>
@@ -144,15 +143,13 @@ export default function QuestoesPage() {
             <Skeleton className="h-96 w-full" />
          </div>
       ) : (
-        <>
-            <div className="mb-6">
-              <ReportedQuestionsList 
-                questoes={reportedQuestoes}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onMarkAsCorrected={handleMarkAsCorrected}
-              />
-            </div>
+        <div className="space-y-6">
+            <ReportedQuestionsList 
+              questoes={reportedQuestoes}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onMarkAsCorrected={handleMarkAsCorrected}
+            />
           
             <Card>
               <CardContent className="p-2 xs:p-4 sm:p-6">
@@ -165,7 +162,7 @@ export default function QuestoesPage() {
                 />
               </CardContent>
             </Card>
-        </>
+        </div>
       )}
       
       {isFormOpen && <QuestionForm open={isFormOpen} onOpenChange={handleCloseForm} questao={selectedQuestao} />}
