@@ -61,7 +61,7 @@ function PerformanceTable({ title, data, isLoading }: { title: string, data: Per
                         )}
                         {!isLoading && data.map(item => (
                             <TableRow key={item.nome}>
-                                <TableCell className="font-medium max-w-24 xs:max-w-none truncate">{item.nome}</TableCell>
+                                <TableCell className="font-medium truncate">{item.nome}</TableCell>
                                 <TableCell className="text-center">{item.totalQuestoes}</TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex items-center justify-end gap-2">
