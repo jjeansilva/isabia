@@ -506,6 +506,7 @@ class PocketBaseDataSource implements IDataSource {
     const disciplinaNameMap = new Map(disciplinas.map(d => [d.id, d.nome]));
 
     const updateMap = (map: Map<string, { total: number; acertos: number }>, key: string, acertou: boolean) => {
+        if (!key) return;
         const current = map.get(key) || { total: 0, acertos: 0 };
         current.total++;
         if (acertou) {
@@ -519,9 +520,7 @@ class PocketBaseDataSource implements IDataSource {
         if (!questao) continue;
         
         const disciplinaNome = disciplinaNameMap.get(questao.disciplinaId);
-        if (disciplinaNome) {
-            updateMap(desempenhoMap, disciplinaNome, resposta.acertou);
-        }
+        updateMap(desempenhoMap, disciplinaNome!, resposta.acertou);
         updateMap(dificuldadeMap, questao.dificuldade, resposta.acertou);
         updateMap(tipoMap, questao.tipo, resposta.acertou);
     }
