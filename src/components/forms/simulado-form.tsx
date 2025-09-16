@@ -70,7 +70,8 @@ function CriterioRow({ index, remove }: { index: number; remove: (index: number)
   });
 
   return (
-    <div className="flex flex-col md:flex-row items-start md:items-end gap-2 p-2 sm:p-4 border rounded-lg relative">
+    <div className="p-2 sm:p-4 border rounded-lg">
+      <div className="flex flex-col md:flex-row items-start md:items-end gap-2">
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-2 sm:gap-4 w-full">
             <FormField
                 control={form.control}
@@ -152,9 +153,10 @@ function CriterioRow({ index, remove }: { index: number; remove: (index: number)
                 )}
             />
         </div>
-        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="md:absolute md:-right-12 md:top-8">
+        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="flex-shrink-0 self-end md:self-auto">
             <Trash2 className="h-4 w-4 text-destructive" />
         </Button>
+      </div>
     </div>
   )
 }
