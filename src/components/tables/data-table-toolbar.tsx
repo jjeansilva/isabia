@@ -88,20 +88,20 @@ export function DataTableToolbar<TData>({
 
   return (
     <div className="flex flex-col gap-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <Input
             placeholder="Filtrar por enunciado..."
             value={(table.getColumn("enunciado")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
                 table.getColumn("enunciado")?.setFilterValue(event.target.value)
             }
-            className="h-8 w-full md:max-w-sm"
+            className="h-8 w-full"
             />
-            <div className="flex items-center gap-2 self-end">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
                 {table.getFilteredSelectedRowModel().rows.length > 0 && (
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm" >Excluir selecionadas</Button>
+                        <Button variant="destructive" size="sm" >Excluir ({table.getFilteredSelectedRowModel().rows.length})</Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                         <AlertDialogHeader>
