@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from 'next/navigation';
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useData } from "@/hooks/use-data";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
@@ -15,14 +15,28 @@ import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReportedQuestionsList } from "@/components/tables/reported-questions-list";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function QuestoesPage() {
   const dataSource = useData();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const searchParams = useSearchParams();
   
   const [showImportModal, setShowImportModal] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedQuestao, setSelectedQuestao] = useState<Questao | undefined>(undefined);
+  const [questaoToDelete, setQuestaoToDelete] = useState<Questao | null>(null);
   
   const { data: disciplinas, isLoading: isLoadingDisciplinas } = useQuery({
     queryKey: ['disciplinas'],
@@ -76,6 +90,45 @@ export default function QuestoesPage() {
     }
   }, [searchParams]);
 
+  // --- Mutations ---
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => dataSource.delete('questoes', id),
+    onSuccess: () => {
+      toast({ title: "Sucesso!", description: "Questão excluída." });
+      queryClient.invalidateQueries({ queryKey: ["questoes"] });
+    },
+    onError: (error) => {
+      toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível excluir a questão." });
+    },
+    onSettled: () => {
+      setQuestaoToDelete(null);
+    }
+  });
+
+  const markAsCorrectedMutation = useMutation({
+    mutationFn: (questao: Questao) => dataSource.update('questoes', questao.id, {
+        necessitaRevisao: false,
+        motivoRevisao: ''
+    }),
+    onSuccess: (_, questao) => {
+        toast({ title: "Questão Corrigida!", description: `A questão "${questao.enunciado.substring(0, 30)}..." foi marcada como corrigida.`});
+        queryClient.invalidateQueries({ queryKey: ["questoes"] });
+    },
+    onError: (error) => {
+        toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível marcar a questão como corrigida." });
+    }
+  });
+
+  const handleDelete = (q: Questao) => {
+    setQuestaoToDelete(q);
+  };
+  
+  const handleMarkAsCorrected = (q: Questao) => {
+    markAsCorrectedMutation.mutate(q);
+  };
+
+
   return (
     <>
       <PageHeader title="Banco de Questões" description="Gerencie seu acervo de questões para simulados e revisões.">
@@ -95,7 +148,9 @@ export default function QuestoesPage() {
             <div className="mb-6">
               <ReportedQuestionsList 
                 questoes={reportedQuestoes}
-                onCorrect={handleEdit}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onMarkAsCorrected={handleMarkAsCorrected}
               />
             </div>
           
@@ -106,6 +161,7 @@ export default function QuestoesPage() {
                   disciplinas={disciplinas ?? []} 
                   topicos={topicos ?? []}
                   onEdit={handleEdit}
+                  onDelete={handleDelete}
                 />
               </CardContent>
             </Card>
@@ -115,8 +171,22 @@ export default function QuestoesPage() {
       {isFormOpen && <QuestionForm open={isFormOpen} onOpenChange={handleCloseForm} questao={selectedQuestao} />}
       {showImportModal && <ImportQuestionsForm open={showImportModal} onOpenChange={setShowImportModal} />}
       
+      <AlertDialog open={!!questaoToDelete} onOpenChange={(open) => !open && setQuestaoToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir Questão?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir a questão "{questaoToDelete?.enunciado.substring(0, 50)}..."? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => questaoToDelete && deleteMutation.mutate(questaoToDelete.id)} disabled={deleteMutation.isPending}>
+                {deleteMutation.isPending ? 'Excluindo...' : 'Sim, Excluir'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
     </>
   );
 }
-
-    

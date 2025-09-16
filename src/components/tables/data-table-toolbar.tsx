@@ -4,7 +4,6 @@
 import { Cross2Icon } from "@radix-ui/react-icons"
 import { Table } from "@tanstack/react-table"
 import React from "react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,14 +22,12 @@ import {
 } from "@/components/ui/alert-dialog"
 
 import { Disciplina, QuestionDificuldade, Questao, Topico } from "@/types"
-import { useData } from "@/hooks/use-data"
-import { useToast } from "@/hooks/use-toast"
-
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
   disciplinas: Disciplina[];
   topicos: Topico[];
+  onDeleteSelected: (ids: string[]) => void;
 }
 
 const dificuldades: { label: string, value: QuestionDificuldade }[] = [
@@ -43,29 +40,18 @@ export function DataTableToolbar<TData>({
   table,
   disciplinas,
   topicos,
+  onDeleteSelected
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0
-  const queryClient = useQueryClient()
-  const dataSource = useData()
-  const { toast } = useToast()
-
-  const deleteMutation = useMutation({
-    mutationFn: (ids: string[]) => dataSource.bulkDelete('questoes', ids),
-    onSuccess: () => {
-      toast({ title: "Sucesso!", description: "Questões selecionadas excluídas." });
-      queryClient.invalidateQueries({ queryKey: ["questoes"] });
-      table.resetRowSelection();
-    },
-    onError: (error) => {
-       toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível excluir as questões." });
-    }
-  });
+  const [isAlertOpen, setIsAlertOpen] = React.useState(false);
 
   const handleDeleteSelected = () => {
     const selectedIds = table.getFilteredSelectedRowModel().rows.map(row => (row.original as Questao).id);
     if (selectedIds.length > 0) {
-      deleteMutation.mutate(selectedIds);
+      onDeleteSelected(selectedIds);
+      table.resetRowSelection();
     }
+    setIsAlertOpen(false);
   };
 
   const disciplinaOptions = React.useMemo(() => 
@@ -99,7 +85,7 @@ export function DataTableToolbar<TData>({
         />
         <div className="flex items-center gap-2 self-end sm:self-auto">
           {table.getFilteredSelectedRowModel().rows.length > 0 && (
-            <AlertDialog>
+            <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" size="sm" >Excluir ({table.getFilteredSelectedRowModel().rows.length})</Button>
               </AlertDialogTrigger>
@@ -112,9 +98,7 @@ export function DataTableToolbar<TData>({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteSelected} disabled={deleteMutation.isPending}>
-                    {deleteMutation.isPending ? 'Excluindo...' : 'Sim, Excluir'}
-                  </AlertDialogAction>
+                  <AlertDialogAction onClick={handleDeleteSelected}>Sim, Excluir</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -158,5 +142,3 @@ export function DataTableToolbar<TData>({
     </div>
   )
 }
-
-    

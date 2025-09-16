@@ -17,8 +17,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-
 import {
   Table,
   TableBody,
@@ -31,33 +29,18 @@ import {
 import { DataTablePagination } from "./data-table-pagination"
 import { DataTableToolbar } from "./data-table-toolbar"
 import { Disciplina, Questao, Topico } from "@/types"
-import { Card, CardContent } from "../ui/card"
 import { getColumns } from "./questoes-columns"
-import { useData } from "@/hooks/use-data"
-import { useToast } from "@/hooks/use-toast"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+
 
 interface DataTableProps {
   questoes: Questao[];
   disciplinas: Disciplina[];
   topicos: Topico[];
   onEdit: (questao: Questao) => void;
+  onDelete: (questao: Questao) => void;
 }
 
-export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit }: DataTableProps) {
-  const queryClient = useQueryClient();
-  const dataSource = useData();
-  const { toast } = useToast();
-
+export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit, onDelete }: DataTableProps) {
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({
@@ -69,29 +52,13 @@ export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit }: Da
   )
   const [sorting, setSorting] = React.useState<SortingState>([])
 
-  const [questaoToDelete, setQuestaoToDelete] = React.useState<Questao | null>(null);
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => dataSource.delete('questoes', id),
-    onSuccess: () => {
-      toast({ title: "Sucesso!", description: "Questão excluída." });
-      queryClient.invalidateQueries({ queryKey: ["questoes"] });
-    },
-    onError: (error) => {
-      toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível excluir a questão." });
-    },
-    onSettled: () => {
-      setQuestaoToDelete(null);
-    }
-  });
-
   const columns = React.useMemo<ColumnDef<Questao>[]>(() => {
     const disciplinaMap = new Map(disciplinas.map(d => [d.id, d.nome]));
     const topicoMap = new Map(topicos.map(t => [t.id, t.nome]));
 
     const baseColumns = getColumns({
       onEdit,
-      onDelete: (q) => setQuestaoToDelete(q),
+      onDelete,
     });
     
     // Customize cell renderers here
@@ -111,7 +78,7 @@ export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit }: Da
       return col;
     });
 
-  }, [disciplinas, topicos, onEdit]);
+  }, [disciplinas, topicos, onEdit, onDelete]);
   
   const table = useReactTable({
     data: questoes,
@@ -141,6 +108,7 @@ export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit }: Da
         table={table}
         disciplinas={disciplinas}
         topicos={topicos}
+        onDeleteSelected={(ids) => ids.forEach(id => onDelete(questoes.find(q => q.id === id)!))}
       />
       <div className="rounded-lg border bg-card text-card-foreground">
         <Table>
@@ -193,25 +161,6 @@ export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit }: Da
         </Table>
       </div>
       <DataTablePagination table={table} />
-
-       <AlertDialog open={!!questaoToDelete} onOpenChange={(open) => !open && setQuestaoToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Excluir Questão?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza que deseja excluir a questão "{questaoToDelete?.enunciado.substring(0, 50)}..."? Esta ação não pode ser desfeita.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => questaoToDelete && deleteMutation.mutate(questaoToDelete.id)} disabled={deleteMutation.isPending}>
-                {deleteMutation.isPending ? 'Excluindo...' : 'Sim, Excluir'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
     </div>
   )
 }
-
-    

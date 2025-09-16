@@ -4,15 +4,17 @@
 import { Questao } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
-import { AlertTriangle, Edit } from "lucide-react";
+import { AlertTriangle, Check, Edit, Trash2 } from "lucide-react";
 import { Separator } from "../ui/separator";
 
 interface ReportedQuestionsListProps {
   questoes: Questao[];
-  onCorrect: (questao: Questao) => void;
+  onEdit: (questao: Questao) => void;
+  onDelete: (questao: Questao) => void;
+  onMarkAsCorrected: (questao: Questao) => void;
 }
 
-export function ReportedQuestionsList({ questoes, onCorrect }: ReportedQuestionsListProps) {
+export function ReportedQuestionsList({ questoes, onEdit, onDelete, onMarkAsCorrected }: ReportedQuestionsListProps) {
   if (questoes.length === 0) {
     return null;
   }
@@ -41,10 +43,17 @@ export function ReportedQuestionsList({ questoes, onCorrect }: ReportedQuestions
                     <span className="font-medium">Motivo:</span> {q.motivoRevisao || "Não especificado."}
                   </p>
                 </div>
-                <Button variant="secondary" size="sm" onClick={() => onCorrect(q)} className="flex-shrink-0">
-                  <Edit className="mr-2 h-3 w-3" />
-                  Corrigir
-                </Button>
+                <div className="flex-shrink-0 flex items-center gap-1">
+                  <Button variant="outline" size="sm" onClick={() => onMarkAsCorrected(q)} title="Marcar como corrigida">
+                    <Check className="h-4 w-4 text-approval" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => onEdit(q)} title="Editar">
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => onDelete(q)} title="Excluir">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               {index < questoes.length - 1 && <Separator className="mt-4" />}
             </div>
