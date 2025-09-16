@@ -91,7 +91,7 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
         
         let respostaCorreta = questao.respostaCorreta;
         try {
-            respostaCorreta = JSON.parse(questao.respostaCorreta);
+            respostaCorreta = JSON.parse(respostaCorreta);
         } catch(e) {
             // not a json, use as is
         }

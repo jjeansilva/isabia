@@ -40,6 +40,8 @@ function createMockData() {
       version: 1,
       isActive: true,
       hashConteudo: 'hash1',
+      necessitaRevisao: false,
+      motivoRevisao: '',
     },
     {
       disciplina: 'Direito Administrativo',
@@ -54,6 +56,8 @@ function createMockData() {
       version: 1,
       isActive: true,
       hashConteudo: 'hash2',
+      necessitaRevisao: true,
+      motivoRevisao: 'A resposta parece correta, mas a explicação poderia ser mais detalhada, mencionando a diferença para a presunção de veracidade.',
     },
      {
       disciplina: 'Português',
@@ -68,6 +72,8 @@ function createMockData() {
       version: 1,
       isActive: true,
       hashConteudo: 'hash3',
+      necessitaRevisao: false,
+      motivoRevisao: '',
     },
     {
       disciplina: 'Direito Constitucional',
@@ -80,6 +86,8 @@ function createMockData() {
       version: 1,
       isActive: true,
       hashConteudo: 'hash4',
+      necessitaRevisao: true,
+      motivoRevisao: 'Erro de digitação na palavra "realisado". O correto é "realizado".',
     },
      {
       disciplina: 'Informática',
@@ -94,6 +102,8 @@ function createMockData() {
       version: 1,
       isActive: true,
       hashConteudo: 'hash5',
+      necessitaRevisao: false,
+      motivoRevisao: '',
     },
   ];
 

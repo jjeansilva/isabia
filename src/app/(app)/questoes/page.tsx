@@ -40,6 +40,7 @@ export default function QuestoesPage() {
     queryFn: async () => {
         return dataSource.list<Questao>('questoes_abcde1');
     },
+    refetchOnWindowFocus: true,
   });
 
   const isLoading = isLoadingDisciplinas || isLoadingTopicos || isLoadingQuestoes;
