@@ -194,25 +194,24 @@ const Sidebar = React.forwardRef<
 
     if (isMobile) {
       return (
-        <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+        <Sheet open={openMobile} onOpenChange={setOpenMobile}>
           <SheetContent
-            data-sidebar="sidebar"
-            data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
-            style={
-              {
-                "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-              } as React.CSSProperties
-            }
             side={side}
+            className={cn(
+              "flex h-full w-[--sidebar-width-mobile] flex-col bg-background p-0 sm:max-w-sm",
+              className
+            )}
+            {...props}
           >
-            <SheetHeader className="p-0 m-0 h-0">
-                <SheetTitle className="sr-only">Menu</SheetTitle>
+            <SheetHeader>
+              <SheetTitle>
+                <span className="sr-only">Menu</span>
+              </SheetTitle>
             </SheetHeader>
-            <div className="flex h-full w-full flex-col">{children}</div>
+            {children}
           </SheetContent>
         </Sheet>
-      )
+      );
     }
 
     return (
@@ -764,5 +763,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-    
