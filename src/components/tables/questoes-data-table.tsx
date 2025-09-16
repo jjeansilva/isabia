@@ -61,7 +61,10 @@ export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit }: Da
 
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>({
+        topicoId: false,
+        dificuldade: false,
+    })
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
