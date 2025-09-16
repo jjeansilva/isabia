@@ -20,7 +20,6 @@ export default function QuestoesPage() {
   const dataSource = useData();
   const searchParams = useSearchParams();
   
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedQuestao, setSelectedQuestao] = useState<Questao | undefined>(undefined);
@@ -57,12 +56,12 @@ export default function QuestoesPage() {
 
   const handleNewQuestion = () => {
     setSelectedQuestao(undefined);
-    setShowCreateModal(true);
+    setIsFormOpen(true);
   }
 
   const handleCloseForm = () => {
-    setShowCreateModal(false);
     setIsFormOpen(false);
+    setSelectedQuestao(undefined);
   }
 
   useEffect(() => {
@@ -86,50 +85,36 @@ export default function QuestoesPage() {
         </Button>
       </PageHeader>
       
-      {reportedQuestoes.length > 0 && (
-        <div className="mb-6">
-          <ReportedQuestionsList 
-            questoes={reportedQuestoes}
-            onCorrect={handleEdit}
-          />
-        </div>
-      )}
-      
-      {(showCreateModal || isFormOpen) ? <QuestionForm open={showCreateModal || isFormOpen} onOpenChange={handleCloseForm} questao={selectedQuestao} /> : null}
-      {showImportModal ? <ImportQuestionsForm open={showImportModal} onOpenChange={setShowImportModal} /> : null}
-      
       {isLoading ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-1 items-center space-x-2">
-              <Skeleton className="h-8 w-[150px] lg:w-[250px]" />
-              <Skeleton className="h-8 w-[120px]" />
-              <Skeleton className="h-8 w-[120px]" />
-            </div>
-            <Skeleton className="h-8 w-[80px]" />
-          </div>
-          <Card>
-            <CardContent className="p-0">
-               <div className="p-4 space-y-2">
-                {Array.from({ length: 10 }).map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+         <div className="space-y-4">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-96 w-full" />
+         </div>
       ) : (
-        <Card>
-          <CardContent className="p-2 xs:p-4 sm:p-6">
-            <QuestoesDataTable 
-              questoes={questoes ?? []} 
-              disciplinas={disciplinas ?? []} 
-              topicos={topicos ?? []}
-              onEdit={handleEdit}
-            />
-          </CardContent>
-        </Card>
+        <>
+            <div className="mb-6">
+              <ReportedQuestionsList 
+                questoes={reportedQuestoes}
+                onCorrect={handleEdit}
+              />
+            </div>
+          
+            <Card>
+              <CardContent className="p-2 xs:p-4 sm:p-6">
+                <QuestoesDataTable 
+                  questoes={questoes ?? []} 
+                  disciplinas={disciplinas ?? []} 
+                  topicos={topicos ?? []}
+                  onEdit={handleEdit}
+                />
+              </CardContent>
+            </Card>
+        </>
       )}
+      
+      {isFormOpen && <QuestionForm open={isFormOpen} onOpenChange={handleCloseForm} questao={selectedQuestao} />}
+      {showImportModal && <ImportQuestionsForm open={showImportModal} onOpenChange={setShowImportModal} />}
+      
     </>
   );
 }
