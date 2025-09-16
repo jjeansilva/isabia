@@ -87,16 +87,42 @@ export function DataTableToolbar<TData>({
 
 
   return (
-    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-      <div className="flex flex-1 flex-wrap items-center gap-2">
-        <Input
-          placeholder="Filtrar por enunciado..."
-          value={(table.getColumn("enunciado")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("enunciado")?.setFilterValue(event.target.value)
-          }
-          className="h-8 w-full sm:w-[150px] lg:w-[250px]"
-        />
+    <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <Input
+            placeholder="Filtrar por enunciado..."
+            value={(table.getColumn("enunciado")?.getFilterValue() as string) ?? ""}
+            onChange={(event) =>
+                table.getColumn("enunciado")?.setFilterValue(event.target.value)
+            }
+            className="h-8 w-full"
+            />
+            <div className="flex items-center gap-2">
+                {table.getFilteredSelectedRowModel().rows.length > 0 && (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" >Excluir selecionadas</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir Questões?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tem certeza que deseja excluir as {table.getFilteredSelectedRowModel().rows.length} questões selecionadas? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteSelected} disabled={deleteMutation.isPending}>
+                            {deleteMutation.isPending ? 'Excluindo...' : 'Sim, Excluir'}
+                        </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                    </AlertDialog>
+                )}
+                <DataTableViewOptions table={table} />
+            </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
         {table.getColumn("disciplinaId") && (
           <DataTableFacetedFilter
             column={table.getColumn("disciplinaId")}
@@ -128,30 +154,6 @@ export function DataTableToolbar<TData>({
             <Cross2Icon className="ml-2 h-4 w-4" />
           </Button>
         )}
-      </div>
-      <div className="flex items-center gap-2">
-        {table.getFilteredSelectedRowModel().rows.length > 0 && (
-           <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm" >Excluir selecionadas</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Excluir Questões?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Tem certeza que deseja excluir as {table.getFilteredSelectedRowModel().rows.length} questões selecionadas? Esta ação não pode ser desfeita.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteSelected} disabled={deleteMutation.isPending}>
-                    {deleteMutation.isPending ? 'Excluindo...' : 'Sim, Excluir'}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-        )}
-        <DataTableViewOptions table={table} />
       </div>
     </div>
   )

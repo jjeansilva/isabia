@@ -31,8 +31,8 @@ export function DataTablePagination<TData>({
         {table.getFilteredSelectedRowModel().rows.length} de{" "}
         {table.getFilteredRowModel().rows.length} linha(s) selecionada(s).
       </div>
-      <div className="flex items-center space-x-6 lg:space-x-8">
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 sm:space-x-6 lg:space-x-8">
+        <div className="hidden items-center space-x-2 sm:flex">
           <p className="text-sm font-medium">Linhas por página</p>
           <Select
             value={`${table.getState().pagination.pageSize}`}
@@ -52,7 +52,7 @@ export function DataTablePagination<TData>({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+        <div className="hidden w-[100px] items-center justify-center text-sm font-medium sm:flex">
           Página {table.getState().pagination.pageIndex + 1} de{" "}
           {table.getPageCount()}
         </div>
