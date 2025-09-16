@@ -195,11 +195,13 @@ class MockDataSource implements IDataSource {
 
     const questoesMap = new Map(questoes.map(q => [q.id, q]));
     
-    const reducePerformance = (map: Map<string, { total: number; acertos: number }>, key: string) => {
+    const reducePerformance = (map: Map<string, { total: number; acertos: number }>, key: string, acertou: boolean) => {
         if (!map.has(key)) map.set(key, { total: 0, acertos: 0 });
         const current = map.get(key)!;
         current.total++;
-        return current;
+        if (acertou) {
+          current.acertos++;
+        }
     };
     
     const desempenhoMap = new Map<string, { total: number; acertos: number }>();
@@ -210,14 +212,9 @@ class MockDataSource implements IDataSource {
         const questao = questoesMap.get(resposta.questaoId);
         if (!questao) continue;
 
-        const discPerf = reducePerformance(desempenhoMap, questao.disciplinaId);
-        if (resposta.acertou) discPerf.acertos++;
-
-        const difPerf = reducePerformance(dificuldadeMap, questao.dificuldade);
-        if (resposta.acertou) difPerf.acertos++;
-
-        const tipoPerf = reducePerformance(tipoMap, questao.tipo);
-        if (resposta.acertou) tipoPerf.acertos++;
+        reducePerformance(desempenhoMap, questao.disciplinaId, resposta.acertou);
+        reducePerformance(dificuldadeMap, questao.dificuldade, resposta.acertou);
+        reducePerformance(tipoMap, questao.tipo, resposta.acertou);
     }
     
     const formatPerformanceData = (map: Map<string, { total: number; acertos: number }>, nameMap: Map<string, string>): PerformancePorCriterio[] => {
@@ -522,27 +519,23 @@ class PocketBaseDataSource implements IDataSource {
             percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
         })).sort((a, b) => b.totalQuestoes - a.totalQuestoes);
     };
+    
+    const formatPerformanceFromKeys = (keys: string[], map: Map<string, { total: number, acertos: number }>): PerformancePorCriterio[] => {
+        return keys.map(key => {
+            const data = map.get(key) || { total: 0, acertos: 0 };
+            return {
+                nome: key,
+                totalQuestoes: data.total,
+                percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
+            };
+        });
+    };
 
     const disciplinaNameMap = new Map(disciplinas.map(d => [d.id, d.nome]));
     const desempenhoPorDisciplina = formatPerformanceData(desempenhoMap, disciplinaNameMap);
     
-    const desempenhoPorDificuldade: PerformancePorCriterio[] = ['Fácil', 'Médio', 'Difícil'].map(d => {
-        const data = dificuldadeMap.get(d) || { total: 0, acertos: 0 };
-        return {
-            nome: d,
-            totalQuestoes: data.total,
-            percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
-        }
-    });
-
-    const desempenhoPorTipo: PerformancePorCriterio[] = ['Múltipla Escolha', 'Certo ou Errado', 'Completar Lacuna', 'Flashcard'].map(t => {
-        const data = tipoMap.get(t) || { total: 0, acertos: 0 };
-        return {
-            nome: t,
-            totalQuestoes: data.total,
-            percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
-        }
-    });
+    const desempenhoPorDificuldade = formatPerformanceFromKeys(['Fácil', 'Médio', 'Difícil'], dificuldadeMap);
+    const desempenhoPorTipo = formatPerformanceFromKeys(['Múltipla Escolha', 'Certo ou Errado', 'Completar Lacuna', 'Flashcard'], tipoMap);
 
     // --- Other stats ---
     const simuladoEmAndamento = simulados.find(s => s.status === 'Em andamento');
@@ -771,4 +764,5 @@ export { PocketBaseDataSource, MockDataSource };
     
 
     
+
 
