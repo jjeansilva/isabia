@@ -1,4 +1,5 @@
 
+
 import { v4 as uuidv4 } from 'uuid';
 import { CollectionName, Disciplina, Topico, Questao, Simulado, Resposta, Revisao, StatsDia } from '@/types';
 import { IDataSource } from './data-adapter';
@@ -34,7 +35,7 @@ function createMockData() {
       origem: 'Já caiu',
       enunciado: 'Qual remédio constitucional é utilizado para proteger o direito de locomoção?',
       alternativas: JSON.stringify(['Habeas Corpus', 'Habeas Data', 'Mandado de Segurança', 'Mandado de Injunção']),
-      respostaCorreta: 'Habeas Corpus',
+      respostaCorreta: JSON.stringify('Habeas Corpus'),
       explicacao: 'O Habeas Corpus, previsto no art. 5º, LXVIII, da CF, protege o direito de ir e vir.',
       tags: ['direitos_fundamentais', 'remedios'],
       version: 1,
@@ -50,7 +51,7 @@ function createMockData() {
       dificuldade: 'Médio',
       origem: 'Autoral',
       enunciado: 'A presunção de legitimidade é um atributo do ato administrativo que admite prova em contrário.',
-      respostaCorreta: true,
+      respostaCorreta: JSON.stringify(true),
       explicacao: 'Correto, a presunção é relativa (juris tantum), podendo ser afastada por prova em contrário.',
       tags: ['atos', 'atributos'],
       version: 1,
@@ -66,7 +67,7 @@ function createMockData() {
       dificuldade: 'Difícil',
       origem: 'Conteúdo',
       enunciado: 'A maioria dos presentes [[votou]] a favor da proposta.',
-      respostaCorreta: 'votou',
+      respostaCorreta: JSON.stringify('votou'),
       explicacao: 'O verbo concorda com o núcleo do sujeito "maioria", que está no singular.',
       tags: ['concordancia', 'sujeito_coletivo'],
       version: 1,
@@ -82,7 +83,7 @@ function createMockData() {
       dificuldade: 'Médio',
       origem: 'Autoral',
       enunciado: 'O que é o controle difuso de constitucionalidade?',
-      respostaCorreta: 'É aquele realizado por qualquer juiz ou tribunal, no caso concreto, com efeitos inter partes.',
+      respostaCorreta: JSON.stringify('É aquele realizado por qualquer juiz ou tribunal, no caso concreto, com efeitos inter partes.'),
       version: 1,
       isActive: true,
       hashConteudo: 'hash4',
@@ -96,7 +97,7 @@ function createMockData() {
       dificuldade: 'Fácil',
       origem: 'Já caiu',
       enunciado: 'Firewall é um software ou hardware que verifica informações provenientes da Internet ou de uma rede, e as bloqueia ou permite que cheguem ao seu computador.',
-      respostaCorreta: true,
+      respostaCorreta: JSON.stringify(true),
       explicacao: 'Essa é a definição básica de um firewall, que atua como uma barreira de proteção.',
       tags: ['seguranca', 'redes'],
       version: 1,
@@ -227,5 +228,3 @@ export function resetLocalStorage() {
         seedLocalStorage();
     }
 }
-
-    

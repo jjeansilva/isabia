@@ -35,8 +35,7 @@ export interface IDataSource {
 
 class MockDataSource implements IDataSource {
   async list<T>(collection: CollectionName, options?: any): Promise<T[]> {
-    let key = collection.replace('_abcde1', '');
-    let data = getFromStorage<T>(key);
+    let data = getFromStorage<T>(collection);
     if (options && options.filter) {
        // Super basic mock filter, needs improvement for complex queries
       const filterKey = options.filter.split('=')[0].trim();
@@ -47,15 +46,13 @@ class MockDataSource implements IDataSource {
   }
 
   async get<T extends {id: string}>(collection: CollectionName, id: string): Promise<T | null> {
-    const key = collection.replace('_abcde1', '');
-    const data = getFromStorage<T>(key);
+    const data = getFromStorage<T>(collection);
     const item = data.find(d => d.id === id) || null;
     return Promise.resolve(item);
   }
 
   async create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T> {
-    const key = collection.replace('_abcde1', '');
-    const allData = getFromStorage<any>(key);
+    const allData = getFromStorage<any>(collection);
     const now = new Date().toISOString();
     const newItem = {
       ...data,
@@ -64,13 +61,12 @@ class MockDataSource implements IDataSource {
       updatedAt: now,
     } as T;
     allData.push(newItem);
-    saveToStorage(key, allData);
+    saveToStorage(collection, allData);
     return Promise.resolve(newItem);
   }
 
   async bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]> {
-    const key = collection.replace('_abcde1', '');
-    const allData = getFromStorage<any>(key);
+    const allData = getFromStorage<any>(collection);
     const now = new Date().toISOString();
     const newItems = data.map(item => ({
         ...item,
@@ -79,35 +75,32 @@ class MockDataSource implements IDataSource {
         updatedAt: now,
     }));
     const updatedData = [...allData, ...newItems];
-    saveToStorage(key, updatedData);
+    saveToStorage(collection, updatedData);
     return Promise.resolve(newItems as T[]);
   }
 
    async bulkDelete(collection: CollectionName, ids: string[]): Promise<void> {
-    const key = collection.replace('_abcde1', '');
-    let data = getFromStorage<any>(key);
+    let data = getFromStorage<any>(collection);
     const filteredData = data.filter(item => !ids.includes(item.id));
-    saveToStorage(key, filteredData);
+    saveToStorage(collection, filteredData);
     return Promise.resolve();
   }
 
   async update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> {
-    const key = collection.replace('_abcde1', '');
-    const allData = getFromStorage<T>(key);
+    const allData = getFromStorage<T>(collection);
     const index = allData.findIndex(d => d.id === id);
     if (index === -1) throw new Error("Item not found");
     
     const updatedItem = { ...allData[index], ...data, updatedAt: new Date().toISOString() };
     allData[index] = updatedItem;
-    saveToStorage(key, allData);
+    saveToStorage(collection, allData);
     return Promise.resolve(updatedItem);
   }
 
   async delete(collection: CollectionName, id: string): Promise<void> {
-    const key = collection.replace('_abcde1', '');
-    let allData = getFromStorage<any>(key);
+    let allData = getFromStorage<any>(collection);
     allData = allData.filter(d => d.id !== id);
-    saveToStorage(key, allData);
+    saveToStorage(collection, allData);
     return Promise.resolve();
   }
   
@@ -754,5 +747,3 @@ class PocketBaseDataSource implements IDataSource {
 }
 
 export { PocketBaseDataSource, MockDataSource };
-
-    
