@@ -225,6 +225,16 @@ export default function SimuladoExecutionPage() {
         },
         onSuccess: () => {
              queryClient.invalidateQueries({ queryKey: ['dashboardStats']});
+             // This is now called after responses are saved
+             updateSimuladoMutation.mutate(
+                { status: 'Concluído', finalizadoEm: new Date().toISOString() },
+                {
+                    onSuccess: () => {
+                        toast({title: "Simulado finalizado!", description: "Veja seus resultados."});
+                        router.push(`/simulados/${id}/resultado`);
+                    }
+                }
+            );
         },
         onError: (error) => {
             toast({ variant: "destructive", title: "Erro ao salvar respostas", description: error.message });
@@ -279,17 +289,18 @@ export default function SimuladoExecutionPage() {
                 tempoSegundos: q.tempoSegundos || 0,
             }));
             createRespostasMutation.mutate(respostasToCreate as any);
-        }
-
-        updateSimuladoMutation.mutate(
-            { status: 'Concluído', finalizadoEm: new Date().toISOString() },
-            {
-                onSuccess: () => {
-                    toast({title: "Simulado finalizado!", description: "Veja seus resultados."});
-                    router.push(`/simulados/${id}/resultado`);
+        } else {
+             // If no questions were answered, just finalize the simulation
+             updateSimuladoMutation.mutate(
+                { status: 'Concluído', finalizadoEm: new Date().toISOString() },
+                {
+                    onSuccess: () => {
+                        toast({title: "Simulado finalizado!", description: "Nenhuma questão foi respondida."});
+                        router.push(`/simulados/${id}/resultado`);
+                    }
                 }
-            }
-        );
+            );
+        }
     }
     
     const isCurrentQuestionAnswered = currentSimuladoQuestao?.respostaUsuario !== undefined;
