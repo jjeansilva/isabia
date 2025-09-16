@@ -1,4 +1,5 @@
 
+
 import { v4 as uuidv4 } from 'uuid';
 import { CollectionName, Disciplina, Topico, Questao, Simulado, Resposta, Revisao, StatsDia } from '@/types';
 import { IDataSource } from './data-adapter';
@@ -135,7 +136,9 @@ export async function seedPocketBase(dataSource: IDataSource) {
             console.log(`Clearing collection: ${collection}...`);
             const items = await dataSource.list(collection, { fields: 'id' });
             if (items && items.length > 0) {
-              await dataSource.bulkDelete(collection, items.map((i: any) => i.id));
+              for (const item of items) {
+                await dataSource.delete(collection, (item as any).id);
+              }
               console.log(`-> Cleared ${items.length} items from ${collection}.`);
             } else {
               console.log(`-> Collection ${collection} is already empty.`);

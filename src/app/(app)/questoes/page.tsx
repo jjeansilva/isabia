@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useData } from "@/hooks/use-data";
@@ -26,7 +26,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useEffect } from 'react';
 
 export default function QuestoesPage() {
   const dataSource = useData();

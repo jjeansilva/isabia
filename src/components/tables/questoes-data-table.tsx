@@ -45,7 +45,7 @@ export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit, onDe
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({
         topicoId: false,
-        dificuldade: false,
+        dificuldade: true,
     })
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -63,13 +63,13 @@ export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit, onDe
     
     // Customize cell renderers here
     return baseColumns.map(col => {
-      if (col.id === 'disciplinaId' || col.accessorKey === 'disciplinaId') {
+      if ((col as any).accessorKey === 'disciplinaId') {
         return {
           ...col,
           cell: ({ row }) => disciplinaMap.get(row.getValue("disciplinaId")) || "N/A",
         };
       }
-      if (col.id === 'topicoId' || col.accessorKey === 'topicoId') {
+      if ((col as any).accessorKey === 'topicoId') {
         return {
           ...col,
           cell: ({ row }) => topicoMap.get(row.getValue("topicoId")) || "N/A",
