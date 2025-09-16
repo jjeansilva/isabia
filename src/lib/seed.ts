@@ -128,23 +128,31 @@ export async function seedPocketBase(dataSource: IDataSource) {
     console.log("Seeding PocketBase with mock data...");
     const { disciplinas, topicosData, questoesData, stats } = createMockData();
 
-    // Clear existing data for a clean slate
-    const collectionsToClear: CollectionName[] = ['respostas', 'revisoes', 'simulados', 'questoes', 'topicos', 'disciplinas', 'stats'];
+    // Clear existing data for a clean slate, in the correct order of dependency
+    const collectionsToClear: CollectionName[] = [
+        'respostas', 
+        'revisoes', 
+        'simulados', 
+        'stats',
+        'questoes', 
+        'topicos', 
+        'disciplinas'
+    ];
     
     for (const collection of collectionsToClear) {
         try {
             console.log(`Clearing collection: ${collection}...`);
             const items = await dataSource.list(collection, { fields: 'id' });
             if (items && items.length > 0) {
-              for (const item of items) {
-                await dataSource.delete(collection, (item as any).id);
-              }
+              const ids = items.map((item: any) => item.id);
+              await dataSource.bulkDelete(collection, ids);
               console.log(`-> Cleared ${items.length} items from ${collection}.`);
             } else {
               console.log(`-> Collection ${collection} is already empty.`);
             }
         } catch(e) {
             console.error(`Could not clear collection ${collection}:`, (e as any).message);
+            // Do not re-throw, try to continue seeding
         }
     }
     
