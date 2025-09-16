@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useData } from "@/hooks/use-data";
 import { PageHeader } from "@/components/page-header";
@@ -9,10 +9,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Simulado, SimuladoStatus } from "@/types";
-import { PlusCircle, Play, Eye } from "lucide-react";
+import { PlusCircle, Play, Eye, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast";
 
-function SimuladoCard({ simulado }: { simulado: Simulado }) {
+
+function SimuladoCard({ simulado, onDelete }: { simulado: Simulado, onDelete: (id: string) => void }) {
   const getStatusBadge = (status: SimuladoStatus) => {
     switch (status) {
       case 'Rascunho': return <Badge variant="secondary">Rascunho</Badge>;
@@ -35,9 +48,30 @@ function SimuladoCard({ simulado }: { simulado: Simulado }) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-start">
-            <CardTitle className="truncate mr-2">{simulado.nome}</CardTitle>
-            {getStatusBadge(simulado.status)}
+        <div className="flex justify-between items-start gap-2">
+            <CardTitle className="truncate mr-2 flex-1">{simulado.nome}</CardTitle>
+            <div className="flex items-center gap-1">
+                {getStatusBadge(simulado.status)}
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir Simulado?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Tem certeza que deseja excluir o simulado "{simulado.nome}"? Esta ação não pode ser desfeita e removerá os dados associados.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDelete(simulado.id)}>Sim, Excluir</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
         </div>
         <CardDescription>{new Date(simulado.criadoEm).toLocaleDateString()}</CardDescription>
       </CardHeader>
@@ -55,6 +89,9 @@ function SimuladoCard({ simulado }: { simulado: Simulado }) {
 
 export default function SimuladosPage() {
   const dataSource = useData();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   const { data: simulados, isLoading } = useQuery({
     queryKey: ["simulados"],
     queryFn: () => dataSource.list<Simulado>("simulados"),
@@ -67,6 +104,21 @@ export default function SimuladosPage() {
         return {...s, questoes: []}
     }
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => dataSource.delete('simulados', id),
+    onSuccess: () => {
+        toast({ title: "Sucesso!", description: "Simulado excluído." });
+        queryClient.invalidateQueries({ queryKey: ["simulados"] });
+    },
+    onError: (error) => {
+        toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível excluir o simulado." });
+    }
+  });
+
+  const handleDeleteSimulado = (id: string) => {
+    deleteMutation.mutate(id);
+  }
 
 
   return (
@@ -88,7 +140,7 @@ export default function SimuladosPage() {
             <CardFooter><Skeleton className="h-10 w-24" /></CardFooter>
           </Card>
         ))}
-        {simuladosParsed?.map((s) => <SimuladoCard key={s.id} simulado={s} />)}
+        {simuladosParsed?.map((s) => <SimuladoCard key={s.id} simulado={s} onDelete={handleDeleteSimulado} />)}
       </div>
 
        {!isLoading && simulados?.length === 0 && (
@@ -110,5 +162,3 @@ export default function SimuladosPage() {
     </>
   );
 }
-
-    
