@@ -78,7 +78,7 @@ export const getColumns = ({ onEdit, onDelete }: GetColumnsProps): ColumnDef<Que
             return (
                 <div className="flex items-center gap-2">
                      {questao.necessitaRevisao && <Flag className="h-4 w-4 text-destructive" title="Revisão necessária"/>}
-                    <span className="line-clamp-2 max-w-sm">{row.getValue("enunciado")}</span>
+                    <span className="truncate max-w-[150px] sm:max-w-sm">{row.getValue("enunciado")}</span>
                 </div>
             )
         }
