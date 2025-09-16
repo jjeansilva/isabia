@@ -73,8 +73,8 @@ export default function QuestoesPage() {
         </Button>
       </PageHeader>
       
-      {(showCreateModal || isFormOpen) && <QuestionForm open={showCreateModal || isFormOpen} onOpenChange={handleCloseForm} questao={selectedQuestao} />}
-      {showImportModal && <ImportQuestionsForm open={showImportModal} onOpenChange={setShowImportModal} />}
+      {(showCreateModal || isFormOpen) ? <QuestionForm open={showCreateModal || isFormOpen} onOpenChange={handleCloseForm} questao={selectedQuestao} /> : null}
+      {showImportModal ? <ImportQuestionsForm open={showImportModal} onOpenChange={setShowImportModal} /> : null}
       
       {isLoading ? (
         <div className="space-y-4">

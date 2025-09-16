@@ -67,7 +67,7 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
         {showReportModal && <ReportErrorForm open={showReportModal} onOpenChange={setShowReportModal} questao={questao} />}
         <Card className="mt-4">
             <CardHeader>
-                <div className="flex justify-between items-start">
+                <div className="flex justify-between items-start gap-2">
                     <CardTitle className="text-xl">Enunciado</CardTitle>
                     <div className="flex gap-2 items-center flex-shrink-0">
                         <Badge variant="secondary">{questao.tipo}</Badge>
