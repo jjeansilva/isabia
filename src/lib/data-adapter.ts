@@ -22,11 +22,9 @@ export interface IDataSource {
   list<T>(collection: CollectionName, options?: any): Promise<T[]>;
   get<T>(collection: CollectionName, id: string): Promise<T | null>;
   create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'user'>): Promise<T>;
-  bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]>;
-  bulkDelete(collection: CollectionName, ids: string[]): Promise<void>;
-  bulkCreateFromCsv?(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem, onProgress: (progress: ImportProgress) => void): Promise<number>;
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
+  bulkDelete(collection: CollectionName, ids: string[]): Promise<void>;
   gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado>;
   getDashboardStats(): Promise<any>;
   getQuestoesParaRevisar(): Promise<Questao[]>;
@@ -63,20 +61,6 @@ class MockDataSource implements IDataSource {
     allData.push(newItem);
     saveToStorage(collection, allData);
     return Promise.resolve(newItem);
-  }
-
-  async bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]> {
-    const allData = getFromStorage<any>(collection);
-    const now = new Date().toISOString();
-    const newItems = data.map(item => ({
-        ...item,
-        id: uuidv4(),
-        createdAt: now,
-        updatedAt: now,
-    }));
-    const updatedData = [...allData, ...newItems];
-    saveToStorage(collection, updatedData);
-    return Promise.resolve(newItems as T[]);
   }
 
    async bulkDelete(collection: CollectionName, ids: string[]): Promise<void> {
@@ -344,15 +328,6 @@ class PocketBaseDataSource implements IDataSource {
     return record;
   }
 
-  async bulkCreate<T>(collection: CollectionName, data: Partial<T>[]): Promise<T[]> {
-      const results: T[] = [];
-      for(const item of data) {
-          const result = await this.create<T>(collection, item as any);
-          results.push(result);
-          await new Promise(resolve => setTimeout(resolve, 50)); 
-      }
-      return results;
-  }
    async bulkDelete(collection: CollectionName, ids: string[]): Promise<void> {
     const promises = ids.map(id => this.delete(collection, id));
     await Promise.all(promises);
@@ -472,11 +447,11 @@ class PocketBaseDataSource implements IDataSource {
     const userId = this.pb.authStore.model.id;
     const userFilter = `user = "${userId}"`;
 
-    const [respostas, disciplinas, revisoes, simuladosEmAndamento] = await Promise.all([
+    const [respostas, disciplinas, revisoes, simulados] = await Promise.all([
         this.list<Resposta>('respostas', { filter: userFilter, expand: 'questaoId' }),
         this.list<Disciplina>('disciplinas', { filter: userFilter }),
         this.list<Revisao>('revisoes', { filter: userFilter }),
-        this.list<Simulado>('simulados', { filter: `${userFilter} && status = "Em andamento"` })
+        this.list<Simulado>('simulados', { filter: userFilter, sort: '-created' })
     ]);
     
     // General Stats
@@ -549,6 +524,7 @@ class PocketBaseDataSource implements IDataSource {
 
     const hoje = new Date().toISOString().split('T')[0];
     const questoesParaRevisarHoje = revisoes.filter(r => r.proximaRevisao.split(' ')[0] <= hoje).length;
+    const simuladoEmAndamento = simulados.find(s => s.status === 'Em andamento') || null;
 
     return {
         totalRespostas,
@@ -559,7 +535,7 @@ class PocketBaseDataSource implements IDataSource {
         desempenhoPorDisciplina,
         desempenhoPorDificuldade,
         desempenhoPorTipo,
-        simuladoEmAndamento: simuladosEmAndamento[0] || null,
+        simuladoEmAndamento: simuladoEmAndamento,
         questoesParaRevisarHoje,
     };
   }
@@ -619,147 +595,6 @@ class PocketBaseDataSource implements IDataSource {
     }
   }
 
-  async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem, onProgress: (progress: ImportProgress) => void): Promise<number> {
-    if (!this.pb.authStore.model?.id) throw new Error("Usuário não autenticado.");
-    const userId = this.pb.authStore.model.id;
-
-    const lines = csvData.trim().split('\n');
-    const headerLine = lines.shift()?.trim().replace(/"/g, '');
-    
-    if (!headerLine) {
-        throw new Error("CSV está vazio ou não contém um cabeçalho.");
-    }
-
-    const header = headerLine.split(',');
-    
-    const colMap: {[key: string]: number} = {};
-    header.forEach((h, i) => colMap[h.trim()] = i);
-
-    const requiredCols = ['dificuldade', 'disciplina', 'tópico da disciplina', 'questão', 'resposta'];
-    for(const col of requiredCols) {
-        if(!(col in colMap)) {
-            throw new Error(`Coluna obrigatória ausente no cabeçalho do CSV: "${col}"`);
-        }
-    }
-    
-    const disciplinasCache: Record<string, Disciplina> = {};
-    const topicosCache: Record<string, Topico> = {};
-
-    const questoesToCreate: Partial<Questao>[] = [];
-    const log: string[] = [];
-
-    let currentLine = 0;
-    const totalLines = lines.length;
-
-    const getOrCreate = async <T extends {id: string, nome: string}>(
-        collection: CollectionName, 
-        cache: Record<string, T>, 
-        filter: string, 
-        data: any, 
-        logMessage: string
-    ): Promise<T> => {
-        const cacheKey = JSON.stringify(filter);
-        if (cache[cacheKey]) {
-            return cache[cacheKey];
-        }
-
-        log.push(`Verificando ${logMessage}: "${data.nome}"...`);
-        try {
-            const results = await this.list<T>(collection, { filter });
-            if (results && results.length > 0) {
-                cache[cacheKey] = results[0];
-                return results[0];
-            }
-        } catch (e) { /* ignore */ }
-
-        log.push(`-> Não encontrado(a). Criando ${logMessage}: "${data.nome}"...`);
-        const created = await this.create<T>(collection, data);
-        log.push(`-> ${logMessage} "${data.nome}" criado(a) com sucesso.`);
-        cache[cacheKey] = created;
-        return created;
-    };
-
-
-    for (const line of lines) {
-        currentLine++;
-        if (!line.trim()) continue;
-        
-        onProgress({ message: `Processando linha ${currentLine} de ${totalLines}...`, current: currentLine, total: totalLines, log });
-
-        const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/"/g, '').trim()) || [];
-        
-        // --- Disciplina ---
-        const disciplinaNome = values[colMap.disciplina];
-        if (!disciplinaNome) continue;
-        const disciplinaFilter = `nome="${disciplinaNome}" && user = "${userId}"`;
-        const disciplina = await getOrCreate<Disciplina>('disciplinas', disciplinasCache, disciplinaFilter, { nome: disciplinaNome }, 'disciplina');
-        
-        // --- Tópico Pai ---
-        const topicoPaiNome = values[colMap['tópico da disciplina']];
-        if (!topicoPaiNome) continue;
-        const topicoPaiFilter = `nome = "${topicoPaiNome}" && disciplinaId = "${disciplina.id}" && (topicoPaiId = "" || topicoPaiId = null) && user = "${userId}"`;
-        const topicoPai = await getOrCreate<Topico>('topicos', topicosCache, topicoPaiFilter, { nome: topicoPaiNome, disciplinaId: disciplina.id }, 'tópico pai');
-
-        let topicoFinal = topicoPai;
-        
-        // --- Subtópico ---
-        const subtopicoNome = values[colMap.subtópico];
-        if (subtopicoNome && subtopicoNome.toLowerCase() !== 'n/a' && subtopicoNome !== '') {
-             const subtopicoFilter = `nome = "${subtopicoNome}" && disciplinaId = "${disciplina.id}" && topicoPaiId = "${topicoPai.id}" && user = "${userId}"`;
-             const subtopico = await getOrCreate<Topico>('topicos', topicosCache, subtopicoFilter, { nome: subtopicoNome, disciplinaId: disciplina.id, topicoPaiId: topicoPai.id }, 'subtópico');
-             topicoFinal = subtopico;
-        }
-
-        log.push(`Montando questão da linha ${currentLine}...`);
-        onProgress({ message: `Montando questão da linha ${currentLine}...`, current: currentLine, total: totalLines, log });
-
-
-        let respostaCorreta: any = values[colMap.resposta];
-        let alternativas: any;
-        let dificuldade = values[colMap.dificuldade] as QuestionDificuldade;
-
-        if (dificuldade && dificuldade.toString().toLowerCase() === 'média') {
-            dificuldade = 'Médio';
-        }
-
-        if (tipo === 'Múltipla Escolha') {
-             const resp = values[colMap.resposta];
-             const outrasAlternativas = header.filter(h => h.startsWith('alternativa_')).map(key => values[colMap[key]]).filter(Boolean);
-             const todasAlternativas = [resp, ...outrasAlternativas];
-             alternativas = JSON.stringify(todasAlternativas);
-             respostaCorreta = JSON.stringify(resp);
-        } else if (tipo === 'Certo ou Errado') {
-            const lowerCaseAnswer = respostaCorreta.toLowerCase();
-            respostaCorreta = JSON.stringify(['certo', 'verdadeiro', 'v'].includes(lowerCaseAnswer));
-        } else {
-             respostaCorreta = JSON.stringify(respostaCorreta);
-        }
-
-        const questao: Partial<Questao> = {
-            tipo: tipo,
-            dificuldade: dificuldade,
-            disciplinaId: disciplina.id,
-            topicoId: topicoFinal.id,
-            enunciado: values[colMap['questão']],
-            respostaCorreta: respostaCorreta,
-            alternativas: alternativas,
-            explicacao: values[colMap['explicação']],
-            origem: origem,
-            version: 1,
-            isActive: true,
-            hashConteudo: 'import-csv-' + uuidv4(),
-        };
-        questoesToCreate.push(questao);
-    }
-    
-    if (questoesToCreate.length > 0) {
-      log.push(`Enviando ${questoesToCreate.length} questões para o banco de dados...`);
-      onProgress({ message: `Salvando ${questoesToCreate.length} questões...`, current: totalLines, total: totalLines, log });
-      await this.bulkCreate('questoes', questoesToCreate);
-    }
-
-    return questoesToCreate.length;
-  }
 }
 
 export { PocketBaseDataSource, MockDataSource };

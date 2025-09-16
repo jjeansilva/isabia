@@ -223,8 +223,10 @@ export default function SimuladoExecutionPage() {
     });
 
      const createRespostasMutation = useMutation({
-        mutationFn: (respostas: Omit<Resposta, 'id' | 'user' | 'createdAt' | 'updatedAt'>[]) => 
-            dataSource.bulkCreate<Omit<Resposta, 'id' | 'user' | 'createdAt' | 'updatedAt'>>('respostas', respostas),
+        mutationFn: (respostas: Omit<Resposta, 'id' | 'user' | 'createdAt' | 'updatedAt'>[]) => {
+            const promises = respostas.map(r => dataSource.create('respostas', r));
+            return Promise.all(promises);
+        },
         onSuccess: () => {
              queryClient.invalidateQueries({ queryKey: ['dashboardStats']});
         },
@@ -371,5 +373,3 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
-
-    

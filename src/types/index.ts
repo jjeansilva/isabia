@@ -150,5 +150,3 @@ export interface PerformancePorCriterio {
 
 
 export type CollectionName = 'users' | 'disciplinas' | 'topicos' | 'questoes' | 'simulados' | 'respostas' | 'revisoes' | 'stats';
-
-    
