@@ -202,7 +202,10 @@ export default function SimuladoExecutionPage() {
                 }
             });
             setLocalAnswers(initialAnswers);
-            setCurrentQuestionIndex(lastAnsweredIndex + 1);
+            // Se o simulado já estiver concluído, não mexa no índice. Senão, vá para a próxima questão.
+            if (simulado.status !== 'Concluído') {
+               setCurrentQuestionIndex(lastAnsweredIndex + 1);
+            }
         }
     }, [simulado]);
 
@@ -225,10 +228,8 @@ export default function SimuladoExecutionPage() {
     const finishSimuladoMutation = useMutation({
         mutationFn: async () => {
             if (!simulado) throw new Error("Simulado não encontrado.");
-            console.log("Iniciando finalização do simulado:", simulado);
             
             const answeredQuestoes = Object.values(localAnswers).filter(q => q.respostaUsuario !== undefined);
-            console.log("Questões respondidas para salvar:", answeredQuestoes);
             
             if (answeredQuestoes.length > 0) {
                 await dataSource.registrarRespostasSimulado(simulado.id, answeredQuestoes as SimuladoQuestao[]);
@@ -294,7 +295,7 @@ export default function SimuladoExecutionPage() {
     const answeredLocalOrDB = localAnswers[currentSimuladoQuestao?.questaoId] ?? currentSimuladoQuestao;
     const isCurrentQuestionAnswered = answeredLocalOrDB?.respostaUsuario !== undefined;
 
-    const answeredCount = Object.keys(localAnswers).length;
+    const answeredCount = Object.keys(localAnswers).filter(k => localAnswers[k].respostaUsuario !== undefined).length;
     const progress = simulado ? (answeredCount / simulado.questoes.length) * 100 : 0;
     
     if (isLoadingSimulado || (isLoadingQuestao && simulado && currentQuestionIndex < simulado.questoes.length)) {
