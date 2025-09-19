@@ -540,9 +540,10 @@ class PocketBaseDataSource implements IDataSource {
     const userFilter = `user = "${userId}"`;
 
     try {
-        const [respostas, disciplinas, revisoes, simulados] = await Promise.all([
-            this.list<Resposta>('respostas', { filter: userFilter, expand: 'questaoId' }),
+        const [respostas, disciplinas, questoes, revisoes, simulados] = await Promise.all([
+            this.list<Resposta>('respostas', { filter: userFilter }),
             this.list<Disciplina>('disciplinas', { filter: userFilter }),
+            this.list<Questao>('questoes', { filter: userFilter, fields: 'id,disciplinaId,dificuldade,tipo' }),
             this.list<Revisao>('revisoes', { filter: userFilter }),
             this.list<Simulado>('simulados', { filter: userFilter, sort: '-created' }),
         ]);
@@ -572,6 +573,7 @@ class PocketBaseDataSource implements IDataSource {
         });
         
         const disciplinaNameMap = new Map(disciplinas.map(d => [d.id, d.nome]));
+        const questoesMap = new Map(questoes.map(q => [q.id, q]));
 
         const desempenhoMap = new Map<string, { total: number; acertos: number }>();
         const dificuldadeMap = new Map<string, { total: number; acertos: number }>();
@@ -586,7 +588,7 @@ class PocketBaseDataSource implements IDataSource {
         };
 
         for (const resposta of respostas) {
-            const questao = (resposta as any).expand?.questaoId as Questao | undefined;
+            const questao = questoesMap.get(resposta.questaoId);
             if (!questao) continue;
             
             const disciplinaNome = disciplinaNameMap.get(questao.disciplinaId);
