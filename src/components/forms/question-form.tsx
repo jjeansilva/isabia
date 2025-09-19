@@ -24,7 +24,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -38,7 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Trash2, AlertTriangle } from "lucide-react";
 import { suggestSimilarQuestions } from "@/ai/flows/suggest-similar-questions";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Skeleton } from "../ui/skeleton";
 
@@ -138,6 +140,19 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
       queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${selectedDisciplinaId}"` }),
       enabled: !!selectedDisciplinaId,
   });
+
+  const groupedTopicos = useMemo(() => {
+    if (!topicos) return [];
+    
+    const topicosPrincipais = topicos.filter(t => !t.topicoPaiId);
+    const subtopicos = topicos.filter(t => t.topicoPaiId);
+
+    return topicosPrincipais.map(tp => ({
+      id: tp.id,
+      nome: tp.nome,
+      subtopicos: subtopicos.filter(st => st.topicoPaiId === tp.id),
+    }));
+  }, [topicos]);
 
 
   const mutation = useMutation({
@@ -245,9 +260,20 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
                   <FormItem>
                       <FormLabel>Tópico</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDisciplinaId || !topicos}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Selecione o tópico"/></SelectTrigger></FormControl>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Selecione o tópico ou subtópico"/></SelectTrigger></FormControl>
                           <SelectContent>
-                                {topicos?.map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
+                                {groupedTopicos.map(group => (
+                                    <SelectGroup key={group.id}>
+                                        <SelectLabel>{group.nome}</SelectLabel>
+                                        <SelectItem value={group.id}>-- Tópico Principal --</SelectItem>
+                                        {group.subtopicos.map(sub => (
+                                            <SelectItem key={sub.id} value={sub.id}>&nbsp;&nbsp;&nbsp;{sub.nome}</SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                ))}
+                                {groupedTopicos.length === 0 && topicos && topicos.length > 0 && (
+                                     topicos.map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)
+                                )}
                           </SelectContent>
                       </Select>
                       <FormMessage />
