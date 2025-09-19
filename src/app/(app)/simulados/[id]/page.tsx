@@ -220,25 +220,14 @@ export default function SimuladoExecutionPage() {
 
     const finishSimuladoMutation = useMutation({
         mutationFn: async () => {
+            console.log("Iniciando finalização do simulado:", simulado);
             if (!simulado) throw new Error("Simulado não encontrado.");
 
             const questoesRespondidas = simulado.questoes.filter(q => q.respostaUsuario !== undefined);
+            console.log("Questões respondidas para salvar:", questoesRespondidas);
 
             if (questoesRespondidas.length > 0) {
-                const respostasToCreate = questoesRespondidas.map(q => ({
-                    acertou: q.correta === true,
-                    confianca: q.confianca || 'Dúvida',
-                    questaoId: q.questaoId,
-                    respostaUsuario: JSON.stringify(q.respostaUsuario),
-                    simuladoId: simulado.id,
-                    respondedAt: new Date().toISOString(),
-                    tempoSegundos: q.tempoSegundos || 0,
-                }));
-                
-                // Use a sequential for...of loop instead of Promise.all to avoid race conditions
-                for (const resposta of respostasToCreate) {
-                    await dataSource.create('respostas', resposta as any);
-                }
+                await dataSource.registrarRespostasSimulado(simulado.id, questoesRespondidas);
             }
 
             // After all responses are saved, update the simulado

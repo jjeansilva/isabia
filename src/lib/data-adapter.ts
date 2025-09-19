@@ -1,5 +1,3 @@
-
-
 import { v4 as uuidv4 } from 'uuid';
 import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado, QuestionOrigem, SimuladoQuestao, ImportProgress, Resposta, PerformancePorCriterio, StatsDia, SimuladoStatus } from '@/types';
 import PocketBase, { ListResult } from 'pocketbase';
@@ -30,9 +28,33 @@ export interface IDataSource {
   getDashboardStats(): Promise<any>;
   getQuestoesParaRevisar(): Promise<Questao[]>;
   registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void>;
+  registrarRespostasSimulado(simuladoId: string, questoes: SimuladoQuestao[]): Promise<void>;
 }
 
 class MockDataSource implements IDataSource {
+  async registrarRespostasSimulado(simuladoId: string, questoes: SimuladoQuestao[]): Promise<void> {
+    const respostas = getFromStorage<Resposta>('respostas');
+    const now = new Date().toISOString();
+
+    const novasRespostas = questoes
+        .filter(q => q.respostaUsuario !== undefined)
+        .map(q => ({
+            id: uuidv4(),
+            acertou: q.correta === true,
+            confianca: q.confianca || 'Dúvida',
+            questaoId: q.questaoId,
+            respostaUsuario: JSON.stringify(q.respostaUsuario),
+            simuladoId: simuladoId,
+            respondedAt: now,
+            tempoSegundos: q.tempoSegundos || 0,
+            user: 'localuser'
+        }));
+    
+    respostas.push(...novasRespostas as any[]);
+    saveToStorage('respostas', respostas);
+    return Promise.resolve();
+  }
+
   async list<T>(collection: CollectionName, options?: any): Promise<T[]> {
     let data = getFromStorage<T>(collection);
     if (options && options.filter) {
@@ -397,6 +419,32 @@ class PocketBaseDataSource implements IDataSource {
       };
     }
     return data;
+  }
+
+  async registrarRespostasSimulado(simuladoId: string, questoes: SimuladoQuestao[]): Promise<void> {
+    if (!this.pb.authStore.model) throw new Error("Usuário não autenticado.");
+
+    const respostasToCreate = questoes
+        .filter(q => q.respostaUsuario !== undefined)
+        .map(q => ({
+            acertou: q.correta === true,
+            confianca: q.confianca || 'Dúvida',
+            questaoId: q.questaoId,
+            respostaUsuario: JSON.stringify(q.respostaUsuario),
+            simuladoId: simuladoId,
+            respondedAt: new Date().toISOString(),
+            tempoSegundos: q.tempoSegundos || 0,
+        }));
+
+    for (const resposta of respostasToCreate) {
+        try {
+            await this.create('respostas', resposta as any);
+        } catch (error) {
+            console.error("Falha ao criar registro de resposta:", resposta, error);
+            // Re-throw a more informative error
+            throw new Error(`Não foi possível salvar a resposta para a questão ID: ${resposta.questaoId}. Detalhes: ${(error as Error).message}`);
+        }
+    }
   }
 
   async list<T>(collection: CollectionName, options?: any): Promise<T[]> {
