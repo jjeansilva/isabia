@@ -157,7 +157,7 @@ class MockDataSource implements IDataSource {
 
       const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
       
-      createdSimulado.questoes.forEach(q => (q as SimuladoQuestao).simuladoId = createdSimulado.id);
+      (createdSimulado.questoes as SimuladoQuestao[]).forEach(q => q.simuladoId = createdSimulado.id);
       
       return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: createdSimulado.questoes });
   }
@@ -560,7 +560,7 @@ class PocketBaseDataSource implements IDataSource {
 
       const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
       
-      const updatedQuestoes: SimuladoQuestao[] = (JSON.parse(createdSimulado.questoes as any) as any[]).map(q => ({...q, simuladoId: createdSimulado.id }));
+      const updatedQuestoes: SimuladoQuestao[] = (JSON.parse(createdSimulado.questoes as string) as any[]).map(q => ({...q, simuladoId: createdSimulado.id }));
       
       return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: JSON.stringify(updatedQuestoes) as any });
   }

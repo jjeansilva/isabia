@@ -194,7 +194,7 @@ export default function SimuladoExecutionPage() {
         if (simulado) {
             const initialAnswers: Record<string, SimuladoQuestao> = {};
             let lastAnsweredIndex = -1;
-            simulado.questoes.forEach((q: SimuladoQuestao, index: number) => {
+            (simulado.questoes as SimuladoQuestao[]).forEach((q, index) => {
                 if (q.respostaUsuario !== undefined) {
                     initialAnswers[q.questaoId] = q;
                     lastAnsweredIndex = index;
@@ -213,8 +213,12 @@ export default function SimuladoExecutionPage() {
     }, [currentQuestionIndex]);
 
 
-    const currentSimuladoQuestao = simulado?.questoes[currentQuestionIndex];
-    const isLastQuestion = currentQuestionIndex === (simulado?.questoes.length ?? 0) - 1;
+    const currentSimuladoQuestao = useMemo(() => {
+        if (!simulado) return undefined;
+        return (simulado.questoes as SimuladoQuestao[])[currentQuestionIndex];
+    }, [simulado, currentQuestionIndex]);
+
+    const isLastQuestion = currentQuestionIndex === ((simulado?.questoes as SimuladoQuestao[])?.length ?? 0) - 1;
 
 
     const { data: questao, isLoading: isLoadingQuestao } = useQuery({
@@ -235,7 +239,7 @@ export default function SimuladoExecutionPage() {
                 await dataSource.registrarRespostasSimulado(simulado.id, answeredQuestoes);
             }
     
-            const finalQuestoesState = simulado.questoes.map(q => localAnswers[q.questaoId] ? {...q, ...localAnswers[q.questaoId]} : q);
+            const finalQuestoesState = (simulado.questoes as SimuladoQuestao[]).map(q => localAnswers[q.questaoId] ? {...q, ...localAnswers[q.questaoId]} : q);
 
             await dataSource.update('simulados', simulado.id, {
                 status: 'Concluído',
@@ -262,14 +266,12 @@ export default function SimuladoExecutionPage() {
 
         let parsedRespostaCorreta = questao.respostaCorreta;
         try {
-            if (typeof questao.respostaCorreta === 'string') {
-                parsedRespostaCorreta = JSON.parse(questao.respostaCorreta)
+             if (typeof questao.respostaCorreta === 'string') {
+                parsedRespostaCorreta = JSON.parse(questao.respostaCorreta);
             }
-        } catch(e) {
-            // It's not a json, so we use it as is
-        }
+        } catch(e) { /* not a json, use as is */ }
         
-        let isCorrect = parsedRespostaCorreta == answer;
+        const isCorrect = parsedRespostaCorreta == answer;
 
         setLocalAnswers(prev => ({
             ...prev,
@@ -288,7 +290,7 @@ export default function SimuladoExecutionPage() {
     };
 
     const handleNext = () => {
-        if (currentQuestionIndex < (simulado?.questoes.length ?? 0)) {
+        if (currentQuestionIndex < ((simulado?.questoes as SimuladoQuestao[]).length ?? 0)) {
             setCurrentQuestionIndex(prev => prev + 1);
         }
     }
@@ -301,9 +303,9 @@ export default function SimuladoExecutionPage() {
     const isCurrentQuestionAnswered = answeredLocalOrDB?.respostaUsuario !== undefined;
 
     const answeredCount = Object.keys(localAnswers).filter(k => localAnswers[k].respostaUsuario !== undefined).length;
-    const progress = simulado ? (answeredCount / simulado.questoes.length) * 100 : 0;
+    const progress = simulado ? (answeredCount / (simulado.questoes as SimuladoQuestao[]).length) * 100 : 0;
     
-    if (isLoadingSimulado || (isLoadingQuestao && simulado && currentQuestionIndex < simulado.questoes.length)) {
+    if (isLoadingSimulado || (isLoadingQuestao && simulado && currentQuestionIndex < (simulado.questoes as SimuladoQuestao[]).length)) {
         return <Skeleton className="h-96 w-full"/>
     }
 
@@ -311,7 +313,7 @@ export default function SimuladoExecutionPage() {
         return <p>Simulado não encontrado.</p>
     }
     
-    if(currentQuestionIndex >= simulado.questoes.length && simulado.status !== 'Concluído') {
+    if(currentQuestionIndex >= (simulado.questoes as SimuladoQuestao[]).length && simulado.status !== 'Concluído') {
         return (
             <Card className="text-center p-8">
                 <CardTitle className="mb-4">Parabéns!</CardTitle>
@@ -331,7 +333,7 @@ export default function SimuladoExecutionPage() {
                 <div className="flex justify-between items-center mb-2">
                     <h1 className="text-lg sm:text-xl font-bold truncate pr-4">{simulado.nome}</h1>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-sm font-medium">{Math.min(currentQuestionIndex + 1, simulado.questoes.length)} / {simulado.questoes.length}</span>
+                        <span className="text-sm font-medium">{Math.min(currentQuestionIndex + 1, (simulado.questoes as SimuladoQuestao[]).length)} / {(simulado.questoes as SimuladoQuestao[]).length}</span>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
@@ -387,3 +389,4 @@ export default function SimuladoExecutionPage() {
     
 
     
+
