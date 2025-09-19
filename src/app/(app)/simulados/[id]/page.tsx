@@ -202,7 +202,6 @@ export default function SimuladoExecutionPage() {
                 }
             });
             setLocalAnswers(initialAnswers);
-            // Se o simulado já estiver concluído, não mexa no índice. Senão, vá para a próxima questão.
             if (simulado.status !== 'Concluído') {
                setCurrentQuestionIndex(lastAnsweredIndex + 1);
             }
@@ -386,3 +385,4 @@ export default function SimuladoExecutionPage() {
     
 
     
+
