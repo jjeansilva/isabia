@@ -223,18 +223,20 @@ export default function SimuladoExecutionPage() {
 
     const finishSimuladoMutation = useMutation({
         mutationFn: async () => {
-            if (!simulado) throw new Error("Simulado não encontrado.");
-            console.log("Iniciando finalização do simulado:", simulado);
+            // Re-fetch the latest simulado data to ensure we have the most recent answers
+            const latestSimulado = await dataSource.get<Simulado>('simulados', id);
+            if (!latestSimulado) throw new Error("Simulado não encontrado para finalizar.");
             
-            const questoesRespondidas = simulado.questoes.filter(q => q.respostaUsuario !== undefined);
-            console.log("Questões respondidas para salvar:", questoesRespondidas);
-            
+            const questoesFromDB = typeof latestSimulado.questoes === 'string' ? JSON.parse(latestSimulado.questoes) : latestSimulado.questoes;
+
+            const questoesRespondidas = questoesFromDB.filter((q: SimuladoQuestao) => q.respostaUsuario !== undefined);
+
             if (questoesRespondidas.length > 0) {
-                await dataSource.registrarRespostasSimulado(simulado.id, questoesRespondidas);
+                await dataSource.registrarRespostasSimulado(id, questoesRespondidas);
             }
 
             // After all responses are saved, update the simulado
-            await dataSource.update('simulados', simulado.id, {
+            await dataSource.update('simulados', id, {
                 status: 'Concluído',
                 finalizadoEm: new Date().toISOString()
             });
@@ -262,7 +264,7 @@ export default function SimuladoExecutionPage() {
                 parsedRespostaCorreta = JSON.parse(questao.respostaCorreta)
             }
         } catch(e) {
-            // It's not a JSON, so we use it as is
+            // It's not a json, so we use it as is
         }
         
         let isCorrect = parsedRespostaCorreta == answer;
@@ -369,5 +371,7 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
+
+    
 
     
