@@ -33,15 +33,21 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 
-function TopicoItem({ topico, subtopicos, onEdit, onDelete, onAddSubtopic, onEditSubtopic, onDeleteSubtopic }: { 
+function TopicoItem({ topico, onEdit, onDelete, onAddSubtopic, onEditSubtopic, onDeleteSubtopic }: { 
     topico: Topico, 
-    subtopicos: Topico[],
     onEdit: () => void, 
     onDelete: () => void,
     onAddSubtopic: () => void,
     onEditSubtopic: (subtopico: Topico) => void,
     onDeleteSubtopic: (subtopico: Topico) => void
 }) {
+    const dataSource = useData();
+    const { data: subtopicos, isLoading } = useQuery({
+        queryKey: ['subtopicos', topico.id],
+        queryFn: () => dataSource.list<Topico>('topicos', { filter: `topicoPaiId = "${topico.id}"`, sort: 'ordem' }),
+        enabled: !!topico.id, // Only fetch if the topic has an ID
+    });
+
     return (
         <div className="flex flex-col pl-4 border-l border-border ml-2">
             <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted -ml-2 -mr-2 pl-4 pr-2">
@@ -70,7 +76,8 @@ function TopicoItem({ topico, subtopicos, onEdit, onDelete, onAddSubtopic, onEdi
                     </AlertDialog>
                 </div>
             </div>
-             {subtopicos.length > 0 && (
+             {isLoading && <p className="text-xs text-muted-foreground ml-4">Carregando subtópicos...</p>}
+             {subtopicos && subtopicos.length > 0 && (
                 <div className="ml-4 mt-2 space-y-1 border-l border-border pl-4">
                     {subtopicos.map(sub => (
                         <div key={sub.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted -ml-2 -mr-2 pl-4 pr-2 text-sm">
@@ -121,17 +128,12 @@ function DisciplinaAccordionItem({
     onAddSubtopic: (t: Topico, d: Disciplina) => void,
 }) {
   const dataSource = useData();
-  const { data: allTopicos, isLoading } = useQuery({
-      queryKey: ['topicos', disciplina.id],
-      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}"`, sort: 'ordem' }),
+  // Fetch only top-level topics initially
+  const { data: topicosPrincipais, isLoading } = useQuery({
+      queryKey: ['topicosPrincipais', disciplina.id],
+      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}" && (topicoPaiId = "" || topicoPaiId = null)`, sort: 'ordem' }),
   });
 
-  const topicosPrincipais = allTopicos?.filter(t => !t.topicoPaiId) || [];
-  const subtópicos = allTopicos?.filter(t => t.topicoPaiId) || [];
-
-  const getSubtopicos = (topicoId: string) => {
-      return subtópicos.filter(st => st.topicoPaiId === topicoId);
-  }
 
   return (
     <AccordionItem value={disciplina.id} className="border-b-0">
@@ -168,7 +170,6 @@ function DisciplinaAccordionItem({
                      <TopicoItem 
                         key={t.id} 
                         topico={t}
-                        subtopicos={getSubtopicos(t.id)}
                         onEdit={() => onEditTopico(t, disciplina)} 
                         onDelete={() => onDeleteTopico(t)}
                         onAddSubtopic={() => onAddSubtopic(t, disciplina)}
@@ -178,7 +179,7 @@ function DisciplinaAccordionItem({
                 ))}
             </div>
         )}
-         {allTopicos && allTopicos.length === 0 && (
+         {topicosPrincipais && topicosPrincipais.length === 0 && !isLoading && (
             <p className="text-sm text-muted-foreground text-center py-4">Nenhum tópico encontrado.</p>
         )}
         <Button variant="outline" size="sm" className="mt-4" onClick={() => onAddTopico(disciplina)}>
@@ -254,6 +255,8 @@ export default function TaxonomiaPage() {
           queryClient.invalidateQueries({ queryKey: ["disciplinas"] });
           queryClient.invalidateQueries({ queryKey: ["topicos"] });
           queryClient.invalidateQueries({ queryKey: ["questoes"] });
+          queryClient.invalidateQueries({ queryKey: ["topicosPrincipais"] });
+          queryClient.invalidateQueries({ queryKey: ["subtopicos"] });
       },
       onError: (error: any) => {
           console.error("Error deleting disciplina:", error.data || error);
@@ -284,6 +287,8 @@ export default function TaxonomiaPage() {
       toast({ title: "Tópico Excluído!", description: `O tópico "${topico.nome}" e seus dados foram removidos.` });
       queryClient.invalidateQueries({ queryKey: ["topicos"] });
       queryClient.invalidateQueries({ queryKey: ["questoes"] });
+      queryClient.invalidateQueries({ queryKey: ["topicosPrincipais"] });
+      queryClient.invalidateQueries({ queryKey: ["subtopicos"] });
     },
     onError: (error: any) => {
       console.error("Error deleting topico:", error.data || error);
