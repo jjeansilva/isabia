@@ -540,13 +540,19 @@ class PocketBaseDataSource implements IDataSource {
     const userFilter = `user = "${userId}"`;
 
     try {
-        const [respostas, disciplinas, questoes, revisoes, simulados] = await Promise.all([
+        const hoje = new Date().toISOString().split('T')[0];
+        const revisoesFilter = `proximaRevisao <= "${hoje}" && ${userFilter}`;
+
+        const [respostas, disciplinas, questoes, revisoes, allSimulados] = await Promise.all([
             this.list<Resposta>('respostas', { filter: userFilter }),
             this.list<Disciplina>('disciplinas', { filter: userFilter }),
             this.list<Questao>('questoes', { filter: userFilter, fields: 'id,disciplinaId,dificuldade,tipo' }),
-            this.list<Revisao>('revisoes', { filter: userFilter }),
-            this.list<Simulado>('simulados', { filter: userFilter, sort: '-created' }),
+            this.list<Revisao>('revisoes', { filter: revisoesFilter }),
+            this.list<Simulado>('simulados', { filter: userFilter }), // Removed sort
         ]);
+        
+        // Client-side sorting
+        const simulados = allSimulados.sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
 
         const totalRespostas = respostas.length;
         const totalAcertos = respostas.filter(r => r.acertou).length;
@@ -611,8 +617,7 @@ class PocketBaseDataSource implements IDataSource {
         const desempenhoPorDificuldade = formatPerformanceData(dificuldadeMap);
         const desempenhoPorTipo = formatPerformanceData(tipoMap);
 
-        const hoje = new Date().toISOString().split('T')[0];
-        const questoesParaRevisarHoje = revisoes.filter(r => r.proximaRevisao.split(' ')[0] <= hoje).length;
+        const questoesParaRevisarHoje = revisoes.length;
         
         const simuladoEmAndamento = simulados.find(s => s.status === 'Em andamento');
 
@@ -644,9 +649,9 @@ class PocketBaseDataSource implements IDataSource {
     if (!this.pb.authStore.model?.id) return [];
     const userFilter = `user = "${this.pb.authStore.model.id}"`;
     const hoje = new Date().toISOString().split('T')[0];
-    const revisoesHoje = await this.list<Revisao>('revisoes',{
-        filter: `proximaRevisao <= "${hoje}" && ${userFilter}`
-    });
+    const revisoesFilter = `proximaRevisao <= "${hoje}" && ${userFilter}`;
+
+    const revisoesHoje = await this.list<Revisao>('revisoes',{ filter: revisoesFilter });
     const revisoesHojeIds = revisoesHoje.map(r => r.questaoId);
 
     if (revisoesHojeIds.length === 0) return [];
