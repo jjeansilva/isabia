@@ -96,7 +96,7 @@ export interface SimuladoQuestao {
   questaoId: string;
   ordem: number;
   respostaUsuario?: any;
-  correta?: boolean;
+  acertou?: boolean;
   confianca?: RespostaConfianca;
   tempoSegundos?: number;
 }
@@ -150,3 +150,5 @@ export interface PerformancePorCriterio {
 
 
 export type CollectionName = 'users' | 'disciplinas' | 'topicos' | 'questoes' | 'simulados' | 'respostas' | 'revisoes' | 'stats';
+
+    

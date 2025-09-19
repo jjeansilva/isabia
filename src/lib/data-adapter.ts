@@ -42,7 +42,7 @@ class MockDataSource implements IDataSource {
         .filter(q => q.respostaUsuario !== undefined)
         .map(q => ({
             id: uuidv4(),
-            acertou: q.correta === true,
+            acertou: q.acertou,
             confianca: q.confianca || 'Dúvida',
             questaoId: q.questaoId,
             respostaUsuario: String(q.respostaUsuario),
@@ -429,7 +429,7 @@ class PocketBaseDataSource implements IDataSource {
     const respostasToCreate = questoes
         .filter(q => q.respostaUsuario !== undefined)
         .map(q => ({
-            acertou: q.correta === true,
+            acertou: q.acertou,
             confianca: q.confianca || 'Dúvida',
             questaoId: q.questaoId,
             respostaUsuario: String(q.respostaUsuario),
@@ -847,3 +847,5 @@ class PocketBaseDataSource implements IDataSource {
 }
 
 export { PocketBaseDataSource, MockDataSource };
+
+    

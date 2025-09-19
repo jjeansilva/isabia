@@ -264,12 +264,12 @@ export default function SimuladoExecutionPage() {
         
         const tempoSegundos = Math.max(1, Math.round((Date.now() - startTime) / 1000));
 
-        let parsedRespostaCorreta = questao.respostaCorreta;
+        let parsedRespostaCorreta;
         try {
-             if (typeof questao.respostaCorreta === 'string') {
-                parsedRespostaCorreta = JSON.parse(questao.respostaCorreta);
-            }
-        } catch(e) { /* not a json, use as is */ }
+            parsedRespostaCorreta = JSON.parse(questao.respostaCorreta);
+        } catch(e) { 
+            parsedRespostaCorreta = questao.respostaCorreta;
+        }
         
         const isCorrect = parsedRespostaCorreta == answer;
 
@@ -278,10 +278,9 @@ export default function SimuladoExecutionPage() {
             [questao.id]: {
                 questaoId: questao.id,
                 respostaUsuario: answer,
-                correta: isCorrect,
+                acertou: isCorrect,
                 confianca,
                 tempoSegundos,
-                // These are just for the UI, not persisted in 'respostas' table
                 id: currentSimuladoQuestao.id,
                 simuladoId: simulado.id,
                 ordem: currentSimuladoQuestao.ordem,
@@ -368,7 +367,7 @@ export default function SimuladoExecutionPage() {
 
             {isCurrentQuestionAnswered && questao && (
                 <div className="mt-4 space-y-4">
-                    <AnswerFeedback isCorrect={answeredLocalOrDB.correta!} explanation={questao.explicacao} />
+                    <AnswerFeedback isCorrect={answeredLocalOrDB.acertou!} explanation={questao.explicacao} />
                     {isLastQuestion ? (
                          <Button onClick={handleFinish} className="w-full" disabled={finishSimuladoMutation.isPending}>
                             {finishSimuladoMutation.isPending ? "Finalizando..." : "Finalizar Simulado"}
@@ -387,6 +386,3 @@ export default function SimuladoExecutionPage() {
 }
 
     
-
-    
-
