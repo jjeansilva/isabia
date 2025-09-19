@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Edit2, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DisciplinaForm } from "@/components/forms/disciplina-form";
 import {
@@ -33,20 +33,19 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 
-function TopicoItem({ topico, onEdit, onDelete, onAddSubtopic, onEditSubtopic, onDeleteSubtopic }: { 
+function TopicoItem({ topico, allTopicos = [], onEdit, onDelete, onAddSubtopic, onEditSubtopic, onDeleteSubtopic }: { 
     topico: Topico, 
+    allTopicos: Topico[],
     onEdit: () => void, 
     onDelete: () => void,
     onAddSubtopic: () => void,
     onEditSubtopic: (subtopico: Topico) => void,
     onDeleteSubtopic: (subtopico: Topico) => void
 }) {
-    const dataSource = useData();
-    const { data: subtopicos, isLoading } = useQuery({
-        queryKey: ['subtopicos', topico.id],
-        queryFn: () => dataSource.list<Topico>('topicos', { filter: `topicoPaiId = "${topico.id}"`, sort: 'ordem' }),
-        enabled: !!topico.id, // Only fetch if the topic has an ID
-    });
+    // Subtópicos agora são filtrados da lista completa, sem nova busca.
+    const subtopicos = useMemo(() => {
+        return allTopicos.filter(st => st.topicoPaiId === topico.id).sort((a,b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+    }, [topico.id, allTopicos]);
 
     return (
         <div className="flex flex-col pl-4 border-l border-border ml-2">
@@ -76,7 +75,6 @@ function TopicoItem({ topico, onEdit, onDelete, onAddSubtopic, onEditSubtopic, o
                     </AlertDialog>
                 </div>
             </div>
-             {isLoading && <p className="text-xs text-muted-foreground ml-4">Carregando subtópicos...</p>}
              {subtopicos && subtopicos.length > 0 && (
                 <div className="ml-4 mt-2 space-y-1 border-l border-border pl-4">
                     {subtopicos.map(sub => (
@@ -112,6 +110,8 @@ function TopicoItem({ topico, onEdit, onDelete, onAddSubtopic, onEditSubtopic, o
 
 function DisciplinaAccordionItem({ 
     disciplina, 
+    allTopicos,
+    isLoadingTopicos,
     onEdit, 
     onDelete,
     onAddTopico,
@@ -119,7 +119,9 @@ function DisciplinaAccordionItem({
     onDeleteTopico,
     onAddSubtopic,
 }: { 
-    disciplina: Disciplina, 
+    disciplina: Disciplina,
+    allTopicos: Topico[],
+    isLoadingTopicos: boolean,
     onEdit: (d: Disciplina) => void,
     onDelete: (d: Disciplina) => void, 
     onAddTopico: (d: Disciplina) => void,
@@ -127,12 +129,13 @@ function DisciplinaAccordionItem({
     onDeleteTopico: (t: Topico) => void,
     onAddSubtopic: (t: Topico, d: Disciplina) => void,
 }) {
-  const dataSource = useData();
-  // Fetch only top-level topics initially
-  const { data: topicosPrincipais, isLoading } = useQuery({
-      queryKey: ['topicosPrincipais', disciplina.id],
-      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${disciplina.id}" && (topicoPaiId = "" || topicoPaiId = null)`, sort: 'ordem' }),
-  });
+
+  // Tópicos principais são filtrados da lista geral.
+  const topicosPrincipais = useMemo(() => {
+      return allTopicos
+              .filter(t => t.disciplinaId === disciplina.id && (!t.topicoPaiId || t.topicoPaiId === ""))
+              .sort((a,b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+  }, [disciplina.id, allTopicos]);
 
 
   return (
@@ -163,13 +166,14 @@ function DisciplinaAccordionItem({
             </div>
         </div>
       <AccordionContent className="p-4 space-y-4 pt-2">
-        {isLoading && <p>Carregando tópicos...</p>}
-        {topicosPrincipais && topicosPrincipais.length > 0 && (
+        {isLoadingTopicos && <p>Carregando tópicos...</p>}
+        {!isLoadingTopicos && topicosPrincipais.length > 0 && (
             <div className="space-y-1">
                  {topicosPrincipais.map(t => (
                      <TopicoItem 
                         key={t.id} 
                         topico={t}
+                        allTopicos={allTopicos}
                         onEdit={() => onEditTopico(t, disciplina)} 
                         onDelete={() => onDeleteTopico(t)}
                         onAddSubtopic={() => onAddSubtopic(t, disciplina)}
@@ -179,7 +183,7 @@ function DisciplinaAccordionItem({
                 ))}
             </div>
         )}
-         {topicosPrincipais && topicosPrincipais.length === 0 && !isLoading && (
+         {!isLoadingTopicos && topicosPrincipais.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">Nenhum tópico encontrado.</p>
         )}
         <Button variant="outline" size="sm" className="mt-4" onClick={() => onAddTopico(disciplina)}>
@@ -206,11 +210,19 @@ export default function TaxonomiaPage() {
   const [parentTopico, setParentTopico] = useState<Topico | undefined>(undefined);
 
 
-  const { data: disciplinas, isLoading } = useQuery({
+  const { data: disciplinas, isLoading: isLoadingDisciplinas } = useQuery({
     queryKey: ["disciplinas"],
     queryFn: () => dataSource.list<Disciplina>("disciplinas", { sort: 'ordem' }),
   });
   
+  // Otimização: Carrega todos os tópicos de uma vez.
+  const { data: allTopicos, isLoading: isLoadingTopicos } = useQuery({
+      queryKey: ["topicos"],
+      queryFn: () => dataSource.list<Topico>("topicos"),
+  });
+  
+  const isLoading = isLoadingDisciplinas || isLoadingTopicos;
+
   const handleNewDisciplina = () => {
     setSelectedDisciplina(undefined);
     setIsDisciplinaFormOpen(true);
@@ -255,8 +267,6 @@ export default function TaxonomiaPage() {
           queryClient.invalidateQueries({ queryKey: ["disciplinas"] });
           queryClient.invalidateQueries({ queryKey: ["topicos"] });
           queryClient.invalidateQueries({ queryKey: ["questoes"] });
-          queryClient.invalidateQueries({ queryKey: ["topicosPrincipais"] });
-          queryClient.invalidateQueries({ queryKey: ["subtopicos"] });
       },
       onError: (error: any) => {
           console.error("Error deleting disciplina:", error.data || error);
@@ -267,7 +277,7 @@ export default function TaxonomiaPage() {
   const deleteTopicoMutation = useMutation({
     mutationFn: async (topico: Topico) => {
       // Manual cascade delete for topics and sub-topics because cascade delete is not on for this relation
-      const allSubtopics = await dataSource.list<Topico>('topicos', { filter: `topicoPaiId = "${topico.id}"`, fields: 'id' });
+      const allSubtopics = (allTopicos ?? []).filter(st => st.topicoPaiId === topico.id);
       const subtopicIds = allSubtopics.map(st => st.id);
       const allTopicIdsToDelete = [topico.id, ...subtopicIds];
 
@@ -287,8 +297,6 @@ export default function TaxonomiaPage() {
       toast({ title: "Tópico Excluído!", description: `O tópico "${topico.nome}" e seus dados foram removidos.` });
       queryClient.invalidateQueries({ queryKey: ["topicos"] });
       queryClient.invalidateQueries({ queryKey: ["questoes"] });
-      queryClient.invalidateQueries({ queryKey: ["topicosPrincipais"] });
-      queryClient.invalidateQueries({ queryKey: ["subtopicos"] });
     },
     onError: (error: any) => {
       console.error("Error deleting topico:", error.data || error);
@@ -354,7 +362,9 @@ export default function TaxonomiaPage() {
             {disciplinas?.map((d) => (
               <DisciplinaAccordionItem 
                 key={d.id} 
-                disciplina={d} 
+                disciplina={d}
+                allTopicos={allTopicos ?? []}
+                isLoadingTopicos={isLoadingTopicos}
                 onEdit={handleEditDisciplina} 
                 onDelete={handleDeleteDisciplina}
                 onAddTopico={handleNewTopico}
@@ -383,5 +393,3 @@ export default function TaxonomiaPage() {
     </>
   );
 }
-
-    
