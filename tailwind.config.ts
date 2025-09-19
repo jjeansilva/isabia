@@ -29,6 +29,9 @@ export default {
         headline: ['Inter', 'sans-serif'],
         code: ['monospace'],
       },
+      fontWeight: {
+        headline: '700',
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
