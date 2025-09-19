@@ -170,7 +170,7 @@ export default function SimuladoExecutionPage() {
     const id = params.id as string;
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [startTime, setStartTime] = useState(Date.now());
+    const [startTime, setStartTime] = useState(0);
     const [localAnswers, setLocalAnswers] = useState<Record<string, SimuladoQuestao>>({});
 
 
@@ -276,14 +276,16 @@ export default function SimuladoExecutionPage() {
         setLocalAnswers(prev => ({
             ...prev,
             [questao.id]: {
-                ...currentSimuladoQuestao,
+                id: currentSimuladoQuestao.id,
+                simuladoId: id,
                 questaoId: questao.id,
+                ordem: currentSimuladoQuestao.ordem,
                 respostaUsuario: answer,
                 correta: isCorrect,
                 confianca,
                 tempoSegundos
             }
-        }))
+        }));
     };
 
     const handleNext = () => {
@@ -382,5 +384,7 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
+
+    
 
     
