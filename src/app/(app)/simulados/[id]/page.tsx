@@ -171,7 +171,7 @@ export default function SimuladoExecutionPage() {
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [startTime, setStartTime] = useState(Date.now());
-    const [localAnswers, setLocalAnswers] = useState<Record<string, Partial<SimuladoQuestao>>>({});
+    const [localAnswers, setLocalAnswers] = useState<Record<string, SimuladoQuestao>>({});
 
 
     const { data: simuladoResult, isLoading: isLoadingSimulado } = useQuery({
@@ -193,7 +193,7 @@ export default function SimuladoExecutionPage() {
 
     useEffect(() => {
         if (simulado) {
-            const initialAnswers: Record<string, Partial<SimuladoQuestao>> = {};
+            const initialAnswers: Record<string, SimuladoQuestao> = {};
             let lastAnsweredIndex = -1;
             simulado.questoes.forEach((q: SimuladoQuestao, index: number) => {
                 if (q.respostaUsuario !== undefined) {
@@ -234,7 +234,7 @@ export default function SimuladoExecutionPage() {
             console.log("Questões respondidas para salvar:", answeredQuestoes);
             
             if (answeredQuestoes.length > 0) {
-                await dataSource.registrarRespostasSimulado(simulado.id, answeredQuestoes as SimuladoQuestao[]);
+                await dataSource.registrarRespostasSimulado(simulado.id, answeredQuestoes);
             }
     
             const finalQuestoesState = simulado.questoes.map(q => localAnswers[q.questaoId] ? {...q, ...localAnswers[q.questaoId]} : q);
