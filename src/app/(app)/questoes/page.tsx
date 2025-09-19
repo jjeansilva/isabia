@@ -185,6 +185,10 @@ export default function QuestoesPage() {
             )}
         </CardContent>
       </Card>
+
+      <Card className="mb-6">
+        <CardContent></CardContent>
+      </Card>
       
       <div className="space-y-6">
         {isLoading ? (
