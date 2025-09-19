@@ -230,7 +230,7 @@
         "system": false,
         "schema": [
             { "id": "d0n8k3lq", "name": "acertou", "type": "bool", "required": true },
-            { "id": "g0d64hfb", "name": "respostaUsuario", "type": "json", "required": true },
+            { "id": "g0d64hfb", "name": "respostaUsuario", "type": "text", "required": true },
             { "id": "select2929511165", "name": "confianca", "type": "select", "options": { "maxSelect": 1, "values": [ "Certeza", "Dúvida", "Chute" ] } },
             { "id": "jph7t0b7", "name": "tempoSegundos", "type": "number", "required": true },
             { "id": "f5k6cwqu", "name": "respondedAt", "type": "date", "required": true },

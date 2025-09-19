@@ -1,4 +1,5 @@
 
+
 import { v4 as uuidv4 } from 'uuid';
 import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado, QuestionOrigem, SimuladoQuestao, ImportProgress, Resposta, PerformancePorCriterio, StatsDia, SimuladoStatus } from '@/types';
 import PocketBase, { ListResult } from 'pocketbase';
@@ -44,7 +45,7 @@ class MockDataSource implements IDataSource {
             acertou: q.correta === true,
             confianca: q.confianca || 'Dúvida',
             questaoId: q.questaoId,
-            respostaUsuario: JSON.stringify(q.respostaUsuario),
+            respostaUsuario: String(q.respostaUsuario),
             simuladoId: simuladoId,
             respondedAt: now,
             tempoSegundos: q.tempoSegundos || 0,
@@ -431,7 +432,7 @@ class PocketBaseDataSource implements IDataSource {
             acertou: q.correta === true,
             confianca: q.confianca || 'Dúvida',
             questaoId: q.questaoId,
-            respostaUsuario: JSON.stringify(q.respostaUsuario),
+            respostaUsuario: String(q.respostaUsuario),
             simuladoId: simuladoId,
             respondedAt: new Date().toISOString(),
             tempoSegundos: q.tempoSegundos || 0,
