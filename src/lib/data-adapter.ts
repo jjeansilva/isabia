@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado, QuestionOrigem, SimuladoQuestao, ImportProgress, Resposta, PerformancePorCriterio, StatsDia, SimuladoStatus } from '@/types';
 import PocketBase, { ListResult } from 'pocketbase';
@@ -433,7 +434,7 @@ class PocketBaseDataSource implements IDataSource {
             respostaUsuario: JSON.stringify(q.respostaUsuario),
             simuladoId: simuladoId,
             respondedAt: new Date().toISOString(),
-            tempoSegundos: q.tempoSegundos,
+            tempoSegundos: q.tempoSegundos || 0,
         }));
 
     for (const resposta of respostasToCreate) {
