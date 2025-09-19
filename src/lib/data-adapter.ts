@@ -1,7 +1,7 @@
 
 
 import { v4 as uuidv4 } from 'uuid';
-import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado, QuestionOrigem, SimuladoQuestao, ImportProgress, Resposta, PerformancePorCriterio, StatsDia, SimuladoStatus } from '@/types';
+import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Topico, Revisao, QuestionTipo, QuestionDificuldade, CriterioSimulado, QuestionOrigem, SimuladoQuestao, ImportProgress, Resposta, PerformancePorCriterio, StatsDia, SimuladoStatus, RespostaConfianca } from '@/types';
 import PocketBase, { ListResult } from 'pocketbase';
 import { SimuladoFormValues } from '@/components/forms/simulado-form';
 
@@ -426,25 +426,25 @@ class PocketBaseDataSource implements IDataSource {
   async registrarRespostasSimulado(simuladoId: string, questoes: SimuladoQuestao[]): Promise<void> {
     if (!this.pb.authStore.model) throw new Error("Usuário não autenticado.");
 
-    const respostasToCreate = questoes
-        .filter(q => q.respostaUsuario !== undefined)
-        .map(q => ({
-            acertou: q.acertou,
-            confianca: q.confianca || 'Dúvida',
-            questaoId: q.questaoId,
-            respostaUsuario: String(q.respostaUsuario),
-            simuladoId: simuladoId,
-            respondedAt: new Date().toISOString(),
-            tempoSegundos: q.tempoSegundos || 0,
-        }));
+    for (const questao of questoes) {
+        if (questao.respostaUsuario === undefined) continue;
 
-    for (const resposta of respostasToCreate) {
+        // Build a clean payload to ensure no extra properties are sent
+        const payload: Omit<Resposta, 'id'|'user'|'createdAt'|'updatedAt'|'respondedAt'> = {
+            acertou: questao.acertou ?? false,
+            confianca: questao.confianca || 'Dúvida',
+            questaoId: questao.questaoId,
+            respostaUsuario: String(questao.respostaUsuario),
+            simuladoId: simuladoId,
+            tempoSegundos: questao.tempoSegundos || 0,
+        };
+
         try {
-            await this.create('respostas', resposta as any);
+            await this.create('respostas', { ...payload, respondedAt: new Date().toISOString() } as any);
         } catch (error) {
-            console.error("Falha ao criar registro de resposta:", resposta, error);
+            console.error("Falha ao criar registro de resposta:", payload, error);
             // Re-throw a more informative error
-            throw new Error(`Não foi possível salvar a resposta para a questão ID: ${resposta.questaoId}. Detalhes: ${(error as Error).message}`);
+            throw new Error(`Não foi possível salvar a resposta para a questão ID: ${payload.questaoId}. Detalhes: ${(error as Error).message}`);
         }
     }
   }

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -230,10 +231,8 @@ export default function SimuladoExecutionPage() {
     const finishSimuladoMutation = useMutation({
         mutationFn: async () => {
             if (!simulado) throw new Error("Simulado não encontrado.");
-            console.log("Iniciando finalização do simulado:", simulado);
             
             const answeredQuestoes = Object.values(localAnswers).filter(q => q.respostaUsuario !== undefined);
-            console.log("Questões respondidas para salvar:", answeredQuestoes);
             
             if (answeredQuestoes.length > 0) {
                 await dataSource.registrarRespostasSimulado(simulado.id, answeredQuestoes);
