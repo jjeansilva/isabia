@@ -218,27 +218,42 @@ export default function SimuladoExecutionPage() {
         }
     });
 
-     const createRespostasMutation = useMutation({
-        mutationFn: (respostas: Omit<Resposta, 'id' | 'user' | 'createdAt' | 'updatedAt'>[]) => {
-            const promises = respostas.map(r => dataSource.create('respostas', r));
-            return Promise.all(promises);
+    const finishSimuladoMutation = useMutation({
+        mutationFn: async () => {
+            if (!simulado) throw new Error("Simulado não encontrado.");
+
+            const questoesRespondidas = simulado.questoes.filter(q => q.respostaUsuario !== undefined);
+
+            if (questoesRespondidas.length > 0) {
+                const respostasToCreate = questoesRespondidas.map(q => ({
+                    acertou: !!q.correta,
+                    confianca: q.confianca || 'Dúvida',
+                    questaoId: q.questaoId,
+                    respostaUsuario: q.respostaUsuario,
+                    simuladoId: simulado.id,
+                    respondedAt: new Date().toISOString(),
+                    tempoSegundos: q.tempoSegundos || 0,
+                }));
+                 // Sequentially save responses
+                const createPromises = respostasToCreate.map(r => dataSource.create('respostas', r as any));
+                await Promise.all(createPromises);
+            }
+
+            // After all responses are saved, update the simulado
+            await dataSource.update('simulados', simulado.id, {
+                status: 'Concluído',
+                finalizadoEm: new Date().toISOString()
+            });
         },
         onSuccess: () => {
-             queryClient.invalidateQueries({ queryKey: ['dashboardStats']});
-             // This is now called after responses are saved
-             updateSimuladoMutation.mutate(
-                { status: 'Concluído', finalizadoEm: new Date().toISOString() },
-                {
-                    onSuccess: () => {
-                        toast({title: "Simulado finalizado!", description: "Veja seus resultados."});
-                        router.push(`/simulados/${id}/resultado`);
-                    }
-                }
-            );
+            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+            queryClient.invalidateQueries({ queryKey: ['simulado', id] });
+            toast({ title: "Simulado finalizado!", description: "Veja seus resultados." });
+            router.push(`/simulados/${id}/resultado`);
         },
-        onError: (error) => {
-            toast({ variant: "destructive", title: "Erro ao salvar respostas", description: error.message });
-        }
+        onError: (error: any) => {
+            toast({ variant: "destructive", title: "Erro ao finalizar simulado", description: error.message });
+        },
     });
 
     const handleAnswer = (answer: any, confianca: RespostaConfianca) => {
@@ -274,33 +289,7 @@ export default function SimuladoExecutionPage() {
     }
     
     const handleFinish = () => {
-        if (!simulado) return;
-
-        const questoesRespondidas = simulado.questoes.filter(q => q.respostaUsuario !== undefined);
-
-        if (questoesRespondidas.length > 0) {
-            const respostasToCreate = questoesRespondidas.map(q => ({
-                acertou: !!q.correta,
-                confianca: q.confianca || 'Dúvida',
-                questaoId: q.questaoId,
-                respostaUsuario: q.respostaUsuario,
-                simuladoId: simulado.id,
-                respondedAt: new Date().toISOString(),
-                tempoSegundos: q.tempoSegundos || 0,
-            }));
-            createRespostasMutation.mutate(respostasToCreate as any);
-        } else {
-             // If no questions were answered, just finalize the simulation
-             updateSimuladoMutation.mutate(
-                { status: 'Concluído', finalizadoEm: new Date().toISOString() },
-                {
-                    onSuccess: () => {
-                        toast({title: "Simulado finalizado!", description: "Nenhuma questão foi respondida."});
-                        router.push(`/simulados/${id}/resultado`);
-                    }
-                }
-            );
-        }
+        finishSimuladoMutation.mutate();
     }
     
     const isCurrentQuestionAnswered = currentSimuladoQuestao?.respostaUsuario !== undefined;
@@ -320,7 +309,9 @@ export default function SimuladoExecutionPage() {
                 <CardTitle className="mb-4">Parabéns!</CardTitle>
                 <CardContent>
                     <p className="mb-6">Você concluiu todas as questões deste simulado.</p>
-                    <Button onClick={handleFinish}>Ver Resultados</Button>
+                    <Button onClick={handleFinish} disabled={finishSimuladoMutation.isPending}>
+                       {finishSimuladoMutation.isPending ? "Finalizando..." : "Ver Resultados"}
+                    </Button>
                 </CardContent>
             </Card>
         )
@@ -350,7 +341,9 @@ export default function SimuladoExecutionPage() {
                                         </AlertDialogDescription>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleFinish}>Finalizar</AlertDialogAction>
+                                            <AlertDialogAction onClick={handleFinish} disabled={finishSimuladoMutation.isPending}>
+                                                {finishSimuladoMutation.isPending ? "Finalizando..." : "Finalizar"}
+                                            </AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
@@ -367,7 +360,9 @@ export default function SimuladoExecutionPage() {
                 <div className="mt-4 space-y-4">
                     <AnswerFeedback isCorrect={currentSimuladoQuestao.correta!} explanation={questao.explicacao} />
                     {isLastQuestion ? (
-                        <Button onClick={handleFinish} className="w-full">Finalizar Simulado</Button>
+                         <Button onClick={handleFinish} className="w-full" disabled={finishSimuladoMutation.isPending}>
+                            {finishSimuladoMutation.isPending ? "Finalizando..." : "Finalizar Simulado"}
+                        </Button>
                     ) : (
                         <Button onClick={handleNext} className="w-full">Próxima Questão</Button>
                     )}
@@ -380,5 +375,3 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
-
-    
