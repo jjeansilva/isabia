@@ -222,28 +222,21 @@ export default function SimuladoExecutionPage() {
         mutationFn: async () => {
             if (!simulado) throw new Error("Simulado não encontrado.");
 
-            console.log("DEBUG: Iniciando finalização do simulado:", simulado);
-
             const questoesRespondidas = simulado.questoes.filter(q => q.respostaUsuario !== undefined);
-            console.log("DEBUG: Questões respondidas para processar:", questoesRespondidas);
-
 
             if (questoesRespondidas.length > 0) {
                 const respostasToCreate = questoesRespondidas.map(q => ({
                     acertou: q.correta === true,
                     confianca: q.confianca || 'Dúvida',
                     questaoId: q.questaoId,
-                    respostaUsuario: q.respostaUsuario,
+                    respostaUsuario: JSON.stringify(q.respostaUsuario),
                     simuladoId: simulado.id,
                     respondedAt: new Date().toISOString(),
                     tempoSegundos: q.tempoSegundos || 0,
                 }));
-
-                console.log("DEBUG: Payload para criar respostas:", respostasToCreate);
                 
                 const createPromises = respostasToCreate.map(r => dataSource.create('respostas', r as any));
                 await Promise.all(createPromises);
-                console.log("DEBUG: Respostas criadas no banco de dados.");
             }
 
             // After all responses are saved, update the simulado
@@ -251,17 +244,15 @@ export default function SimuladoExecutionPage() {
                 status: 'Concluído',
                 finalizadoEm: new Date().toISOString()
             });
-            console.log("DEBUG: Simulado atualizado para 'Concluído'.");
         },
         onSuccess: () => {
-            console.log("DEBUG: Mutação finalizada com sucesso. Invalidando queries e redirecionando.");
             queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
             queryClient.invalidateQueries({ queryKey: ['simulado', id] });
             toast({ title: "Simulado finalizado!", description: "Veja seus resultados." });
             router.push(`/simulados/${id}/resultado`);
         },
         onError: (error: any) => {
-            console.error("DEBUG: Erro detalhado ao finalizar simulado:", error);
+            console.error("Erro detalhado ao finalizar simulado:", error);
             toast({ variant: "destructive", title: "Erro ao finalizar simulado", description: error.message });
         },
     });
@@ -385,5 +376,7 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
+
+    
 
     
