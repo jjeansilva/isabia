@@ -439,13 +439,8 @@ class PocketBaseDataSource implements IDataSource {
       const userFilter = `user = "${this.pb.authStore.model?.id}"`;
       
       const allRespostas = await this.list<Resposta>('respostas', { filter: userFilter, fields: 'id,questaoId,acertou' });
-      const respostasMap = new Map<string, boolean>();
-      allRespostas.forEach(r => {
-        // We only care about the last result for a question, so we can just overwrite.
-        // For more complex logic (e.g. "ever correct", "ever wrong"), this needs adjustment.
-        respostasMap.set(r.questaoId, r.acertou);
-      });
-      const resolvidasIds = new Set(respostasMap.keys());
+      
+      const resolvidasIds = new Set(allRespostas.map(r => r.questaoId));
       const acertadasIds = new Set(allRespostas.filter(r => r.acertou).map(r => r.questaoId));
       const erradasIds = new Set(allRespostas.filter(r => !r.acertou).map(r => r.questaoId));
 
@@ -548,10 +543,9 @@ class PocketBaseDataSource implements IDataSource {
             this.list<Disciplina>('disciplinas', { filter: userFilter }),
             this.list<Questao>('questoes', { filter: userFilter, fields: 'id,disciplinaId,dificuldade,tipo' }),
             this.list<Revisao>('revisoes', { filter: revisoesFilter }),
-            this.list<Simulado>('simulados', { filter: userFilter }), // Removed sort
+            this.list<Simulado>('simulados', { filter: userFilter }),
         ]);
         
-        // Client-side sorting
         const simulados = allSimulados.sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
 
         const totalRespostas = respostas.length;
