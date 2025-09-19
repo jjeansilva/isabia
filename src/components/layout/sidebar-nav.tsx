@@ -8,7 +8,8 @@ import {
   FileText, 
   Target, 
   History, 
-  Settings 
+  Settings,
+  Archive
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -25,8 +26,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/taxonomia", label: "Taxonomia", icon: BookCopy },
-  { href: "/questoes", label: "Questões", icon: FileText },
+  { href: "/repositorio", label: "Repositório", icon: Archive },
   { href: "/simulados", label: "Simulados", icon: Target },
   { href: "/revisao", label: "Revisão", icon: History },
   { href: "/configuracoes", label: "Configurações", icon: Settings },

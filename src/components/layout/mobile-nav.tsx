@@ -8,13 +8,14 @@ import {
   Target,
   History,
   Menu,
+  Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/ui/sidebar";
 
 const navItems = [
   { href: "/dashboard", label: "Início", icon: LayoutDashboard },
-  { href: "/questoes", label: "Questões", icon: FileText },
+  { href: "/repositorio", label: "Repositório", icon: Archive },
   { href: "/simulados", label: "Simulados", icon: Target },
   { href: "/revisao", label: "Revisão", icon: History },
 ];
