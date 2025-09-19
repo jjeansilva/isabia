@@ -48,7 +48,7 @@ export default function QuestoesPage() {
   // States for duplicate checker
   const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
   const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
-  const [questionsToKeep, setQuestionsToKeep] = useState<Record<string, string>>({});
+  const [questionsToKeep, setQuestionsToKeep] = useState<Record<string, string | null>>({});
 
 
   // --- Data Fetching ---
@@ -195,7 +195,7 @@ export default function QuestoesPage() {
         toast({ title: "Nenhuma duplicata encontrada!", description: "Seu banco de questões está livre de duplicatas de texto exato." });
     } else {
         setDuplicateGroups(foundDuplicates);
-        const initialKeep: Record<string, string> = {};
+        const initialKeep: Record<string, string | null> = {};
         foundDuplicates.forEach((group, index) => {
           initialKeep[`group-${index}`] = group.questionIds[0];
         });
@@ -204,9 +204,11 @@ export default function QuestoesPage() {
   }, [questoes, toast]);
 
   const handleDeleteDuplicates = useCallback(async () => {
-      const idsToDelete = duplicateGroups.flatMap((group, index) => 
-        group.questionIds.filter(id => id !== questionsToKeep[`group-${index}`])
-      );
+      const idsToDelete = duplicateGroups.flatMap((group, index) => {
+        const keepId = questionsToKeep[`group-${index}`];
+        // If keepId is null, delete all. Otherwise, delete all except the one to keep.
+        return keepId === null ? group.questionIds : group.questionIds.filter(id => id !== keepId);
+      });
       
       if (idsToDelete.length === 0) {
           toast({ title: "Nenhuma ação necessária", description: "Nenhuma questão foi marcada para exclusão." });
@@ -215,15 +217,16 @@ export default function QuestoesPage() {
       
       toast({ title: "Excluindo duplicatas...", description: `Excluindo ${idsToDelete.length} questões.`});
       try {
-          // Re-using the single delete mutation. For bulk, a new mutation would be better.
           for (const id of idsToDelete) {
+              // We are re-using the single delete mutation here.
+              // For better performance, a dedicated bulk delete mutation could be used.
               await deleteMutation.mutateAsync(id);
           }
           toast({ title: "Sucesso!", description: "As questões duplicadas foram excluídas." });
-          setDuplicateGroups([]); // Clear the list after deletion
+          setDuplicateGroups([]);
           setQuestionsToKeep({});
       } catch (error) {
-          // Error toast is handled by the mutation's onError
+          // Error toast is handled by the mutation's onError callback
       }
   }, [duplicateGroups, questionsToKeep, deleteMutation, toast]);
 
@@ -296,9 +299,20 @@ export default function QuestoesPage() {
             
             {duplicateGroups.length > 0 && (
                 <div className="space-y-6">
-                    <p className="text-sm text-muted-foreground">Encontramos {duplicateGroups.length} grupo(s) de questões duplicadas. Selecione qual versão de cada questão você deseja manter.</p>
+                    <p className="text-sm text-muted-foreground">Encontramos {duplicateGroups.length} grupo(s) de questões duplicadas. Selecione qual versão de cada questão você deseja manter, ou opte por excluir todas.</p>
                     {duplicateGroups.map((group, groupIndex) => {
                         const groupId = `group-${groupIndex}`;
+                        const idToKeep = questionsToKeep[groupId];
+
+                        const renderParsedValue = (value: any) => {
+                            try {
+                                const parsed = JSON.parse(value);
+                                return JSON.stringify(parsed, null, 2);
+                            } catch {
+                                return value.toString();
+                            }
+                        };
+                        
                         return (
                             <div key={groupId} className="p-4 border rounded-lg space-y-4">
                                 <p className="text-sm font-semibold italic">Motivo: {group.reason}</p>
@@ -306,28 +320,37 @@ export default function QuestoesPage() {
                                     {group.questionIds.map((id) => {
                                         const questao = questaoMap.get(id);
                                         if (!questao) return null;
-                                        const isKept = questionsToKeep[groupId] === id;
+                                        const isKept = idToKeep === id;
                                         return (
                                             <div key={id} className={`p-3 rounded-md border ${isKept ? 'bg-muted/50 border-primary' : 'bg-card'}`}>
-                                                <p className="text-sm font-medium line-clamp-3">{questao.enunciado}</p>
-                                                <p className="text-xs text-muted-foreground mt-2">ID: {questao.id.substring(0, 5)}... | Criada em: {new Date(questao.createdAt).toLocaleDateString()}</p>
+                                                <p className="text-sm font-medium">{questao.enunciado}</p>
+                                                <div className="mt-2 space-y-2 text-xs">
+                                                    <p><span className="font-semibold">Resposta:</span> <code className="bg-muted px-1 py-0.5 rounded text-xs">{renderParsedValue(questao.respostaCorreta)}</code></p>
+                                                    <p><span className="font-semibold">Explicação:</span> {questao.explicacao || <span className="italic text-muted-foreground">N/A</span>}</p>
+                                                    <p className="text-muted-foreground pt-1">ID: {questao.id.substring(0, 5)}... | Criada em: {new Date(questao.createdAt).toLocaleDateString()}</p>
+                                                </div>
                                                 <div className="mt-3">
-                                                    {isKept ? (
-                                                        <Button size="sm" disabled className="w-full">Manter esta</Button>
-                                                    ) : (
-                                                        <Button size="sm" variant="outline" className="w-full" onClick={() => setQuestionsToKeep(prev => ({...prev, [groupId]: id}))}>Manter esta</Button>
-                                                    )}
+                                                    <Button size="sm" variant={isKept ? "default" : "outline"} className="w-full" onClick={() => setQuestionsToKeep(prev => ({...prev, [groupId]: id}))}>
+                                                        {isKept ? "Mantendo esta" : "Manter esta"}
+                                                    </Button>
                                                 </div>
                                             </div>
                                         );
                                     })}
                                 </div>
+                                 <div className="text-center">
+                                    <Button size="sm" variant={idToKeep === null ? "default" : "outline"} onClick={() => setQuestionsToKeep(prev => ({ ...prev, [groupId]: null }))}>
+                                        Manter Nenhuma (Excluir Todas)
+                                    </Button>
+                                </div>
                             </div>
                         );
                     })}
                     <div className="flex justify-end gap-2">
-                        <Button variant="ghost" onClick={() => setDuplicateGroups([])}>Cancelar</Button>
-                        <Button variant="destructive" onClick={handleDeleteDuplicates}>Excluir Selecionadas</Button>
+                        <Button variant="ghost" onClick={() => { setDuplicateGroups([]); setQuestionsToKeep({}); }}>Cancelar</Button>
+                        <Button variant="destructive" onClick={handleDeleteDuplicates}>
+                          {Object.values(questionsToKeep).some(v => v === null) ? 'Excluir Selecionadas' : 'Excluir as outras'}
+                        </Button>
                     </div>
                 </div>
             )}
@@ -383,5 +406,3 @@ export default function QuestoesPage() {
     </>
   );
 }
-
-
