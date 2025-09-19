@@ -258,7 +258,7 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
                )}/>
                <FormField control={form.control} name="topicoId" render={({ field }) => (
                   <FormItem>
-                      <FormLabel>Tópico</FormLabel>
+                      <FormLabel>Tópico / Subtópico</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDisciplinaId || !topicos}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Selecione o tópico ou subtópico"/></SelectTrigger></FormControl>
                           <SelectContent>
@@ -431,3 +431,5 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
   );
 }
 
+
+    
