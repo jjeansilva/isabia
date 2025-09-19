@@ -24,9 +24,7 @@ import {
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -47,6 +45,7 @@ import { Skeleton } from "../ui/skeleton";
 const formSchema = z.object({
   disciplinaId: z.string().min(1, "Disciplina é obrigatória"),
   topicoId: z.string().min(1, "Tópico é obrigatório"),
+  subTopicoId: z.string().optional(),
   tipo: z.enum(["Múltipla Escolha", "Certo ou Errado", "Completar Lacuna", "Flashcard"]),
   dificuldade: z.enum(["Fácil", "Médio", "Difícil"]),
   origem: z.enum(["Autoral", "Conteúdo", "Legislação", "Jurisprudência", "Já caiu"]),
@@ -79,6 +78,11 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
     },
   });
 
+  const { data: allTopicos } = useQuery({ 
+      queryKey: ['topicos'], 
+      queryFn: () => dataSource.list<Topico>('topicos'),
+  });
+
   useEffect(() => {
     if(open && questao) {
        let alternativas: any = questao.alternativas;
@@ -100,9 +104,17 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
             // not a json, use as is
         }
 
-
         if (questao.tipo === 'Múltipla Escolha' && Array.isArray(alternativas)) {
             respostaCorreta = alternativas.indexOf(respostaCorreta).toString();
+        }
+        
+        let topicoPrincipalId = questao.topicoId;
+        let subTopicoId = undefined;
+        
+        const topicoDaQuestao = allTopicos?.find(t => t.id === questao.topicoId);
+        if (topicoDaQuestao?.topicoPaiId) {
+            topicoPrincipalId = topicoDaQuestao.topicoPaiId;
+            subTopicoId = topicoDaQuestao.id;
         }
 
         form.reset({
@@ -111,6 +123,8 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
             alternativas: Array.isArray(alternativas) ? alternativas : [],
             respostaCorreta: respostaCorreta,
             explicacao: questao.explicacao || "",
+            topicoId: topicoPrincipalId,
+            subTopicoId: subTopicoId,
         });
     } else if (open && !questao) {
         form.reset({
@@ -122,10 +136,11 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
             respostaCorreta: undefined,
             disciplinaId: undefined,
             topicoId: undefined,
+            subTopicoId: undefined,
             explicacao: "",
         });
     }
-  }, [open, questao, form]);
+  }, [open, questao, form, allTopicos]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -135,30 +150,32 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
   const { data: disciplinas } = useQuery({ queryKey: ['disciplinas'], queryFn: () => dataSource.list('disciplinas') });
   
   const selectedDisciplinaId = form.watch("disciplinaId");
-  const { data: topicos } = useQuery({ 
+  const selectedTopicoId = form.watch("topicoId");
+
+  const { data: topicosDaDisciplina } = useQuery({ 
       queryKey: ['topicos', selectedDisciplinaId], 
       queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${selectedDisciplinaId}"` }),
       enabled: !!selectedDisciplinaId,
   });
 
-  const groupedTopicos = useMemo(() => {
-    if (!topicos) return [];
-    
-    const topicosPrincipais = topicos.filter(t => !t.topicoPaiId);
-    const subtopicos = topicos.filter(t => t.topicoPaiId);
+  const topicosPrincipais = useMemo(() => {
+    return (topicosDaDisciplina ?? []).filter(t => !t.topicoPaiId);
+  }, [topicosDaDisciplina]);
 
-    return topicosPrincipais.map(tp => ({
-      id: tp.id,
-      nome: tp.nome,
-      subtopicos: subtopicos.filter(st => st.topicoPaiId === tp.id),
-    }));
-  }, [topicos]);
+  const subTopicosDoTopico = useMemo(() => {
+    if (!selectedTopicoId) return [];
+    return (topicosDaDisciplina ?? []).filter(t => t.topicoPaiId === selectedTopicoId);
+  }, [topicosDaDisciplina, selectedTopicoId]);
 
 
   const mutation = useMutation({
-    mutationFn: (newQuestao: z.infer<typeof formSchema>) => {
+    mutationFn: (newQuestaoData: z.infer<typeof formSchema>) => {
+      
+      const { subTopicoId, ...restOfData } = newQuestaoData;
+
       let finalData: Partial<Questao> = {
-        ...newQuestao,
+        ...restOfData,
+        topicoId: subTopicoId && subTopicoId !== 'none' ? subTopicoId : restOfData.topicoId,
         version: questao?.version ?? 1,
         isActive: true,
         hashConteudo: 'temp-hash',
@@ -166,11 +183,11 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
         motivoRevisao: "",
       };
 
-      let finalRespostaCorreta = newQuestao.respostaCorreta;
+      let finalRespostaCorreta = newQuestaoData.respostaCorreta;
 
-      if (newQuestao.tipo === 'Múltipla Escolha' && Array.isArray(newQuestao.alternativas)) {
-        finalRespostaCorreta = newQuestao.alternativas[parseInt(newQuestao.respostaCorreta)];
-        finalData.alternativas = JSON.stringify(newQuestao.alternativas);
+      if (newQuestaoData.tipo === 'Múltipla Escolha' && Array.isArray(newQuestaoData.alternativas)) {
+        finalRespostaCorreta = newQuestaoData.alternativas[parseInt(newQuestaoData.respostaCorreta)];
+        finalData.alternativas = JSON.stringify(newQuestaoData.alternativas);
       } else {
         finalData.alternativas = "[]"; 
       }
@@ -240,13 +257,14 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
                 </AlertDescription>
               </Alert>
             )}
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-3 gap-4">
                <FormField control={form.control} name="disciplinaId" render={({ field }) => (
                   <FormItem>
                       <FormLabel>Disciplina</FormLabel>
                       <Select onValueChange={(value) => {
                           field.onChange(value)
                           form.setValue('topicoId', '');
+                          form.setValue('subTopicoId', '');
                       }} value={field.value}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Selecione a disciplina"/></SelectTrigger></FormControl>
                           <SelectContent>
@@ -258,22 +276,31 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
                )}/>
                <FormField control={form.control} name="topicoId" render={({ field }) => (
                   <FormItem>
-                      <FormLabel>Tópico / Subtópico</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDisciplinaId || !topicos}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Selecione o tópico ou subtópico"/></SelectTrigger></FormControl>
+                      <FormLabel>Tópico</FormLabel>
+                      <Select onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue('subTopicoId', '');
+                      }} value={field.value} disabled={!selectedDisciplinaId || !topicosDaDisciplina}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Selecione o tópico principal"/></SelectTrigger></FormControl>
                           <SelectContent>
-                                {groupedTopicos.map(group => (
-                                    <SelectGroup key={group.id}>
-                                        <SelectLabel>{group.nome}</SelectLabel>
-                                        <SelectItem value={group.id}>-- Tópico Principal --</SelectItem>
-                                        {group.subtopicos.map(sub => (
-                                            <SelectItem key={sub.id} value={sub.id}>&nbsp;&nbsp;&nbsp;{sub.nome}</SelectItem>
-                                        ))}
-                                    </SelectGroup>
+                                {topicosPrincipais.map(t => (
+                                  <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
                                 ))}
-                                {groupedTopicos.length === 0 && topicos && topicos.length > 0 && (
-                                     topicos.map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)
-                                )}
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                  </FormItem>
+               )}/>
+                <FormField control={form.control} name="subTopicoId" render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Subtópico (Opcional)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || 'none'} disabled={!selectedTopicoId || subTopicosDoTopico.length === 0}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Selecione o subtópico"/></SelectTrigger></FormControl>
+                          <SelectContent>
+                                <SelectItem value="none">Nenhum</SelectItem>
+                                {subTopicosDoTopico.map(sub => (
+                                    <SelectItem key={sub.id} value={sub.id}>{sub.nome}</SelectItem>
+                                ))}
                           </SelectContent>
                       </Select>
                       <FormMessage />
@@ -432,4 +459,3 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
 }
 
 
-    
