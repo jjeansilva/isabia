@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
@@ -59,7 +60,7 @@ const formSchema = z.object({
 }, { message: "Questões de múltipla escolha devem ter pelo menos 2 alternativas e uma resposta correta.", path: ["respostaCorreta"] });
 
 
-export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; onOpenChange: (open: boolean) => void; questao?: Questao }) {
+export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: boolean; onOpenChange: (open: boolean) => void; questao?: Questao; onDelete?: (q: Questao) => void }) {
   const dataSource = useData();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -385,8 +386,17 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Salvando...' : 'Salvar'}</Button>
+               <div className="flex w-full justify-between">
+                {questao && onDelete ? (
+                    <Button type="button" variant="destructive-outline" onClick={() => onDelete(questao)}>
+                        Excluir
+                    </Button>
+                ) : <div />}
+                <div className="flex gap-2">
+                     <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                     <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'Salvando...' : 'Salvar'}</Button>
+                </div>
+               </div>
             </DialogFooter>
           </form>
         </Form>
@@ -394,3 +404,4 @@ export function QuestionForm({ open, onOpenChange, questao }: { open: boolean; o
     </Dialog>
   );
 }
+

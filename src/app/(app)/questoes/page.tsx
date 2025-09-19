@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
@@ -102,6 +103,7 @@ export default function QuestoesPage() {
     onSuccess: () => {
       toast({ title: "Sucesso!", description: "Questão e seus dados associados foram excluídos." });
       queryClient.invalidateQueries({ queryKey: ["questoes"] });
+      handleCloseForm();
     },
     onError: (error) => {
       console.error("Erro ao excluir questão:", error);
@@ -140,6 +142,15 @@ export default function QuestoesPage() {
   const handleDelete = useCallback((q: Questao) => {
     setQuestaoToDelete(q);
   }, []);
+  
+  const handleDeleteFromForm = useCallback((q: Questao) => {
+      handleCloseForm();
+      // Use a timeout to ensure the form is closed before the alert dialog opens
+      setTimeout(() => {
+        setQuestaoToDelete(q);
+      }, 150);
+  }, []);
+
 
   const handleMarkAsCorrected = useCallback((q: Questao) => {
     markAsCorrectedMutation.mutate(q);
@@ -350,7 +361,7 @@ export default function QuestoesPage() {
         )}
       </div>
       
-      {isFormOpen && <QuestionForm open={isFormOpen} onOpenChange={handleCloseForm} questao={selectedQuestao} />}
+      {isFormOpen && <QuestionForm open={isFormOpen} onOpenChange={handleCloseForm} questao={selectedQuestao} onDelete={handleDeleteFromForm} />}
       {showImportModal && <ImportQuestionsForm open={showImportModal} onOpenChange={setShowImportModal} />}
       
       <AlertDialog open={!!questaoToDelete} onOpenChange={(open) => !open && setQuestaoToDelete(null)}>
@@ -372,4 +383,5 @@ export default function QuestoesPage() {
     </>
   );
 }
+
 
