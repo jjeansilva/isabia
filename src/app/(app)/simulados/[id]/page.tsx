@@ -380,12 +380,3 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
-
-    
-
-    
-
-
-
-
-    
