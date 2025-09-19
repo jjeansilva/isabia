@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useData } from "@/hooks/use-data";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Trash2, Search, Loader2 } from "lucide-react";
+import { PlusCircle, Trash2, Search, Loader2, Edit, Flag } from "lucide-react";
 import { Questao, Disciplina, Topico, Resposta, Revisao } from "@/types";
 import { QuestionForm } from "@/components/forms/question-form";
 import { ImportQuestionsForm } from "@/components/forms/import-questions-form";
@@ -28,6 +28,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { AlertTriangle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { ReportErrorForm } from "@/components/forms/report-error-form";
+
 
 type DuplicateGroup = {
   questionIds: string[];
@@ -42,7 +45,9 @@ export default function QuestoesPage() {
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [selectedQuestao, setSelectedQuestao] = useState<Questao | undefined>(undefined);
+  const [questaoToReport, setQuestaoToReport] = useState<Questao | undefined>(undefined);
   const [questaoToDelete, setQuestaoToDelete] = useState<Questao | null>(null);
   
   // States for duplicate checker
@@ -50,6 +55,9 @@ export default function QuestoesPage() {
   const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
   const [questionsToKeep, setQuestionsToKeep] = useState<Record<string, string | null>>({});
 
+  // States for bulk deletion
+  const [showDeleteProgress, setShowDeleteProgress] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState({ current: 0, total: 0 });
 
   // --- Data Fetching ---
   const { data: disciplinas, isLoading: isLoadingDisciplinas } = useQuery({
@@ -101,7 +109,7 @@ export default function QuestoesPage() {
         return dataSource.delete('questoes', questaoId);
     },
     onSuccess: () => {
-      toast({ title: "Sucesso!", description: "Questão e seus dados associados foram excluídos." });
+      // Toast is now handled by the calling function to avoid multiple toasts in bulk operations
       queryClient.invalidateQueries({ queryKey: ["questoes"] });
       handleCloseForm();
     },
@@ -143,6 +151,11 @@ export default function QuestoesPage() {
     setQuestaoToDelete(q);
   }, []);
   
+  const handleReportError = useCallback((q: Questao) => {
+    setQuestaoToReport(q);
+    setShowReportModal(true);
+  }, []);
+  
   const handleDeleteFromForm = useCallback((q: Questao) => {
       handleCloseForm();
       // Use a timeout to ensure the form is closed before the alert dialog opens
@@ -150,7 +163,6 @@ export default function QuestoesPage() {
         setQuestaoToDelete(q);
       }, 150);
   }, []);
-
 
   const handleMarkAsCorrected = useCallback((q: Questao) => {
     markAsCorrectedMutation.mutate(q);
@@ -215,19 +227,30 @@ export default function QuestoesPage() {
           return;
       }
       
-      toast({ title: "Excluindo duplicatas...", description: `Excluindo ${idsToDelete.length} questões.`});
-      try {
-          for (const id of idsToDelete) {
-              // We are re-using the single delete mutation here.
-              // For better performance, a dedicated bulk delete mutation could be used.
-              await deleteMutation.mutateAsync(id);
-          }
-          toast({ title: "Sucesso!", description: "As questões duplicadas foram excluídas." });
-          setDuplicateGroups([]);
-          setQuestionsToKeep({});
-      } catch (error) {
-          // Error toast is handled by the mutation's onError callback
+      setShowDeleteProgress(true);
+      setDeleteProgress({ current: 0, total: idsToDelete.length });
+      
+      let successCount = 0;
+      for (let i = 0; i < idsToDelete.length; i++) {
+        try {
+          await deleteMutation.mutateAsync(idsToDelete[i]);
+          successCount++;
+        } catch (error) {
+           console.error(`Failed to delete question ${idsToDelete[i]}:`, error);
+        }
+        setDeleteProgress({ current: i + 1, total: idsToDelete.length });
       }
+
+      setShowDeleteProgress(false);
+      
+      toast({ 
+        title: "Exclusão Concluída!", 
+        description: `${successCount} de ${idsToDelete.length} questões duplicadas foram excluídas.`
+      });
+
+      setDuplicateGroups([]);
+      setQuestionsToKeep({});
+
   }, [duplicateGroups, questionsToKeep, deleteMutation, toast]);
 
   useEffect(() => {
@@ -307,9 +330,12 @@ export default function QuestoesPage() {
                         const renderParsedValue = (value: any) => {
                             try {
                                 const parsed = JSON.parse(value);
-                                return JSON.stringify(parsed, null, 2);
+                                if (typeof parsed === 'object' && parsed !== null) {
+                                    return JSON.stringify(parsed);
+                                }
+                                return parsed.toString();
                             } catch {
-                                return value.toString();
+                                return value ? value.toString() : 'N/A';
                             }
                         };
                         
@@ -322,25 +348,27 @@ export default function QuestoesPage() {
                                         if (!questao) return null;
                                         const isKept = idToKeep === id;
                                         return (
-                                            <div key={id} className={`p-3 rounded-md border ${isKept ? 'bg-muted/50 border-primary' : 'bg-card'}`}>
+                                            <div key={id} className={`p-3 rounded-md border flex flex-col ${isKept ? 'bg-muted/50 border-primary' : 'bg-card'}`}>
                                                 <p className="text-sm font-medium">{questao.enunciado}</p>
-                                                <div className="mt-2 space-y-2 text-xs">
+                                                <div className="mt-2 space-y-2 text-xs flex-1">
                                                     <p><span className="font-semibold">Resposta:</span> <code className="bg-muted px-1 py-0.5 rounded text-xs">{renderParsedValue(questao.respostaCorreta)}</code></p>
                                                     <p><span className="font-semibold">Explicação:</span> {questao.explicacao || <span className="italic text-muted-foreground">N/A</span>}</p>
                                                     <p className="text-muted-foreground pt-1">ID: {questao.id.substring(0, 5)}... | Criada em: {new Date(questao.createdAt).toLocaleDateString()}</p>
                                                 </div>
-                                                <div className="mt-3">
+                                                <div className="mt-3 flex gap-1">
                                                     <Button size="sm" variant={isKept ? "default" : "outline"} className="w-full" onClick={() => setQuestionsToKeep(prev => ({...prev, [groupId]: id}))}>
-                                                        {isKept ? "Mantendo esta" : "Manter esta"}
+                                                        {isKept ? "Manter" : "Manter esta"}
                                                     </Button>
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(questao)}><Edit className="h-4 w-4"/></Button>
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleReportError(questao)}><Flag className="h-4 w-4"/></Button>
                                                 </div>
                                             </div>
                                         );
                                     })}
                                 </div>
                                  <div className="text-center">
-                                    <Button size="sm" variant={idToKeep === null ? "default" : "outline"} onClick={() => setQuestionsToKeep(prev => ({ ...prev, [groupId]: null }))}>
-                                        Manter Nenhuma (Excluir Todas)
+                                    <Button size="sm" variant={idToKeep === null ? "destructive" : "outline"} onClick={() => setQuestionsToKeep(prev => ({ ...prev, [groupId]: null }))}>
+                                       <Trash2 className="mr-2 h-3 w-3"/> Manter Nenhuma (Excluir Todas)
                                     </Button>
                                 </div>
                             </div>
@@ -349,7 +377,7 @@ export default function QuestoesPage() {
                     <div className="flex justify-end gap-2">
                         <Button variant="ghost" onClick={() => { setDuplicateGroups([]); setQuestionsToKeep({}); }}>Cancelar</Button>
                         <Button variant="destructive" onClick={handleDeleteDuplicates}>
-                          {Object.values(questionsToKeep).some(v => v === null) ? 'Excluir Selecionadas' : 'Excluir as outras'}
+                          Excluir Selecionadas
                         </Button>
                     </div>
                 </div>
@@ -385,6 +413,7 @@ export default function QuestoesPage() {
       </div>
       
       {isFormOpen && <QuestionForm open={isFormOpen} onOpenChange={handleCloseForm} questao={selectedQuestao} onDelete={handleDeleteFromForm} />}
+      {showReportModal && questaoToReport && <ReportErrorForm open={showReportModal} onOpenChange={setShowReportModal} questao={questaoToReport} />}
       {showImportModal && <ImportQuestionsForm open={showImportModal} onOpenChange={setShowImportModal} />}
       
       <AlertDialog open={!!questaoToDelete} onOpenChange={(open) => !open && setQuestaoToDelete(null)}>
@@ -397,12 +426,32 @@ export default function QuestoesPage() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => questaoToDelete && deleteMutation.mutate(questaoToDelete.id)} disabled={deleteMutation.isPending}>
+              <AlertDialogAction onClick={() => { 
+                if (questaoToDelete) {
+                  deleteMutation.mutate(questaoToDelete.id);
+                  toast({ title: "Questão excluída!", description: "A questão e seus dados associados foram removidos." });
+                }
+              }} disabled={deleteMutation.isPending}>
                 {deleteMutation.isPending ? 'Excluindo...' : 'Sim, Excluir'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
-        </AlertDialog>
+      </AlertDialog>
+       <AlertDialog open={showDeleteProgress}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluindo Questões Duplicadas</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Aguarde enquanto as questões selecionadas são removidas. Isso pode levar alguns instantes.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="space-y-2">
+                <Progress value={(deleteProgress.current / deleteProgress.total) * 100} />
+                <p className="text-sm text-center text-muted-foreground">{deleteProgress.current} / {deleteProgress.total}</p>
+              </div>
+            </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
+
