@@ -196,7 +196,7 @@ export default function SimuladoExecutionPage() {
             let lastAnsweredIndex = -1;
             (simulado.questoes as SimuladoQuestao[]).forEach((q, index) => {
                 if (q.respostaUsuario !== undefined) {
-                    initialAnswers[q.questaoId] = q;
+                    initialAnswers[q.questaoId] = q; // Already has acertou from DB
                     lastAnsweredIndex = index;
                 }
             });
@@ -266,8 +266,10 @@ export default function SimuladoExecutionPage() {
 
         let parsedRespostaCorreta;
         try {
+            // respostaCorreta from DB is a JSON string, e.g., '"Habeas Corpus"' or '"true"'
             parsedRespostaCorreta = JSON.parse(questao.respostaCorreta);
         } catch(e) { 
+            // If it's not valid JSON, use it as a raw string
             parsedRespostaCorreta = questao.respostaCorreta;
         }
         
@@ -276,14 +278,12 @@ export default function SimuladoExecutionPage() {
         setLocalAnswers(prev => ({
             ...prev,
             [questao.id]: {
+                ...currentSimuladoQuestao,
                 questaoId: questao.id,
                 respostaUsuario: answer,
                 acertou: isCorrect,
                 confianca,
                 tempoSegundos,
-                id: currentSimuladoQuestao.id,
-                simuladoId: simulado.id,
-                ordem: currentSimuladoQuestao.ordem,
             }
         }));
     };
@@ -298,7 +298,7 @@ export default function SimuladoExecutionPage() {
         finishSimuladoMutation.mutate();
     }
     
-    const answeredLocalOrDB = localAnswers[currentSimuladoQuestao?.questaoId] ?? currentSimuladoQuestao;
+    const answeredLocalOrDB = localAnswers[currentSimuladoQuestao?.questaoId];
     const isCurrentQuestionAnswered = answeredLocalOrDB?.respostaUsuario !== undefined;
 
     const answeredCount = Object.keys(localAnswers).filter(k => localAnswers[k].respostaUsuario !== undefined).length;
@@ -363,9 +363,9 @@ export default function SimuladoExecutionPage() {
                 <Progress value={progress} />
             </div>
 
-            {questao && <QuestionRunner questao={questao} onAnswer={handleAnswer} isAnswered={isCurrentQuestionAnswered} initialAnswer={answeredLocalOrDB.respostaUsuario} />}
+            {questao && <QuestionRunner questao={questao} onAnswer={handleAnswer} isAnswered={isCurrentQuestionAnswered} initialAnswer={answeredLocalOrDB?.respostaUsuario} />}
 
-            {isCurrentQuestionAnswered && questao && (
+            {isCurrentQuestionAnswered && questao && answeredLocalOrDB && (
                 <div className="mt-4 space-y-4">
                     <AnswerFeedback isCorrect={answeredLocalOrDB.acertou!} explanation={questao.explicacao} />
                     {isLastQuestion ? (
@@ -384,5 +384,3 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
-
-    

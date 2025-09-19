@@ -4,7 +4,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useData } from "@/hooks/use-data";
-import { Simulado, Questao } from "@/types";
+import { Simulado, Questao, SimuladoQuestao } from "@/types";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,8 +56,9 @@ export default function ResultadoPage() {
         return <p>Resultados não encontrados.</p>;
     }
 
-    const totalQuestoes = simulado.questoes.length;
-    const acertos = simulado.questoes.filter(q => q.correta).length;
+    const answeredQuestoes = (simulado.questoes as SimuladoQuestao[]).filter(q => q.respostaUsuario !== undefined);
+    const totalQuestoes = answeredQuestoes.length;
+    const acertos = answeredQuestoes.filter(q => q.acertou).length;
     const percentualAcerto = totalQuestoes > 0 ? (acertos / totalQuestoes) * 100 : 0;
 
     return (
@@ -85,16 +86,16 @@ export default function ResultadoPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {simulado.questoes.map(sq => {
+                            {(simulado.questoes as SimuladoQuestao[]).map(sq => {
                                 const questao = getQuestaoById(sq.questaoId);
                                 return (
                                     <TableRow key={sq.id}>
                                         <TableCell>{sq.ordem}</TableCell>
                                         <TableCell className="max-w-[150px] sm:max-w-sm truncate">{questao?.enunciado ?? 'Carregando...'}</TableCell>
                                         <TableCell>
-                                            {sq.correta === undefined ? (
+                                            {sq.acertou === undefined ? (
                                                 <Badge variant="secondary">Não respondida</Badge>
-                                            ) : sq.correta ? (
+                                            ) : sq.acertou ? (
                                                 <Badge className="bg-approval/20 text-approval-foreground">Correta</Badge>
                                             ) : (
                                                 <Badge variant="destructive">Incorreta</Badge>
@@ -113,5 +114,3 @@ export default function ResultadoPage() {
         </>
     )
 }
-
-    
