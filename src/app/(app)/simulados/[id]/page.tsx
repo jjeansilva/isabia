@@ -276,10 +276,8 @@ export default function SimuladoExecutionPage() {
         setLocalAnswers(prev => ({
             ...prev,
             [questao.id]: {
-                id: currentSimuladoQuestao.id,
-                simuladoId: id,
+                ...currentSimuladoQuestao,
                 questaoId: questao.id,
-                ordem: currentSimuladoQuestao.ordem,
                 respostaUsuario: answer,
                 correta: isCorrect,
                 confianca,
