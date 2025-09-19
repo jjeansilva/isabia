@@ -639,8 +639,9 @@ class PocketBaseDataSource implements IDataSource {
 }
 
   async getQuestoesParaRevisar(): Promise<Questao[]> {
+    if (!this.pb.authStore.model?.id) return [];
+    const userFilter = `user = "${this.pb.authStore.model.id}"`;
     const hoje = new Date().toISOString().split('T')[0];
-    const userFilter = `user = "${this.pb.authStore.model?.id}"`;
     const revisoesHoje = await this.list<Revisao>('revisoes',{
         filter: `proximaRevisao <= "${hoje}" && ${userFilter}`
     });
@@ -655,8 +656,9 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> {
+    if (!this.pb.authStore.model?.id) return;
     let revisao: Revisao | undefined;
-    const userFilter = `user = "${this.pb.authStore.model?.id}"`;
+    const userFilter = `user = "${this.pb.authStore.model.id}"`;
 
     try {
         const results = await this.list<Revisao>('revisoes', { filter: `questaoId="${questaoId}" && ${userFilter}` });
