@@ -235,8 +235,10 @@ export default function SimuladoExecutionPage() {
                     tempoSegundos: q.tempoSegundos || 0,
                 }));
                 
-                const createPromises = respostasToCreate.map(r => dataSource.create('respostas', r as any));
-                await Promise.all(createPromises);
+                // Use a sequential for...of loop instead of Promise.all to avoid race conditions
+                for (const resposta of respostasToCreate) {
+                    await dataSource.create('respostas', resposta as any);
+                }
             }
 
             // After all responses are saved, update the simulado
