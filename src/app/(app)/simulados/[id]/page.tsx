@@ -226,7 +226,7 @@ export default function SimuladoExecutionPage() {
 
             if (questoesRespondidas.length > 0) {
                 const respostasToCreate = questoesRespondidas.map(q => ({
-                    acertou: !!q.correta,
+                    acertou: q.correta === true,
                     confianca: q.confianca || 'Dúvida',
                     questaoId: q.questaoId,
                     respostaUsuario: q.respostaUsuario,
@@ -375,3 +375,5 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
+
+    
