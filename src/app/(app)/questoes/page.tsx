@@ -16,7 +16,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReportedQuestionsList } from "@/components/tables/reported-questions-list";
 import { useToast } from "@/hooks/use-toast";
-import { findDuplicateQuestions } from "@/ai/flows/find-duplicate-questions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -159,24 +158,37 @@ export default function QuestoesPage() {
     setIsCheckingDuplicates(true);
     setDuplicateGroups([]);
     setQuestionsToKeep({});
-    try {
-      const questionData = questoes.map(q => ({ id: q.id, enunciado: q.enunciado }));
-      const result = await findDuplicateQuestions({ questions: questionData });
-      if (result.duplicateGroups.length === 0) {
-        toast({ title: "Nenhuma duplicata encontrada!", description: "Seu banco de questões está livre de duplicatas." });
-      } else {
-        setDuplicateGroups(result.duplicateGroups);
+
+    // Client-side exact match check
+    await new Promise(resolve => setTimeout(resolve, 50)); // Allow UI to update
+    
+    const groups: Record<string, string[]> = {};
+    questoes.forEach(q => {
+        const normalizedEnunciado = q.enunciado.trim().toLowerCase();
+        if (!groups[normalizedEnunciado]) {
+            groups[normalizedEnunciado] = [];
+        }
+        groups[normalizedEnunciado].push(q.id);
+    });
+
+    const foundDuplicates = Object.values(groups)
+        .filter(ids => ids.length > 1)
+        .map(ids => ({
+            questionIds: ids,
+            reason: "Texto do enunciado é idêntico."
+        }));
+
+    setIsCheckingDuplicates(false);
+    
+    if (foundDuplicates.length === 0) {
+        toast({ title: "Nenhuma duplicata encontrada!", description: "Seu banco de questões está livre de duplicatas de texto exato." });
+    } else {
+        setDuplicateGroups(foundDuplicates);
         const initialKeep: Record<string, string> = {};
-        result.duplicateGroups.forEach((group, index) => {
+        foundDuplicates.forEach((group, index) => {
           initialKeep[`group-${index}`] = group.questionIds[0];
         });
         setQuestionsToKeep(initialKeep);
-      }
-    } catch (e) {
-      console.error(e);
-      toast({ variant: "destructive", title: "Erro de IA", description: (e as Error).message || "Não foi possível verificar as duplicatas." });
-    } finally {
-      setIsCheckingDuplicates(false);
     }
   }, [questoes, toast]);
 
@@ -259,8 +271,8 @@ export default function QuestoesPage() {
         <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
-                    <CardTitle>Verificador de Duplicatas com IA</CardTitle>
-                    <CardDescription>Encontre questões semanticamente duplicadas em seu banco de dados.</CardDescription>
+                    <CardTitle>Verificador de Duplicatas</CardTitle>
+                    <CardDescription>Encontre questões com o mesmo enunciado em seu banco de dados.</CardDescription>
                 </div>
                 <Button onClick={handleCheckDuplicates} disabled={isCheckingDuplicates || isLoading}>
                     {isCheckingDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Search className="mr-2 h-4 w-4"/>}
