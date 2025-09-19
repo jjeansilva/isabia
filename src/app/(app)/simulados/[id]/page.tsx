@@ -14,7 +14,6 @@ import { useEffect, useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { AlertCircle, Check, ThumbsUp, X, Lightbulb, Zap, Flag, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,11 +40,15 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 
-function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, onAnswer: (answer: any, confianca: RespostaConfianca) => void, isAnswered: boolean }) {
-    const [selectedAnswer, setSelectedAnswer] = useState<any>(null);
+function QuestionRunner({ questao, onAnswer, isAnswered, initialAnswer }: { questao: Questao, onAnswer: (answer: any, confianca: RespostaConfianca) => void, isAnswered: boolean, initialAnswer: any }) {
+    const [selectedAnswer, setSelectedAnswer] = useState<any>(initialAnswer ?? null);
     const [confianca, setConfianca] = useState<RespostaConfianca>('Dúvida');
     const [showReportModal, setShowReportModal] = useState(false);
     
+    useEffect(() => {
+        setSelectedAnswer(initialAnswer ?? null);
+    }, [initialAnswer, questao]);
+
     let alternativas = questao.alternativas;
     if (typeof alternativas === 'string' && alternativas) {
         try {
@@ -54,7 +57,6 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
             alternativas = [];
         }
     }
-
 
     const handleAnswer = () => {
         if (selectedAnswer !== null) {
@@ -84,7 +86,7 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
                 {/* Answer Area */}
                 <div className="space-y-4 text-sm sm:text-base">
                     {questao.tipo === 'Múltipla Escolha' && Array.isArray(alternativas) && (
-                        <RadioGroup onValueChange={setSelectedAnswer} disabled={isAnswered}>
+                         <RadioGroup value={selectedAnswer} onValueChange={setSelectedAnswer} disabled={isAnswered}>
                             {alternativas.map((alt, index) => (
                                 <div key={index} className="flex items-center space-x-2">
                                     <RadioGroupItem value={alt} id={`alt-${index}`} />
@@ -94,18 +96,19 @@ function QuestionRunner({ questao, onAnswer, isAnswered }: { questao: Questao, o
                         </RadioGroup>
                     )}
                     {questao.tipo === 'Certo ou Errado' && (
-                        <RadioGroup onValueChange={(v) => setSelectedAnswer(v === 'true')} disabled={isAnswered}>
+                        <RadioGroup value={String(selectedAnswer)} onValueChange={(v) => setSelectedAnswer(v === 'true')} disabled={isAnswered}>
                             <div className="flex items-center space-x-2"><RadioGroupItem value="true" id="ce-certo" /><Label htmlFor="ce-certo" className="text-sm sm:text-base">Certo</Label></div>
                             <div className="flex items-center space-x-2"><RadioGroupItem value="false" id="ce-errado" /><Label htmlFor="ce-errado" className="text-sm sm:text-base">Errado</Label></div>
                         </RadioGroup>
                     )}
                     {questao.tipo === 'Completar Lacuna' && (
-                        <Input onChange={e => setSelectedAnswer(e.target.value)} disabled={isAnswered} placeholder="Digite sua resposta..."/>
+                        <Input value={selectedAnswer ?? ""} onChange={e => setSelectedAnswer(e.target.value)} disabled={isAnswered} placeholder="Digite sua resposta..."/>
                     )}
                      {questao.tipo === 'Flashcard' && (
                         <div>
-                            <Button onClick={() => setSelectedAnswer(true)} disabled={isAnswered} variant="outline" className="mr-2">Lembrei</Button>
-                            <Button onClick={() => setSelectedAnswer(false)} disabled={isAnswered} variant="outline">Não lembrei</Button>
+                            <p className="text-sm text-muted-foreground mb-4">Lembre-se da resposta e então confirme.</p>
+                            <Button onClick={() => setSelectedAnswer(true)} disabled={isAnswered} variant={selectedAnswer === true ? "default" : "outline"} className="mr-2">Lembrei</Button>
+                            <Button onClick={() => setSelectedAnswer(false)} disabled={isAnswered} variant={selectedAnswer === false ? "destructive" : "outline"}>Não lembrei</Button>
                         </div>
                     )}
                 </div>
@@ -168,30 +171,41 @@ export default function SimuladoExecutionPage() {
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [startTime, setStartTime] = useState(Date.now());
+    const [localAnswers, setLocalAnswers] = useState<Record<string, Partial<SimuladoQuestao>>>({});
 
 
     const { data: simuladoResult, isLoading: isLoadingSimulado } = useQuery({
         queryKey: ['simulado', id],
-        queryFn: () => dataSource.get<Simulado>('simulados', id),
+        queryFn: async () => {
+            const data = await dataSource.get<Simulado>('simulados', id);
+            if (!data) return null;
+            try {
+                const questoes = typeof data.questoes === 'string' ? JSON.parse(data.questoes) : data.questoes;
+                return { ...data, questoes };
+            } catch (e) {
+                console.error("Failed to parse simulado questoes", e);
+                return { ...data, questoes: [] };
+            }
+        },
     });
-
-    const simulado = useMemo(() => {
-        if (!simuladoResult) return null;
-        try {
-            const questoes = typeof simuladoResult.questoes === 'string' ? JSON.parse(simuladoResult.questoes) : simuladoResult.questoes;
-            return { ...simuladoResult, questoes };
-        } catch (e) {
-            console.error("Failed to parse simulado questoes", e);
-            return { ...simuladoResult, questoes: [] };
-        }
-    }, [simuladoResult]);
+    
+    const simulado = simuladoResult;
 
     useEffect(() => {
         if (simulado) {
-            const lastAnsweredIndex = simulado.questoes.findLastIndex((q: any) => q.respostaUsuario !== undefined) ?? -1;
+            const initialAnswers: Record<string, Partial<SimuladoQuestao>> = {};
+            let lastAnsweredIndex = -1;
+            simulado.questoes.forEach((q: SimuladoQuestao, index: number) => {
+                if (q.respostaUsuario !== undefined) {
+                    initialAnswers[q.questaoId] = q;
+                    lastAnsweredIndex = index;
+                }
+            });
+            setLocalAnswers(initialAnswers);
             setCurrentQuestionIndex(lastAnsweredIndex + 1);
         }
-    }, [simulado?.id]);
+    }, [simulado]);
+
 
     useEffect(() => {
       setStartTime(Date.now());
@@ -208,37 +222,22 @@ export default function SimuladoExecutionPage() {
         enabled: !!currentSimuladoQuestao,
     });
     
-    const updateSimuladoMutation = useMutation({
-        mutationFn: (data: Partial<Simulado>) => {
-            const dataToUpdate: any = { ...data };
-            if (data.questoes) {
-                dataToUpdate.questoes = JSON.stringify(data.questoes);
-            }
-            return dataSource.update<Simulado>('simulados', id, dataToUpdate);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['simulado', id] });
-        }
-    });
-
     const finishSimuladoMutation = useMutation({
         mutationFn: async () => {
-            // Re-fetch the latest simulado data to ensure we have the most recent answers
-            const latestSimulado = await dataSource.get<Simulado>('simulados', id);
-            if (!latestSimulado) throw new Error("Simulado não encontrado para finalizar.");
+            if (!simulado) throw new Error("Simulado não encontrado.");
+            console.log("Iniciando finalização do simulado:", simulado);
             
-            const questoesFromDB = typeof latestSimulado.questoes === 'string' ? JSON.parse(latestSimulado.questoes) : latestSimulado.questoes;
-
-            const questoesRespondidas = questoesFromDB.filter((q: SimuladoQuestao) => q.respostaUsuario !== undefined);
-
-            if (questoesRespondidas.length > 0) {
-                await dataSource.registrarRespostasSimulado(id, questoesRespondidas);
+            const answeredQuestoes = Object.values(localAnswers).filter(q => q.respostaUsuario !== undefined);
+            console.log("Questões respondidas para salvar:", answeredQuestoes);
+            
+            if (answeredQuestoes.length > 0) {
+                await dataSource.registrarRespostasSimulado(simulado.id, answeredQuestoes as SimuladoQuestao[]);
             }
-
-            // After all responses are saved, update the simulado
-            await dataSource.update('simulados', id, {
+    
+            await dataSource.update('simulados', simulado.id, {
                 status: 'Concluído',
-                finalizadoEm: new Date().toISOString()
+                finalizadoEm: new Date().toISOString(),
+                questoes: JSON.stringify(simulado.questoes.map(q => ({...q, ...localAnswers[q.questaoId]})))
             });
         },
         onSuccess: () => {
@@ -269,13 +268,17 @@ export default function SimuladoExecutionPage() {
         
         let isCorrect = parsedRespostaCorreta == answer;
 
-        const updatedQuestoes = simulado.questoes.map((q, index) => 
-            index === currentQuestionIndex 
-                ? { ...q, respostaUsuario: answer, correta: isCorrect, confianca, tempoSegundos } 
-                : q
-        );
-        
-        updateSimuladoMutation.mutate({ questoes: updatedQuestoes });
+        setLocalAnswers(prev => ({
+            ...prev,
+            [questao.id]: {
+                ...currentSimuladoQuestao,
+                questaoId: questao.id,
+                respostaUsuario: answer,
+                correta: isCorrect,
+                confianca,
+                tempoSegundos
+            }
+        }))
     };
 
     const handleNext = () => {
@@ -288,8 +291,11 @@ export default function SimuladoExecutionPage() {
         finishSimuladoMutation.mutate();
     }
     
-    const isCurrentQuestionAnswered = currentSimuladoQuestao?.respostaUsuario !== undefined;
-    const progress = simulado ? ((currentQuestionIndex + (isCurrentQuestionAnswered ? 1 : 0)) / simulado.questoes.length) * 100 : 0;
+    const answeredLocalOrDB = localAnswers[currentSimuladoQuestao?.questaoId] ?? currentSimuladoQuestao;
+    const isCurrentQuestionAnswered = answeredLocalOrDB?.respostaUsuario !== undefined;
+
+    const answeredCount = Object.keys(localAnswers).length;
+    const progress = simulado ? (answeredCount / simulado.questoes.length) * 100 : 0;
     
     if (isLoadingSimulado || (isLoadingQuestao && simulado && currentQuestionIndex < simulado.questoes.length)) {
         return <Skeleton className="h-96 w-full"/>
@@ -350,11 +356,11 @@ export default function SimuladoExecutionPage() {
                 <Progress value={progress} />
             </div>
 
-            {questao && <QuestionRunner questao={questao} onAnswer={handleAnswer} isAnswered={isCurrentQuestionAnswered} />}
+            {questao && <QuestionRunner questao={questao} onAnswer={handleAnswer} isAnswered={isCurrentQuestionAnswered} initialAnswer={answeredLocalOrDB.respostaUsuario} />}
 
             {isCurrentQuestionAnswered && questao && (
                 <div className="mt-4 space-y-4">
-                    <AnswerFeedback isCorrect={currentSimuladoQuestao.correta!} explanation={questao.explicacao} />
+                    <AnswerFeedback isCorrect={answeredLocalOrDB.correta!} explanation={questao.explicacao} />
                     {isLastQuestion ? (
                          <Button onClick={handleFinish} className="w-full" disabled={finishSimuladoMutation.isPending}>
                             {finishSimuladoMutation.isPending ? "Finalizando..." : "Finalizar Simulado"}
@@ -371,7 +377,3 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
-
-    
-
-    
