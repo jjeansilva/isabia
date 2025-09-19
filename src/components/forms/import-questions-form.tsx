@@ -72,8 +72,7 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
   const mutation = useMutation({
     mutationFn: (data: {csvData: string, tipo: QuestionTipo, origem: QuestionOrigem}) => {
       if (!('bulkCreateFromCsv' in dataSource && typeof dataSource.bulkCreateFromCsv === 'function')) {
-          toast({ variant: "destructive", title: "Erro!", description: "A importação de CSV não é suportada pelo provedor de dados atual." });
-          return Promise.reject("Bulk create from CSV not supported");
+          throw new Error("A importação de CSV não é suportada pelo provedor de dados atual.");
       }
       return dataSource.bulkCreateFromCsv(data.csvData, data.tipo, data.origem, (prog) => {
         setProgress(prog);
@@ -84,12 +83,11 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
       queryClient.invalidateQueries({ queryKey: ['disciplinas'] });
       queryClient.invalidateQueries({ queryKey: ['topicos'] });
       toast({ title: "Sucesso!", description: `${result} questões importadas com sucesso.` });
-      setProgress({ message: `Concluído! ${result} questões importadas.`, current: result, total: result });
-      // Don't close automatically, let user see the final result.
+      setProgress({ message: `Concluído! ${result} questões importadas.`, current: result, total: result, log: progress?.log });
     },
     onError: (error) => {
-      toast({ variant: "destructive", title: "Erro na Importação!", description: error.message || "Não foi possível importar as questões." });
-      setProgress({ message: `Erro: ${error.message}`, current: progress?.current ?? 0, total: progress?.total ?? 0, isError: true });
+      toast({ variant: "destructive", title: "Erro na Importação!", description: error.message || "Não foi possível importar as questões.", duration: 10000 });
+      // The progress is already set by the onProgress callback, so we don't need to set it again here
     },
   });
 

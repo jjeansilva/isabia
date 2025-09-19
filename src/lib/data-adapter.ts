@@ -452,11 +452,11 @@ class PocketBaseDataSource implements IDataSource {
     const userFilter = `user = "${userId}"`;
 
     try {
-        const [respostas, disciplinas, revisoes, simuladoEmAndamento] = await Promise.all([
+        const [respostas, disciplinas, revisoes, simulados] = await Promise.all([
             this.list<Resposta>('respostas', { filter: userFilter, expand: 'questaoId' }),
             this.list<Disciplina>('disciplinas', { filter: userFilter }),
             this.list<Revisao>('revisoes', { filter: userFilter }),
-            this.list<Simulado>('simulados', { filter: `status = "Em andamento" && ${userFilter}` }).then(res => res[0] || null),
+            this.list<Simulado>('simulados', { filter: userFilter, sort: '-created' }),
         ]);
 
         const totalRespostas = respostas.length;
@@ -523,6 +523,8 @@ class PocketBaseDataSource implements IDataSource {
 
         const hoje = new Date().toISOString().split('T')[0];
         const questoesParaRevisarHoje = revisoes.filter(r => r.proximaRevisao.split(' ')[0] <= hoje).length;
+        
+        const simuladoEmAndamento = simulados.find(s => s.status === 'Em andamento');
 
         return {
             totalRespostas,
@@ -603,7 +605,6 @@ class PocketBaseDataSource implements IDataSource {
   }
 
   async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem, onProgress: (progress: ImportProgress) => void): Promise<number> {
-    // This is a simplified CSV parser. A more robust library might be needed for complex CSVs.
     const lines = csvData.split('\n').filter(line => line.trim() !== '');
     const header = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     const rows = lines.slice(1);
@@ -618,7 +619,6 @@ class PocketBaseDataSource implements IDataSource {
 
     onProgress({ message: 'Iniciando processamento...', current: 0, total: rows.length, log });
     
-    // Get all existing disciplines and topics to avoid creating duplicates
     const allDisciplinas = await this.list<Disciplina>('disciplinas');
     const allTopicos = await this.list<Topico>('topicos');
     const disciplinaMap = new Map(allDisciplinas.map(d => [d.nome.toLowerCase(), d.id]));
@@ -630,12 +630,11 @@ class PocketBaseDataSource implements IDataSource {
         const topicoNome = getColumn(rowData, 'tópico da disciplina');
         const enunciado = getColumn(rowData, 'questão');
 
-        if (!disciplinaNome || !topicoNome || !enunciado) {
-            log.push(`[Linha ${i + 2}] Ignorada: Disciplina, Tópico ou Enunciado faltando.`);
-            continue;
-        }
-
         try {
+            if (!disciplinaNome || !topicoNome || !enunciado) {
+                throw new Error(`Dados insuficientes na linha ${i + 2}. As colunas "disciplina", "tópico da disciplina" e "questão" são obrigatórias.`);
+            }
+
             let disciplinaId = disciplinaMap.get(disciplinaNome.toLowerCase());
             if (!disciplinaId) {
                 const newDisciplina = await this.create<Disciplina>('disciplinas', { nome: disciplinaNome });
@@ -652,7 +651,6 @@ class PocketBaseDataSource implements IDataSource {
                  log.push(`[Linha ${i + 2}] Novo tópico criado: ${topicoNome}`);
             }
             
-            // Subtópico logic
             const subtópicoNome = getColumn(rowData, 'subtópico');
             if (subtópicoNome) {
                 let subtópicoId = topicoMap.get(`${disciplinaId}-${subtópicoNome.toLowerCase()}`);
@@ -662,7 +660,7 @@ class PocketBaseDataSource implements IDataSource {
                     topicoMap.set(`${disciplinaId}-${subtópicoNome.toLowerCase()}`, subtópicoId);
                     log.push(`[Linha ${i + 2}] Novo subtópico criado: ${subtópicoNome}`);
                  }
-                 topicoId = subtópicoId; // The question belongs to the subtopic
+                 topicoId = subtópicoId;
             }
 
             const questao: Partial<Questao> = {
@@ -684,8 +682,14 @@ class PocketBaseDataSource implements IDataSource {
             createdCount++;
             onProgress({ message: `Processando linha ${i + 2}...`, current: i + 1, total: rows.length, log });
         } catch (error: any) {
-            log.push(`[Linha ${i + 2}] ERRO: ${error.message}`);
-             onProgress({ message: `Erro na linha ${i + 2}`, current: i + 1, total: rows.length, log, isError: true });
+            let errorMessage = `Erro na linha ${i + 2}: ${error.message}`;
+            if (error.data?.data) {
+                const fieldErrors = Object.entries(error.data.data).map(([field, err]: [string, any]) => `${field}: ${err.message}`).join(', ');
+                errorMessage = `Erro na linha ${i + 2}. Detalhes: ${fieldErrors}`;
+            }
+            log.push(`[Linha ${i + 2}] ERRO: ${errorMessage}`);
+            onProgress({ message: errorMessage, current: i + 1, total: rows.length, log, isError: true });
+            throw new Error(errorMessage); // Stop the process
         }
     }
     
