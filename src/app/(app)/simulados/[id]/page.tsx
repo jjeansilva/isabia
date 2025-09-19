@@ -191,8 +191,11 @@ export default function SimuladoExecutionPage() {
             const lastAnsweredIndex = simulado.questoes.findLastIndex((q: any) => q.respostaUsuario !== undefined) ?? -1;
             setCurrentQuestionIndex(lastAnsweredIndex + 1);
         }
-        setStartTime(Date.now());
-    }, [simulado?.id, currentQuestionIndex]);
+    }, [simulado?.id]);
+
+    useEffect(() => {
+      setStartTime(Date.now());
+    }, [currentQuestionIndex]);
 
 
     const currentSimuladoQuestao = simulado?.questoes[currentQuestionIndex];
@@ -256,7 +259,7 @@ export default function SimuladoExecutionPage() {
         let parsedRespostaCorreta = questao.respostaCorreta;
         try {
             if (typeof questao.respostaCorreta === 'string') {
-                parsedRespostaCorreta = JSON.parse(parsedRespostaCorreta)
+                parsedRespostaCorreta = JSON.parse(questao.respostaCorreta)
             }
         } catch(e) {
             // It's not a JSON, so we use it as is
@@ -366,3 +369,5 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
+
+    
