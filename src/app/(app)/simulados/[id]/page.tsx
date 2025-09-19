@@ -228,17 +228,21 @@ export default function SimuladoExecutionPage() {
     const finishSimuladoMutation = useMutation({
         mutationFn: async () => {
             if (!simulado) throw new Error("Simulado não encontrado.");
+            console.log("Iniciando finalização do simulado:", simulado);
             
             const answeredQuestoes = Object.values(localAnswers).filter(q => q.respostaUsuario !== undefined);
+            console.log("Questões respondidas para salvar:", answeredQuestoes);
             
             if (answeredQuestoes.length > 0) {
                 await dataSource.registrarRespostasSimulado(simulado.id, answeredQuestoes as SimuladoQuestao[]);
             }
     
+            const finalQuestoesState = simulado.questoes.map(q => localAnswers[q.questaoId] ? {...q, ...localAnswers[q.questaoId]} : q);
+
             await dataSource.update('simulados', simulado.id, {
                 status: 'Concluído',
                 finalizadoEm: new Date().toISOString(),
-                questoes: JSON.stringify(simulado.questoes.map(q => ({...q, ...localAnswers[q.questaoId]})))
+                questoes: JSON.stringify(finalQuestoesState)
             });
         },
         onSuccess: () => {
@@ -378,3 +382,4 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
+
