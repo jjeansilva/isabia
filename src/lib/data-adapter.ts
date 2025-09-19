@@ -433,7 +433,7 @@ class PocketBaseDataSource implements IDataSource {
             respostaUsuario: JSON.stringify(q.respostaUsuario),
             simuladoId: simuladoId,
             respondedAt: new Date().toISOString(),
-            tempoSegundos: q.tempoSegundos || 0,
+            tempoSegundos: q.tempoSegundos,
         }));
 
     for (const resposta of respostasToCreate) {

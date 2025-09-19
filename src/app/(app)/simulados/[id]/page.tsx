@@ -190,9 +190,9 @@ export default function SimuladoExecutionPage() {
         if (simulado) {
             const lastAnsweredIndex = simulado.questoes.findLastIndex((q: any) => q.respostaUsuario !== undefined) ?? -1;
             setCurrentQuestionIndex(lastAnsweredIndex + 1);
-            setStartTime(Date.now());
         }
-    }, [simulado?.id]);
+        setStartTime(Date.now());
+    }, [simulado?.id, currentQuestionIndex]);
 
 
     const currentSimuladoQuestao = simulado?.questoes[currentQuestionIndex];
@@ -221,9 +221,11 @@ export default function SimuladoExecutionPage() {
     const finishSimuladoMutation = useMutation({
         mutationFn: async () => {
             if (!simulado) throw new Error("Simulado não encontrado.");
-
+            console.log("Iniciando finalização do simulado:", simulado);
+            
             const questoesRespondidas = simulado.questoes.filter(q => q.respostaUsuario !== undefined);
-
+            console.log("Questões respondidas para salvar:", questoesRespondidas);
+            
             if (questoesRespondidas.length > 0) {
                 await dataSource.registrarRespostasSimulado(simulado.id, questoesRespondidas);
             }
@@ -249,7 +251,7 @@ export default function SimuladoExecutionPage() {
     const handleAnswer = (answer: any, confianca: RespostaConfianca) => {
         if (!simulado || !questao) return;
         
-        const tempoSegundos = Math.round((Date.now() - startTime) / 1000);
+        const tempoSegundos = Math.max(1, Math.round((Date.now() - startTime) / 1000));
 
         let parsedRespostaCorreta = questao.respostaCorreta;
         try {
@@ -274,7 +276,6 @@ export default function SimuladoExecutionPage() {
     const handleNext = () => {
         if (currentQuestionIndex < (simulado?.questoes.length ?? 0)) {
             setCurrentQuestionIndex(prev => prev + 1);
-            setStartTime(Date.now());
         }
     }
     
