@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useData } from "@/hooks/use-data";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Trash2, Search, Loader2 } from "lucide-react";
 import { Questao, Disciplina, Topico, Resposta, Revisao } from "@/types";
 import { QuestionForm } from "@/components/forms/question-form";
 import { ImportQuestionsForm } from "@/components/forms/import-questions-form";
@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReportedQuestionsList } from "@/components/tables/reported-questions-list";
 import { useToast } from "@/hooks/use-toast";
+import { findDuplicateQuestions } from "@/ai/flows/find-duplicate-questions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AlertTriangle } from "lucide-react";
 
+type DuplicateGroup = {
+  questionIds: string[];
+  reason: string;
+};
+
 export default function QuestoesPage() {
   const dataSource = useData();
   const queryClient = useQueryClient();
@@ -39,6 +45,12 @@ export default function QuestoesPage() {
   const [selectedQuestao, setSelectedQuestao] = useState<Questao | undefined>(undefined);
   const [questaoToDelete, setQuestaoToDelete] = useState<Questao | null>(null);
   
+  // States for duplicate checker
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
+  const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
+  const [questionsToKeep, setQuestionsToKeep] = useState<Record<string, string>>({});
+
+
   // --- Data Fetching ---
   const { data: disciplinas, isLoading: isLoadingDisciplinas } = useQuery({
     queryKey: ['disciplinas'],
@@ -58,6 +70,10 @@ export default function QuestoesPage() {
   // --- Memos ---
   const reportedQuestoes = useMemo(() => {
     return (questoes ?? []).filter(q => q.necessitaRevisao);
+  }, [questoes]);
+
+  const questaoMap = useMemo(() => {
+    return new Map((questoes ?? []).map(q => [q.id, q]));
   }, [questoes]);
   
   const isLoading = isLoadingDisciplinas || isLoadingTopicos || isLoadingQuestoes;
@@ -135,6 +151,59 @@ export default function QuestoesPage() {
     setSelectedQuestao(undefined);
   }, []);
 
+  const handleCheckDuplicates = useCallback(async () => {
+    if (!questoes || questoes.length < 2) {
+      toast({ title: "Poucas questões", description: "É necessário ter pelo menos duas questões para verificar duplicatas."});
+      return;
+    }
+    setIsCheckingDuplicates(true);
+    setDuplicateGroups([]);
+    setQuestionsToKeep({});
+    try {
+      const questionData = questoes.map(q => ({ id: q.id, enunciado: q.enunciado }));
+      const result = await findDuplicateQuestions({ questions: questionData });
+      if (result.duplicateGroups.length === 0) {
+        toast({ title: "Nenhuma duplicata encontrada!", description: "Seu banco de questões está livre de duplicatas." });
+      } else {
+        setDuplicateGroups(result.duplicateGroups);
+        const initialKeep: Record<string, string> = {};
+        result.duplicateGroups.forEach((group, index) => {
+          initialKeep[`group-${index}`] = group.questionIds[0];
+        });
+        setQuestionsToKeep(initialKeep);
+      }
+    } catch (e) {
+      console.error(e);
+      toast({ variant: "destructive", title: "Erro de IA", description: (e as Error).message || "Não foi possível verificar as duplicatas." });
+    } finally {
+      setIsCheckingDuplicates(false);
+    }
+  }, [questoes, toast]);
+
+  const handleDeleteDuplicates = useCallback(async () => {
+      const idsToDelete = duplicateGroups.flatMap((group, index) => 
+        group.questionIds.filter(id => id !== questionsToKeep[`group-${index}`])
+      );
+      
+      if (idsToDelete.length === 0) {
+          toast({ title: "Nenhuma ação necessária", description: "Nenhuma questão foi marcada para exclusão." });
+          return;
+      }
+      
+      toast({ title: "Excluindo duplicatas...", description: `Excluindo ${idsToDelete.length} questões.`});
+      try {
+          // Re-using the single delete mutation. For bulk, a new mutation would be better.
+          for (const id of idsToDelete) {
+              await deleteMutation.mutateAsync(id);
+          }
+          toast({ title: "Sucesso!", description: "As questões duplicadas foram excluídas." });
+          setDuplicateGroups([]); // Clear the list after deletion
+          setQuestionsToKeep({});
+      } catch (error) {
+          // Error toast is handled by the mutation's onError
+      }
+  }, [duplicateGroups, questionsToKeep, deleteMutation, toast]);
+
   useEffect(() => {
     const newQuestionParam = searchParams.get('new');
     const importParam = searchParams.get('import');
@@ -187,7 +256,65 @@ export default function QuestoesPage() {
       </Card>
 
       <Card className="mb-6">
-        <CardContent></CardContent>
+        <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                    <CardTitle>Verificador de Duplicatas com IA</CardTitle>
+                    <CardDescription>Encontre questões semanticamente duplicadas em seu banco de dados.</CardDescription>
+                </div>
+                <Button onClick={handleCheckDuplicates} disabled={isCheckingDuplicates || isLoading}>
+                    {isCheckingDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Search className="mr-2 h-4 w-4"/>}
+                    {isCheckingDuplicates ? 'Verificando...' : 'Verificar Duplicatas'}
+                </Button>
+            </div>
+        </CardHeader>
+        <CardContent>
+            {isCheckingDuplicates && <div className="text-center p-8"><p>Analisando questões... Isso pode levar um momento.</p></div>}
+            
+            {duplicateGroups.length > 0 && (
+                <div className="space-y-6">
+                    <p className="text-sm text-muted-foreground">Encontramos {duplicateGroups.length} grupo(s) de questões duplicadas. Selecione qual versão de cada questão você deseja manter.</p>
+                    {duplicateGroups.map((group, groupIndex) => {
+                        const groupId = `group-${groupIndex}`;
+                        return (
+                            <div key={groupId} className="p-4 border rounded-lg space-y-4">
+                                <p className="text-sm font-semibold italic">Motivo: {group.reason}</p>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    {group.questionIds.map((id) => {
+                                        const questao = questaoMap.get(id);
+                                        if (!questao) return null;
+                                        const isKept = questionsToKeep[groupId] === id;
+                                        return (
+                                            <div key={id} className={`p-3 rounded-md border ${isKept ? 'bg-muted/50 border-primary' : 'bg-card'}`}>
+                                                <p className="text-sm font-medium line-clamp-3">{questao.enunciado}</p>
+                                                <p className="text-xs text-muted-foreground mt-2">ID: {questao.id.substring(0, 5)}... | Criada em: {new Date(questao.createdAt).toLocaleDateString()}</p>
+                                                <div className="mt-3">
+                                                    {isKept ? (
+                                                        <Button size="sm" disabled className="w-full">Manter esta</Button>
+                                                    ) : (
+                                                        <Button size="sm" variant="outline" className="w-full" onClick={() => setQuestionsToKeep(prev => ({...prev, [groupId]: id}))}>Manter esta</Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+                    <div className="flex justify-end gap-2">
+                        <Button variant="ghost" onClick={() => setDuplicateGroups([])}>Cancelar</Button>
+                        <Button variant="destructive" onClick={handleDeleteDuplicates}>Excluir Selecionadas</Button>
+                    </div>
+                </div>
+            )}
+
+             {!isCheckingDuplicates && duplicateGroups.length === 0 && (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                    Clique em "Verificar Duplicatas" para começar.
+                </div>
+            )}
+        </CardContent>
       </Card>
       
       <div className="space-y-6">
@@ -233,3 +360,4 @@ export default function QuestoesPage() {
     </>
   );
 }
+

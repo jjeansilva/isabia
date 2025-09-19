@@ -357,7 +357,7 @@ class MockDataSource implements IDataSource {
             
             await this.create<Questao>('questoes', questao as any);
             createdCount++;
-            onProgress({ message: `Processando linha ${i + 2}...`, current: i + 1, total: rows.length, log });
+            onProgress({ message: `Processando linha ${i + 1}...`, current: i + 1, total: rows.length, log });
         } catch (error: any) {
             let errorMessage = `Erro na linha ${i + 2}: ${error.message}`;
             if (error.data?.data) {
@@ -629,6 +629,7 @@ class PocketBaseDataSource implements IDataSource {
 
     } catch (error) {
         console.error("Failed to get dashboard stats:", error);
+        // Retornar um objeto de fallback para evitar que a UI quebre
         return {
             totalRespostas: 0, acertoGeral: 0, tempoMedioGeral: 0, acertoUltimos30d: 0, historicoAcertos: [],
             desempenhoPorDisciplina: [], desempenhoPorDificuldade: [], desempenhoPorTipo: [],
@@ -775,10 +776,10 @@ class PocketBaseDataSource implements IDataSource {
         try {
             await createRow();
             createdCount++;
-            onProgress({ message: `Processando linha ${i + 2}...`, current: i + 1, total: rows.length, log });
+            onProgress({ message: `Processando linha ${i + 1}...`, current: i + 1, total: rows.length, log });
         } catch (error: any) {
-            let errorMessage = `Erro na linha ${i + 2}: ${error.message}`;
-             if (error.data?.data) {
+             let errorMessage = `Erro na linha ${i + 2}: ${error.message}`;
+             if (error?.data?.data) {
                 const fieldErrors = Object.entries(error.data.data).map(([field, err]: [string, any]) => `${field}: ${err.message}`).join(', ');
                 errorMessage = `Erro na linha ${i + 2}. Detalhes: ${fieldErrors}`;
             }

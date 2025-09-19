@@ -30,7 +30,6 @@ interface DataTableToolbarProps<TData> {
   table: Table<TData>
   disciplinas: Disciplina[];
   topicos: Topico[];
-  onDeleteSelected: (ids: string[]) => void; // This will now be handled internally
 }
 
 const dificuldades: { label: string, value: QuestionDificuldade }[] = [
@@ -53,23 +52,24 @@ export function DataTableToolbar<TData>({
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      // Find and delete dependent records for all selected questions
-      const filter = ids.map(id => `questaoId = "${id}"`).join(' || ');
-      
-      const [respostasToDelete, revisoesToDelete] = await Promise.all([
-        dataSource.list<Resposta>('respostas', { filter, fields: 'id' }),
-        dataSource.list<Revisao>('revisoes', { filter, fields: 'id' })
-      ]);
+        const promises = ids.map(async (id) => {
+            const respostasFilter = `questaoId = "${id}"`;
+            const revisoesFilter = `questaoId = "${id}"`;
 
-      if (respostasToDelete.length > 0) {
-        await dataSource.bulkDelete('respostas', respostasToDelete.map(r => r.id));
-      }
-      if (revisoesToDelete.length > 0) {
-        await dataSource.bulkDelete('revisoes', revisoesToDelete.map(r => r.id));
-      }
+            const [respostasToDelete, revisoesToDelete] = await Promise.all([
+                dataSource.list<Resposta>('respostas', { filter: respostasFilter, fields: 'id' }),
+                dataSource.list<Revisao>('revisoes', { filter: revisoesFilter, fields: 'id' })
+            ]);
 
-      // Now delete the questions themselves
-      return dataSource.bulkDelete('questoes', ids);
+            if (respostasToDelete.length > 0) {
+                await Promise.all(respostasToDelete.map(r => dataSource.delete('respostas', r.id)));
+            }
+            if (revisoesToDelete.length > 0) {
+                 await Promise.all(revisoesToDelete.map(r => dataSource.delete('revisoes', r.id)));
+            }
+            return dataSource.delete('questoes', id);
+        });
+        return Promise.all(promises);
     },
     onSuccess: (_, variables) => {
       toast({ title: "Sucesso!", description: `${variables.length} questões e seus dados associados foram excluídas.` });

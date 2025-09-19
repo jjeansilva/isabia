@@ -88,7 +88,6 @@ export function QuestoesDataTable({ questoes, disciplinas, topicos, onEdit, onDe
         table={table}
         disciplinas={disciplinas}
         topicos={topicos}
-        onDeleteSelected={(ids) => ids.forEach(id => onDelete(questoes.find(q => q.id === id)!))}
       />
       <div className="rounded-lg border bg-card text-card-foreground">
         <Table>
