@@ -220,11 +220,9 @@ export default function SimuladoExecutionPage() {
 
     const finishSimuladoMutation = useMutation({
         mutationFn: async () => {
-            console.log("Iniciando finalização do simulado:", simulado);
             if (!simulado) throw new Error("Simulado não encontrado.");
 
             const questoesRespondidas = simulado.questoes.filter(q => q.respostaUsuario !== undefined);
-            console.log("Questões respondidas para salvar:", questoesRespondidas);
 
             if (questoesRespondidas.length > 0) {
                 await dataSource.registrarRespostasSimulado(simulado.id, questoesRespondidas);
@@ -262,7 +260,7 @@ export default function SimuladoExecutionPage() {
             // It's not a JSON, so we use it as is
         }
         
-        let isCorrect = parsedRespostaCorreta === answer;
+        let isCorrect = parsedRespostaCorreta == answer;
 
         const updatedQuestoes = simulado.questoes.map((q, index) => 
             index === currentQuestionIndex 
@@ -367,7 +365,3 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
-
-    
-
-    
