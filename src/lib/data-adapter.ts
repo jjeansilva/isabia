@@ -745,6 +745,15 @@ class PocketBaseDataSource implements IDataSource {
       await this.create('revisoes', novaRevisao as any);
     }
   }
+  
+  private normalizeDificuldade(dificuldade: string | undefined): QuestionDificuldade {
+    const d = dificuldade?.toLowerCase().trim();
+    if (d === 'fácil' || d === 'facil') return QuestionDificuldade.Facil;
+    if (d === 'média' || d === 'medio' || d === 'médio') return QuestionDificuldade.Medio;
+    if (d === 'difícil' || d === 'dificil') return QuestionDificuldade.Dificil;
+    // Default to 'Fácil' if it's unknown, to avoid validation errors.
+    return QuestionDificuldade.Facil;
+  }
 
   async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem, onProgress: (progress: ImportProgress) => void): Promise<number> {
     const lines = csvData.split('\n').filter(line => line.trim() !== '');
@@ -814,7 +823,7 @@ class PocketBaseDataSource implements IDataSource {
                 tipo,
                 origem,
                 enunciado,
-                dificuldade: getColumn(rowData, 'dificuldade') as QuestionDificuldade || 'Fácil',
+                dificuldade: this.normalizeDificuldade(getColumn(rowData, 'dificuldade')),
                 respostaCorreta: JSON.stringify(getColumn(rowData, 'resposta')),
                 explicacao: getColumn(rowData, 'explicação') || '',
                 alternativas: JSON.stringify(header.filter(h => h.startsWith('alternativa_')).map(h => getColumn(rowData, h)).filter(Boolean)),
