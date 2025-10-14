@@ -10,8 +10,8 @@
             { "id": "users_avatar", "name": "avatar", "type": "file", "system": false, "required": false, "presentable": false, "unique": false, "options": { "mimeTypes": [ "image/jpeg", "image/png", "image/svg+xml", "image/gif", "image/webp" ], "thumbs": [ "100x100" ], "maxSelect": 1, "maxSize": 5242880, "protected": false } }
         ],
         "indexes": [],
-        "listRule": "id = @request.auth.id",
-        "viewRule": "id = @request.auth.id",
+        "listRule": null,
+        "viewRule": null,
         "createRule": "",
         "updateRule": "id = @request.auth.id",
         "deleteRule": "id = @request.auth.id"
@@ -29,11 +29,11 @@
             { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "cascadeDelete": true, "minSelect": null, "maxSelect": 1, "displayFields": null } }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id"
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null
     },
     {
         "id": "topicos_abcde1",
@@ -48,11 +48,11 @@
             { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "cascadeDelete": true, "minSelect": null, "maxSelect": 1, "displayFields": null } }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id"
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null
     },
     {
         "id": "questoes_abcde1",
@@ -78,11 +78,11 @@
             { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "cascadeDelete": true, "minSelect": null, "maxSelect": 1, "displayFields": null } }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id"
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null
     },
     {
         "id": "simulados_abcde1",
@@ -100,11 +100,11 @@
             { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "cascadeDelete": true, "minSelect": null, "maxSelect": 1, "displayFields": null } }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id"
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null
     },
     {
         "id": "respostas_abcde1",
@@ -122,11 +122,11 @@
             { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "cascadeDelete": true, "minSelect": null, "maxSelect": 1, "displayFields": null } }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id"
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null
     },
     {
         "id": "revisoes_abcde1",
@@ -140,11 +140,11 @@
             { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "cascadeDelete": true, "minSelect": null, "maxSelect": 1, "displayFields": null } }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id"
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null
     },
     {
         "id": "stats_abcde1",
@@ -160,12 +160,10 @@
             { "id": "relation2375276105", "name": "user", "type": "relation", "required": true, "options": { "collectionId": "_pb_users_auth_", "cascadeDelete": true, "minSelect": null, "maxSelect": 1, "displayFields": null } }
         ],
         "indexes": [],
-        "listRule": "user = @request.auth.id",
-        "viewRule": "user = @request.auth.id",
-        "createRule": "user = @request.auth.id",
-        "updateRule": "user = @request.auth.id",
-        "deleteRule": "user = @request.auth.id"
+        "listRule": null,
+        "viewRule": null,
+        "createRule": null,
+        "updateRule": null,
+        "deleteRule": null
     }
 ]
-
-    
