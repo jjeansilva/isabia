@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useData } from "@/hooks/use-data";
 import { QuestionDificuldade, QuestionOrigem, QuestionTipo, Questao, Topico, Disciplina } from "@/types";
 import { parseCsvForReview } from "@/lib/csv-parser";
-import { ArrowLeft, Edit, Save, Trash2, UploadCloud } from "lucide-react";
+import { ArrowLeft, Edit, Save, Trash2, UploadCloud, Terminal } from "lucide-react";
 import { QuestionForm } from "@/components/forms/question-form";
 
 // Schema for the initial form (upload/paste)
@@ -44,6 +44,7 @@ export default function ImportarPage() {
   const [step, setStep] = useState<"upload" | "review">("upload");
   const [parsedQuestoes, setParsedQuestoes] = useState<ParsedQuestao[]>([]);
   const [baseQuestaoData, setBaseQuestaoData] = useState<{ tipo: QuestionTipo, origem: QuestionOrigem } | null>(null);
+  const [importLog, setImportLog] = useState<string[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -80,10 +81,7 @@ export default function ImportarPage() {
       const questoesWithTempId = questoes.map(q => ({ ...q, tempId: uuidv4() }));
       setParsedQuestoes(questoesWithTempId);
       setBaseQuestaoData({ tipo: values.tipo, origem: values.origem });
-
-      if (log.length > 0) {
-        toast({ title: "Avisos durante o processamento", description: log.join('\n'), duration: 7000 });
-      }
+      setImportLog(log);
 
       setStep("review");
     } catch (error: any) {
@@ -166,6 +164,7 @@ export default function ImportarPage() {
         toast({ title: "Importação Concluída!", description: `${count} questões foram salvas com sucesso.` });
         setStep("upload");
         setParsedQuestoes([]);
+        setImportLog([]);
     },
     onError: (error: any) => {
         console.error("Erro ao Salvar:", error.data || error);
@@ -198,13 +197,27 @@ export default function ImportarPage() {
             />
         )}
         <PageHeader title="Conferir Questões Importadas" description={`Você está importando ${parsedQuestoes.length} questões. Verifique os dados antes de salvar.`} />
-        <div className="space-y-4">
-            <div className="flex justify-between items-center">
+        <div className="space-y-6">
+            <div className="flex justify-between items-center flex-wrap gap-2">
                  <Button variant="outline" onClick={() => setStep('upload')}><ArrowLeft className="h-4 w-4 mr-2" /> Voltar</Button>
                  <Button onClick={handleSaveAll} disabled={isSaving}>
                      {isSaving ? "Salvando..." : <><Save className="h-4 w-4 mr-2"/> Salvar Todas as {parsedQuestoes.length} Questões</>}
                 </Button>
             </div>
+          {importLog.length > 0 && (
+            <Alert>
+              <Terminal className="h-4 w-4" />
+              <AlertTitle>Log de Importação</AlertTitle>
+              <AlertDescription>
+                <div className="max-h-40 overflow-y-auto mt-2 font-mono text-xs bg-muted/50 p-3 rounded-md">
+                  {importLog.map((line, index) => (
+                    <p key={index}>{line}</p>
+                  ))}
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {parsedQuestoes.map((q, index) => (
             <Card key={q.tempId}>
               <CardContent className="p-4 grid gap-4">
