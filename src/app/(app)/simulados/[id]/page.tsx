@@ -243,7 +243,7 @@ export default function SimuladoExecutionPage() {
             await dataSource.update('simulados', simulado.id, {
                 status: 'Concluído',
                 finalizadoEm: new Date().toISOString(),
-                questoes: JSON.stringify(finalQuestoesState)
+                questoes: finalQuestoesState
             });
         },
         onSuccess: () => {
@@ -265,7 +265,7 @@ export default function SimuladoExecutionPage() {
 
         let parsedRespostaCorreta;
         try {
-            // respostaCorreta from DB is a JSON string, e.g., '"Habeas Corpus"' or '"true"'
+            // respostaCorreta from DB is a JSON string, e.g., '"Habeas Corpus"' or 'true'
             parsedRespostaCorreta = JSON.parse(questao.respostaCorreta);
         } catch(e) { 
             // If it's not valid JSON, use it as a raw string
@@ -383,3 +383,5 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
+
+    
