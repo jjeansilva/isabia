@@ -12,7 +12,43 @@ function normalizeDificuldade(dificuldade: string | undefined): QuestionDificuld
 }
 
 // Represents a question parsed from the CSV, not yet saved
-type ParsedQuestao = Omit<Questao, 'id' | 'createdAt' | 'updatedAt' | 'user'> & { tempId: string };
+type ParsedQuestao = Omit<Questao, 'id' | 'createdAt' | 'updatedAt' | 'user'>;
+
+
+/**
+ * Parses a single line of a CSV string, respecting quotes.
+ * @param line The CSV line to parse.
+ * @returns An array of strings representing the fields.
+ */
+function parseCsvLine(line: string): string[] {
+    const fields: string[] = [];
+    let currentField = '';
+    let inQuotes = false;
+    let i = 0;
+
+    while (i < line.length) {
+        const char = line[i];
+
+        if (char === '"') {
+            // Handle escaped quotes ("")
+            if (inQuotes && line[i + 1] === '"') {
+                currentField += '"';
+                i++; // Skip the next quote
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            fields.push(currentField);
+            currentField = '';
+        } else {
+            currentField += char;
+        }
+        i++;
+    }
+
+    fields.push(currentField); // Add the last field
+    return fields;
+}
 
 
 export async function parseCsvForReview(
@@ -22,20 +58,21 @@ export async function parseCsvForReview(
     dataSource: IDataSource
 ): Promise<{ questoes: ParsedQuestao[], log: string[] }> {
     
-    const lines = csvData.split('\n').filter(line => line.trim() !== '');
+    const lines = csvData.split(/\r?\n/).filter(line => line.trim() !== '');
     if (lines.length < 2) {
         throw new Error("O CSV precisa ter pelo menos uma linha de cabeçalho e uma linha de dados.");
     }
 
-    const header = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const headerLine = lines[0];
+    const header = parseCsvLine(headerLine).map(h => h.trim().replace(/^"|"$/g, ''));
     const rows = lines.slice(1);
     
     const log: string[] = [];
-    const parsedQuestoes: ParsedQuestao[] = [];
+    const parsedQuestoes: (ParsedQuestao & {tempId: string})[] = [];
 
     const getColumn = (row: string[], name: string) => {
         const index = header.indexOf(name);
-        return index > -1 ? row[index]?.trim().replace(/"/g, '') : undefined;
+        return index > -1 ? row[index]?.trim().replace(/^"|"$/g, '') : undefined;
     }
 
     // Pre-fetch all disciplinas and topicos to avoid multiple DB calls in loop
@@ -45,7 +82,8 @@ export async function parseCsvForReview(
     const topicoMap = new Map(allTopicos.map(t => [`${t.disciplinaId}-${t.nome.toLowerCase()}`, t]));
     
     for (let i = 0; i < rows.length; i++) {
-        const rowData = rows[i].split(',');
+        if (!rows[i]) continue;
+        const rowData = parseCsvLine(rows[i]);
         const disciplinaNome = getColumn(rowData, 'disciplina');
         const topicoNome = getColumn(rowData, 'tópico da disciplina');
         const enunciado = getColumn(rowData, 'questão');
@@ -82,7 +120,7 @@ export async function parseCsvForReview(
 
         const alternativas = header.filter(h => h.startsWith('alternativa_')).map(h => getColumn(rowData, h)).filter(Boolean) as string[];
         
-        const questao: ParsedQuestao = {
+        const questao: ParsedQuestao & {tempId: string} = {
             tempId: uuidv4(),
             disciplinaId: disciplina.id,
             topicoId: topico.id,
