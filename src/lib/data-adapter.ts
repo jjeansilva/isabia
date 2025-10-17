@@ -44,7 +44,7 @@ class MockDataSource implements IDataSource {
             acertou: q.acertou,
             confianca: q.confianca || 'Dúvida',
             questaoId: q.questaoId,
-            respostaUsuario: String(q.respostaUsuario),
+            respostaUsuario: JSON.stringify(q.respostaUsuario),
             simuladoId: simuladoId,
             respondedAt: now,
             tempoSegundos: q.tempoSegundos || 0,
@@ -341,7 +341,7 @@ class PocketBaseDataSource implements IDataSource {
             acertou: questao.acertou ?? false,
             confianca: questao.confianca || 'Dúvida',
             questaoId: questao.questaoId,
-            respostaUsuario: String(questao.respostaUsuario),
+            respostaUsuario: JSON.stringify(questao.respostaUsuario),
             simuladoId: simuladoId,
             tempoSegundos: questao.tempoSegundos || 0,
         };
@@ -458,7 +458,7 @@ class PocketBaseDataSource implements IDataSource {
         ordem: index + 1,
       }));
 
-      const novoSimulado = {
+      const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt' | 'user'> = {
           nome: formValues.nome,
           criterios: formValues.criterios,
           status: 'Rascunho' as SimuladoStatus,
@@ -470,7 +470,7 @@ class PocketBaseDataSource implements IDataSource {
       
       const updatedQuestoes: SimuladoQuestao[] = (createdSimulado.questoes as any[]).map(q => ({...q, simuladoId: createdSimulado.id }));
       
-      return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: updatedQuestoes as any });
+      return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: updatedQuestoes });
   }
 
   async getDashboardStats(): Promise<any> {
@@ -493,14 +493,16 @@ class PocketBaseDataSource implements IDataSource {
 
     try {
         const hoje = new Date().toISOString().split('T')[0];
-        
-        const [respostas, disciplinas, questoes, revisoes, allSimulados] = await Promise.all([
+
+        const [respostas, disciplinas, questoes, allSimulados] = await Promise.all([
             this.list<Resposta>('respostas', { filter: userFilter }),
             this.list<Disciplina>('disciplinas', { filter: userFilter }),
             this.list<Questao>('questoes', { filter: userFilter, fields: 'id,disciplinaId,dificuldade,tipo' }),
-            this.list<Revisao>('revisoes', { filter: `proximaRevisao <= "${hoje}" && ${userFilter}` }),
             this.list<Simulado>('simulados', { filter: userFilter })
         ]);
+        
+        const revisoesFilter = `proximaRevisao <= "${hoje}" && ${userFilter}`;
+        const revisoes = await this.list<Revisao>('revisoes', { filter: revisoesFilter });
         
         const simulados = allSimulados.sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
 
