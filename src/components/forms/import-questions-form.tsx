@@ -36,14 +36,21 @@ import { ImportProgress, QuestionOrigem, QuestionTipo } from "@/types";
 import { Input } from "../ui/input";
 import { useState } from "react";
 import { ScrollArea } from "../ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Textarea } from "../ui/textarea";
 
 const formSchema = z.object({
   tipo: z.enum(["Múltipla Escolha", "Certo ou Errado", "Completar Lacuna", "Flashcard"]),
   origem: z.enum(["Autoral", "Conteúdo", "Legislação", "Jurisprudência", "Já caiu"]),
-  csvFile: z
-    .custom<FileList>()
-    .refine((files) => files?.length > 0, "O arquivo CSV é obrigatório.")
-    .refine((files) => files?.[0]?.type === "text/csv", "O arquivo deve ser do tipo CSV."),
+  csvFile: z.custom<FileList>().optional(),
+  csvText: z.string().optional(),
+}).refine(data => {
+  if (data.csvFile && data.csvFile.length > 0) return true;
+  if (data.csvText && data.csvText.trim().length > 0) return true;
+  return false;
+}, {
+  message: "Forneça um arquivo CSV ou cole o texto para importar.",
+  path: ["csvFile"], // You can associate the error with one of the fields
 });
 
 
@@ -52,13 +59,13 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [progress, setProgress] = useState<ImportProgress | null>(null);
+  const [activeTab, setActiveTab] = useState("file");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       tipo: "Múltipla Escolha",
       origem: "Autoral",
-      csvFile: undefined,
     },
   });
   
@@ -92,17 +99,23 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const file = values.csvFile[0];
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const csvData = e.target?.result as string;
-      if (csvData) {
-        mutation.mutate({csvData, tipo: values.tipo, origem: values.origem});
-      } else {
-        toast({ variant: "destructive", title: "Erro!", description: "Não foi possível ler o arquivo CSV." });
-      }
-    };
-    reader.readAsText(file);
+    if (activeTab === "file" && values.csvFile && values.csvFile.length > 0) {
+      const file = values.csvFile[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const csvData = e.target?.result as string;
+        if (csvData) {
+          mutation.mutate({csvData, tipo: values.tipo, origem: values.origem});
+        } else {
+          toast({ variant: "destructive", title: "Erro!", description: "Não foi possível ler o arquivo CSV." });
+        }
+      };
+      reader.readAsText(file);
+    } else if (activeTab === "text" && values.csvText) {
+       mutation.mutate({csvData: values.csvText, tipo: values.tipo, origem: values.origem});
+    } else {
+       toast({ variant: "destructive", title: "Nenhuma fonte de dados", description: "Por favor, selecione um arquivo ou cole o texto CSV." });
+    }
   }
 
   return (
@@ -179,24 +192,54 @@ export function ImportQuestionsForm({ open, onOpenChange }: { open: boolean; onO
                         )}
                         />
                     </div>
-                    <FormField
-                    control={form.control}
-                    name="csvFile"
-                    render={({ field: { onChange, value, ...rest } }) => (
-                        <FormItem>
-                        <FormLabel>Arquivo CSV</FormLabel>
-                        <FormControl>
-                            <Input
-                            type="file"
-                            accept=".csv"
-                            onChange={(e) => onChange(e.target.files)}
-                            {...rest}
-                            />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="file">Arquivo CSV</TabsTrigger>
+                        <TabsTrigger value="text">Colar Texto</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="file" className="pt-4">
+                        <FormField
+                          control={form.control}
+                          name="csvFile"
+                          render={({ field: { onChange, ...rest } }) => (
+                              <FormItem>
+                              <FormLabel>Arquivo CSV</FormLabel>
+                              <FormControl>
+                                  <Input
+                                  type="file"
+                                  accept=".csv"
+                                  onChange={(e) => onChange(e.target.files)}
+                                  {...rest}
+                                  />
+                              </FormControl>
+                              <FormMessage />
+                              </FormItem>
+                          )}
+                        />
+                      </TabsContent>
+                      <TabsContent value="text" className="pt-4">
+                        <FormField
+                          control={form.control}
+                          name="csvText"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Conteúdo CSV</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Cole o conteúdo do seu CSV aqui, incluindo o cabeçalho..."
+                                  className="h-40 font-mono text-xs"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </TabsContent>
+                    </Tabs>
+
+                    <FormMessage>{form.formState.errors.csvFile?.message}</FormMessage>
+
                 </form>
                 </Form>
               </>
