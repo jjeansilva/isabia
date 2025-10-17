@@ -52,24 +52,28 @@ export function DataTableToolbar<TData>({
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-        const promises = ids.map(async (id) => {
-            const respostasFilter = `questaoId = "${id}"`;
-            const revisoesFilter = `questaoId = "${id}"`;
+      // Build a single filter for all related items
+      const filter = ids.map(id => `questaoId = "${id}"`).join(' || ');
+      
+      // Fetch all related items in one go
+      const [respostasToDelete, revisoesToDelete] = await Promise.all([
+          dataSource.list<Resposta>('respostas', { filter: filter, fields: 'id' }),
+          dataSource.list<Revisao>('revisoes', { filter: filter, fields: 'id' })
+      ]);
+      
+      const respostasIds = respostasToDelete.map(r => r.id);
+      const revisoesIds = revisoesToDelete.map(r => r.id);
 
-            const [respostasToDelete, revisoesToDelete] = await Promise.all([
-                dataSource.list<Resposta>('respostas', { filter: respostasFilter, fields: 'id' }),
-                dataSource.list<Revisao>('revisoes', { filter: revisoesFilter, fields: 'id' })
-            ]);
-
-            if (respostasToDelete.length > 0) {
-                await Promise.all(respostasToDelete.map(r => dataSource.delete('respostas', r.id)));
-            }
-            if (revisoesToDelete.length > 0) {
-                 await Promise.all(revisoesToDelete.map(r => dataSource.delete('revisoes', r.id)));
-            }
-            return dataSource.delete('questoes', id);
-        });
-        return Promise.all(promises);
+      // Perform bulk deletions
+      if (respostasIds.length > 0) {
+        await dataSource.bulkDelete('respostas', respostasIds);
+      }
+      if (revisoesIds.length > 0) {
+        await dataSource.bulkDelete('revisoes', revisoesIds);
+      }
+      
+      // Finally, delete the questions themselves
+      await dataSource.bulkDelete('questoes', ids);
     },
     onSuccess: (_, variables) => {
       toast({ title: "Sucesso!", description: `${variables.length} questões e seus dados associados foram excluídas.` });
