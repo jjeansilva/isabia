@@ -265,21 +265,15 @@ export default function SimuladoExecutionPage() {
 
         let parsedRespostaCorreta;
         try {
+            // The stored answer is a JSON string, e.g., "\"Certo\"" or "true" or "\"A alternativa A\""
             parsedRespostaCorreta = JSON.parse(questao.respostaCorreta);
         } catch(e) { 
+            // If parsing fails, it's likely a plain string already (legacy)
             parsedRespostaCorreta = questao.respostaCorreta;
         }
         
         let isCorrect = parsedRespostaCorreta == answer;
         
-        // Handle boolean string comparison for "Certo ou Errado"
-        if (questao.tipo === 'Certo ou Errado') {
-            const userAnswerBool = answer === 'Certo';
-            const correctAnswerBool = parsedRespostaCorreta === true || parsedRespostaCorreta === 'Certo';
-            isCorrect = userAnswerBool === correctAnswerBool;
-        }
-
-
         setLocalAnswers(prev => ({
             ...prev,
             [questao.id]: {
@@ -389,3 +383,5 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
+
+    

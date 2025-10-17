@@ -341,7 +341,7 @@ class PocketBaseDataSource implements IDataSource {
             acertou: questao.acertou ?? false,
             confianca: questao.confianca || 'Dúvida',
             questaoId: questao.questaoId,
-            respostaUsuario: JSON.stringify(questao.respostaUsuario),
+            respostaUsuario: questao.respostaUsuario,
             simuladoId: simuladoId,
             tempoSegundos: questao.tempoSegundos || 0,
         };
@@ -656,3 +656,5 @@ class PocketBaseDataSource implements IDataSource {
 }
 
 export { PocketBaseDataSource, MockDataSource };
+
+    
