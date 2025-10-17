@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { Questao, Disciplina, Topico, Resposta, Revisao } from "@/types";
 import { QuestionForm } from "@/components/forms/question-form";
-import { ImportQuestionsForm } from "@/components/forms/import-questions-form";
 import { QuestoesDataTable } from "@/components/tables/questoes-data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,15 +23,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useRouter } from "next/navigation";
 
 export function QuestoesTab() {
   const dataSource = useData();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
   const [selectedQuestao, setSelectedQuestao] = useState<Questao | undefined>(undefined);
   const [questaoToDelete, setQuestaoToDelete] = useState<Questao | null>(null);
   
@@ -113,29 +113,24 @@ export function QuestoesTab() {
   const handleCloseForm = useCallback(() => {
     setIsFormOpen(false);
     setSelectedQuestao(undefined);
-  }, []);
+    // Clean up the URL
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('new')) {
+        params.delete('new');
+        router.replace(`${window.location.pathname}?${params.toString()}`);
+    }
+  }, [router]);
 
   useEffect(() => {
     const newQuestionParam = searchParams.get('new');
-    const importParam = searchParams.get('import');
 
     if (newQuestionParam === 'true') {
       handleNewQuestion();
-    }
-    if (importParam === 'true') {
-      setShowImportModal(true);
     }
   }, [searchParams, handleNewQuestion]);
 
   return (
     <>
-      <div className="flex justify-end mb-4">
-        <Button onClick={handleNewQuestion}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Nova Questão
-        </Button>
-      </div>
-      
       <div className="space-y-6">
         {isLoading ? (
            <div className="space-y-4">
@@ -157,7 +152,6 @@ export function QuestoesTab() {
       </div>
       
       {isFormOpen && <QuestionForm open={isFormOpen} onOpenChange={handleCloseForm} questao={selectedQuestao} onDelete={handleDeleteFromForm} />}
-      {showImportModal && <ImportQuestionsForm open={showImportModal} onOpenChange={setShowImportModal} />}
       
       <AlertDialog open={!!questaoToDelete} onOpenChange={(open) => !open && setQuestaoToDelete(null)}>
           <AlertDialogContent>
