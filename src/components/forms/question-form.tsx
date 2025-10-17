@@ -111,7 +111,11 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
               finalFormRespostaCorreta = correctIndex.toString();
             }
         } else if (questao.tipo === 'Certo ou Errado') {
-            finalFormRespostaCorreta = respostaCorretaParsed; // Keep it boolean for now
+            if (respostaCorretaParsed === true || respostaCorretaParsed === 'Certo') {
+                finalFormRespostaCorreta = "Certo";
+            } else if (respostaCorretaParsed === false || respostaCorretaParsed === 'Errado') {
+                finalFormRespostaCorreta = "Errado";
+            }
         }
         
         let topicoPrincipalId = questao.topicoId;
@@ -132,11 +136,6 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
             topicoId: topicoPrincipalId,
             subTopicoId: subTopicoId,
         });
-
-        // Explicitly set value for radio group after reset
-        if (questao.tipo === 'Certo ou Errado') {
-            form.setValue('respostaCorreta', String(finalFormRespostaCorreta));
-        }
 
     } else if (open && !questao) {
         form.reset({
@@ -202,10 +201,6 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
         finalData.alternativas = JSON.stringify(newQuestaoData.alternativas);
       } else {
         finalData.alternativas = "[]"; 
-      }
-      
-      if (newQuestaoData.tipo === 'Certo ou Errado') {
-          finalRespostaCorreta = newQuestaoData.respostaCorreta === 'true';
       }
       
       finalData.respostaCorreta = JSON.stringify(finalRespostaCorreta);
@@ -417,8 +412,8 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
                         <FormLabel>Resposta Correta</FormLabel>
                         <FormControl>
                             <RadioGroup onValueChange={(val) => field.onChange(val)} value={String(field.value)} className="flex gap-4">
-                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="true"/></FormControl><FormLabel className="font-normal">Certo</FormLabel></FormItem>
-                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="false"/></FormControl><FormLabel className="font-normal">Errado</FormLabel></FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="Certo"/></FormControl><FormLabel className="font-normal">Certo</FormLabel></FormItem>
+                                <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="Errado"/></FormControl><FormLabel className="font-normal">Errado</FormLabel></FormItem>
                             </RadioGroup>
                         </FormControl>
                     </FormItem>

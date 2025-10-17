@@ -96,9 +96,9 @@ function QuestionRunner({ questao, onAnswer, isAnswered, initialAnswer }: { ques
                         </RadioGroup>
                     )}
                     {questao.tipo === 'Certo ou Errado' && (
-                        <RadioGroup value={String(selectedAnswer)} onValueChange={(v) => setSelectedAnswer(v === 'true')} disabled={isAnswered}>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="true" id="ce-certo" /><Label htmlFor="ce-certo" className="text-sm sm:text-base">Certo</Label></div>
-                            <div className="flex items-center space-x-2"><RadioGroupItem value="false" id="ce-errado" /><Label htmlFor="ce-errado" className="text-sm sm:text-base">Errado</Label></div>
+                        <RadioGroup value={selectedAnswer} onValueChange={(v) => setSelectedAnswer(v)} disabled={isAnswered}>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="Certo" id="ce-certo" /><Label htmlFor="ce-certo" className="text-sm sm:text-base">Certo</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="Errado" id="ce-errado" /><Label htmlFor="ce-errado" className="text-sm sm:text-base">Errado</Label></div>
                         </RadioGroup>
                     )}
                     {questao.tipo === 'Completar Lacuna' && (
@@ -265,14 +265,20 @@ export default function SimuladoExecutionPage() {
 
         let parsedRespostaCorreta;
         try {
-            // respostaCorreta from DB is a JSON string, e.g., '"Habeas Corpus"' or 'true'
             parsedRespostaCorreta = JSON.parse(questao.respostaCorreta);
         } catch(e) { 
-            // If it's not valid JSON, use it as a raw string
             parsedRespostaCorreta = questao.respostaCorreta;
         }
         
-        const isCorrect = parsedRespostaCorreta == answer;
+        let isCorrect = parsedRespostaCorreta == answer;
+        
+        // Handle boolean string comparison for "Certo ou Errado"
+        if (questao.tipo === 'Certo ou Errado') {
+            const userAnswerBool = answer === 'Certo';
+            const correctAnswerBool = parsedRespostaCorreta === true || parsedRespostaCorreta === 'Certo';
+            isCorrect = userAnswerBool === correctAnswerBool;
+        }
+
 
         setLocalAnswers(prev => ({
             ...prev,
@@ -383,5 +389,3 @@ export default function SimuladoExecutionPage() {
         </div>
     )
 }
-
-    
