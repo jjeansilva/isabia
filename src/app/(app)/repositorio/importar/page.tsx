@@ -120,7 +120,7 @@ export default function ImportarPage() {
       let createdCount = 0;
       
       const disciplinaCache = new Map<string, string>(); // name -> id
-      const topicoCache = new Map<string, string>(); // name -> id
+      const topicoCache = new Map<string, string>(); // {disciplinaId}-{topicoName} -> id
 
       const allDisciplinas = await dataSource.list<Disciplina>('disciplinas');
       allDisciplinas.forEach(d => disciplinaCache.set(d.nome.toLowerCase(), d.id));
@@ -169,11 +169,14 @@ export default function ImportarPage() {
           }
 
           // 4. Create Questão
-          await dataSource.create('questoes', {
+          const questaoToCreate = {
             ...questao,
             disciplinaId: disciplinaId,
             topicoId: topicoId,
-          } as any);
+            origem: Array.isArray(questao.origem) ? questao.origem[0] : questao.origem,
+          };
+
+          await dataSource.create('questoes', questaoToCreate as any);
           createdCount++;
       }
       
@@ -343,3 +346,5 @@ export default function ImportarPage() {
     </>
   );
 }
+
+    
