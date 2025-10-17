@@ -95,17 +95,22 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
           }
         }
         
-        let respostaCorreta = questao.respostaCorreta;
+        let respostaCorretaParsed = questao.respostaCorreta;
         try {
-            if (typeof respostaCorreta === 'string') {
-              respostaCorreta = JSON.parse(respostaCorreta);
+            if (typeof questao.respostaCorreta === 'string') {
+              respostaCorretaParsed = JSON.parse(questao.respostaCorreta);
             }
         } catch(e) {
             // not a json, use as is
+            respostaCorretaParsed = questao.respostaCorreta;
         }
 
+        let finalFormRespostaCorreta = respostaCorretaParsed;
         if (questao.tipo === 'Múltipla Escolha' && Array.isArray(alternativas)) {
-            respostaCorreta = alternativas.indexOf(respostaCorreta).toString();
+            const correctIndex = alternativas.indexOf(respostaCorretaParsed);
+            if (correctIndex !== -1) {
+              finalFormRespostaCorreta = correctIndex.toString();
+            }
         }
         
         let topicoPrincipalId = questao.topicoId;
@@ -121,7 +126,7 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
             ...questao,
             origem: Array.isArray(questao.origem) ? questao.origem[0] : questao.origem,
             alternativas: Array.isArray(alternativas) ? alternativas : [],
-            respostaCorreta: respostaCorreta,
+            respostaCorreta: finalFormRespostaCorreta,
             explicacao: questao.explicacao || "",
             topicoId: topicoPrincipalId,
             subTopicoId: subTopicoId,
@@ -397,7 +402,7 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
                     <FormItem className="space-y-3 rounded-md border p-4">
                         <FormLabel>Resposta Correta</FormLabel>
                         <FormControl>
-                            <RadioGroup onValueChange={(val) => field.onChange(val === 'true' || val === 'true')} value={String(field.value)} className="flex gap-4">
+                            <RadioGroup onValueChange={(val) => field.onChange(val === 'true')} value={String(field.value)} className="flex gap-4">
                                 <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="true"/></FormControl><FormLabel className="font-normal">Certo</FormLabel></FormItem>
                                 <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="false"/></FormControl><FormLabel className="font-normal">Errado</FormLabel></FormItem>
                             </RadioGroup>
@@ -472,4 +477,3 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
     </Dialog>
   );
 }
-
