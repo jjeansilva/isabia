@@ -38,7 +38,12 @@ const uploadSchema = z.object({
 type UploadValues = z.infer<typeof uploadSchema>;
 
 // Represents a question parsed from the CSV, not yet saved
-type ParsedQuestao = Omit<Questao, 'id' | 'createdAt' | 'updatedAt' | 'user'> & { tempId: string };
+type ParsedQuestao = Omit<Questao, 'id' | 'createdAt' | 'updatedAt' | 'user'> & { 
+    tempId: string,
+    disciplinaNome?: string,
+    topicoNome?: string,
+    subtopicoNome?: string
+};
 
 export default function ImportarPage() {
   const [step, setStep] = useState<"upload" | "review">("upload");
@@ -114,65 +119,64 @@ export default function ImportarPage() {
     mutationFn: async (questoesToSave: ParsedQuestao[]) => {
       let createdCount = 0;
       
-      const tempDisciplinaMap = new Map<string, Omit<Disciplina, 'id'>>();
-      const tempTopicoMap = new Map<string, Omit<Topico, 'id' | 'topicoPaiId'> & { topicoPaiId?: string }>();
+      const disciplinaCache = new Map<string, string>(); // name -> id
+      const topicoCache = new Map<string, string>(); // name -> id
 
-      for (const questao of questoesToSave) {
-        if (questao.disciplinaId.startsWith('temp-')) {
-          tempDisciplinaMap.set(questao.disciplinaId, { nome: (questao as any).disciplinaNome, cor: '#00329C' });
-        }
-        if (questao.topicoId.startsWith('temp-')) {
-            const topicoData = { 
-                nome: (questao as any).topicoNome, 
-                disciplinaId: questao.disciplinaId, 
-                topicoPaiId: (questao as any).topicoPaiId || undefined 
-            };
-            tempTopicoMap.set(questao.topicoId, topicoData);
-        }
-      }
+      const allDisciplinas = await dataSource.list<Disciplina>('disciplinas');
+      allDisciplinas.forEach(d => disciplinaCache.set(d.nome.toLowerCase(), d.id));
 
-      const idMapping = new Map<string, string>();
+      const allTopicos = await dataSource.list<Topico>('topicos');
+      allTopicos.forEach(t => topicoCache.set(`${t.disciplinaId}-${t.nome.toLowerCase()}`, t.id));
 
-      // 1. Create Disciplinas
-      for (const [tempId, disciplinaData] of tempDisciplinaMap.entries()) {
-        const newDisciplina = await dataSource.create<Disciplina>('disciplinas', disciplinaData as any);
-        idMapping.set(tempId, newDisciplina.id);
-      }
+      for(const questao of questoesToSave) {
+          let disciplinaId: string;
+          let topicoId: string;
 
-      // 2. Create Parent Topics First
-      const parentTopics = Array.from(tempTopicoMap.entries()).filter(([_, data]) => !data.topicoPaiId);
-      for (const [tempId, topicoData] of parentTopics) {
-          const finalDisciplinaId = idMapping.get(topicoData.disciplinaId) || topicoData.disciplinaId;
-          const newTopico = await dataSource.create<Topico>('topicos', { ...topicoData, disciplinaId: finalDisciplinaId } as any);
-          idMapping.set(tempId, newTopico.id);
+          // 1. Resolve Disciplina
+          const disciplinaNomeLower = questao.disciplinaNome!.toLowerCase();
+          if (disciplinaCache.has(disciplinaNomeLower)) {
+              disciplinaId = disciplinaCache.get(disciplinaNomeLower)!;
+          } else {
+              const newDisciplina = await dataSource.create<Disciplina>('disciplinas', { nome: questao.disciplinaNome!, cor: '#00329C' } as any);
+              disciplinaId = newDisciplina.id;
+              disciplinaCache.set(disciplinaNomeLower, disciplinaId);
+          }
+
+          // 2. Resolve Tópico Principal
+          const topicoNomeLower = questao.topicoNome!.toLowerCase();
+          const topicoKey = `${disciplinaId}-${topicoNomeLower}`;
+          let topicoPaiId: string;
+          if (topicoCache.has(topicoKey)) {
+              topicoPaiId = topicoCache.get(topicoKey)!;
+          } else {
+              const newTopico = await dataSource.create<Topico>('topicos', { nome: questao.topicoNome!, disciplinaId } as any);
+              topicoPaiId = newTopico.id;
+              topicoCache.set(topicoKey, topicoPaiId);
+          }
+          topicoId = topicoPaiId;
+
+          // 3. Resolve Subtópico (if exists)
+          if (questao.subtopicoNome) {
+              const subtopicoNomeLower = questao.subtopicoNome.toLowerCase();
+              const subtopicoKey = `${disciplinaId}-${subtopicoNomeLower}`;
+              if (topicoCache.has(subtopicoKey)) {
+                  topicoId = topicoCache.get(subtopicoKey)!;
+              } else {
+                  const newSubtopico = await dataSource.create<Topico>('topicos', { nome: questao.subtopicoNome, disciplinaId, topicoPaiId } as any);
+                  topicoId = newSubtopico.id;
+                  topicoCache.set(subtopicoKey, topicoId);
+              }
+          }
+
+          // 4. Create Questão
+          await dataSource.create('questoes', {
+            ...questao,
+            disciplinaId: disciplinaId,
+            topicoId: topicoId,
+          } as any);
+          createdCount++;
       }
       
-      // 3. Create Sub-Topics
-      const subTopics = Array.from(tempTopicoMap.entries()).filter(([_, data]) => !!data.topicoPaiId);
-       for (const [tempId, topicoData] of subTopics) {
-          const finalDisciplinaId = idMapping.get(topicoData.disciplinaId) || topicoData.disciplinaId;
-          const finalTopicoPaiId = topicoData.topicoPaiId ? (idMapping.get(topicoData.topicoPaiId) || topicoData.topicoPaiId) : undefined;
-          
-          if (topicoData.topicoPaiId && !finalTopicoPaiId) {
-             throw new Error(`Could not find parent topic for subtopic: ${topicoData.nome}`);
-          }
-          
-          const newTopico = await dataSource.create<Topico>('topicos', { ...topicoData, disciplinaId: finalDisciplinaId, topicoPaiId: finalTopicoPaiId } as any);
-          idMapping.set(tempId, newTopico.id);
-      }
-
-      // 4. Create Questoes with correct IDs
-      for (const questao of questoesToSave) {
-        const finalDisciplinaId = idMapping.get(questao.disciplinaId) || questao.disciplinaId;
-        const finalTopicoId = idMapping.get(questao.topicoId) || questao.topicoId;
-        
-        await dataSource.create('questoes', {
-          ...questao,
-          disciplinaId: finalDisciplinaId,
-          topicoId: finalTopicoId,
-        } as any);
-        createdCount++;
-      }
       return createdCount;
     },
     onSuccess: (count) => {
@@ -186,7 +190,7 @@ export default function ImportarPage() {
     },
     onError: (error: any) => {
         const errorMessage = error?.originalError?.data?.message || error.message || "Ocorreu um erro desconhecido.";
-        console.error("Erro ao Salvar:", error);
+        console.error("Erro ao Salvar:", error.originalError?.data || error);
         toast({ variant: "destructive", title: "Erro ao Salvar", description: `Não foi possível salvar as questões. Detalhes: ${errorMessage}` });
     },
     onSettled: () => {
@@ -339,6 +343,3 @@ export default function ImportarPage() {
     </>
   );
 }
-
-
-    

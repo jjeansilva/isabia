@@ -12,7 +12,7 @@ function normalizeDificuldade(dificuldade: string | undefined): QuestionDificuld
 }
 
 // Represents a question parsed from the CSV, not yet saved
-type ParsedQuestao = Omit<Questao, 'id' | 'createdAt' | 'updatedAt' | 'user'> & { disciplinaNome?: string, topicoNome?: string, topicoPaiId?: string };
+type ParsedQuestao = Omit<Questao, 'id' | 'createdAt' | 'updatedAt' | 'user'> & { disciplinaNome?: string, topicoNome?: string, subtopicoNome?: string };
 
 
 /**
@@ -75,17 +75,18 @@ export async function parseCsvForReview(
         return index > -1 ? row[index]?.trim().replace(/^"|"$/g, '') : undefined;
     }
 
-    // Pre-fetch all disciplinas and topicos to avoid multiple DB calls in loop
+    // Pre-fetch all disciplinas to check for existence
     const allDisciplinas = await dataSource.list<Disciplina>('disciplinas');
-    const allTopicos = await dataSource.list<Topico>('topicos');
     const disciplinaMap = new Map(allDisciplinas.map(d => [d.nome.toLowerCase(), d]));
-    const topicoMap = new Map(allTopicos.map(t => [`${t.disciplinaId}-${t.nome.toLowerCase()}`, t]));
+    const newDisciplinas = new Set<string>();
+    const newTopicos = new Set<string>(); // key: disciplinaName-topicoName
     
     for (let i = 0; i < rows.length; i++) {
         if (!rows[i]) continue;
         const rowData = parseCsvLine(rows[i]);
         const disciplinaNome = getColumn(rowData, 'disciplina');
         const topicoNome = getColumn(rowData, 'tópico da disciplina');
+        const subtópicoNome = getColumn(rowData, 'subtópico');
         const enunciado = getColumn(rowData, 'questão');
 
         if (!disciplinaNome || !topicoNome || !enunciado) {
@@ -93,39 +94,38 @@ export async function parseCsvForReview(
             continue;
         }
 
-        let disciplina = disciplinaMap.get(disciplinaNome.toLowerCase());
-        let topicoPaiId: string | undefined = undefined;
-
-        if (!disciplina) {
-             disciplina = { id: `temp-disciplina-${uuidv4()}`, nome: disciplinaNome } as Disciplina;
-             log.push(`[Linha ${i + 2}] Nova disciplina será criada: ${disciplinaNome}`);
-        }
-
-        let topico = topicoMap.get(`${disciplina.id}-${topicoNome.toLowerCase()}`);
-        if (!topico) {
-            topico = { id: `temp-topico-${uuidv4()}`, nome: topicoNome, disciplinaId: disciplina.id } as Topico;
-            log.push(`[Linha ${i + 2}] Novo tópico será criado: ${topicoNome}`);
+        // Log new disciplinas and topicos
+        const disciplinaNomeLower = disciplinaNome.toLowerCase();
+        if (!disciplinaMap.has(disciplinaNomeLower) && !newDisciplinas.has(disciplinaNomeLower)) {
+            log.push(`[Nova Disciplina] Será criada: ${disciplinaNome}`);
+            newDisciplinas.add(disciplinaNomeLower);
         }
         
-        const subtópicoNome = getColumn(rowData, 'subtópico');
-        if (subtópicoNome) {
-            let subtópico = topicoMap.get(`${disciplina.id}-${subtópicoNome.toLowerCase()}`);
-             if (!subtópico) {
-                subtópico = { id: `temp-subtopico-${uuidv4()}`, nome: subtópicoNome, disciplinaId: disciplina.id, topicoPaiId: topico.id } as Topico;
-                log.push(`[Linha ${i + 2}] Novo subtópico será criado: ${subtópicoNome}`);
-             }
-             topicoPaiId = topico.id;
-             topico = subtópico;
+        const topicoKey = `${disciplinaNomeLower}-${topicoNome.toLowerCase()}`;
+        if (!newTopicos.has(topicoKey)) {
+             // We can't check for existing topics perfectly without their IDs, so we just log the intent to create.
+             // The backend logic will handle finding or creating.
+             log.push(`[Novo Tópico] Será criado (ou encontrado): ${topicoNome}`);
+             newTopicos.add(topicoKey);
         }
+
+        if (subtópicoNome) {
+             const subtopicoKey = `${disciplinaNomeLower}-${subtópicoNome.toLowerCase()}`;
+             if(!newTopicos.has(subtopicoKey)) {
+                 log.push(`[Novo Subtópico] Será criado (ou encontrado): ${subtópicoNome}`);
+                 newTopicos.add(subtopicoKey);
+             }
+        }
+
 
         const alternativas = header.filter(h => h.startsWith('alternativa_')).map(h => getColumn(rowData, h)).filter(Boolean) as string[];
         
         const questao: ParsedQuestao = {
-            disciplinaId: disciplina.id,
-            topicoId: topico.id,
-            disciplinaNome: disciplina.nome, // Pass through names for creation step
-            topicoNome: topico.nome,
-            topicoPaiId: topicoPaiId,
+            disciplinaId: '', // Will be resolved on save
+            topicoId: '', // Will be resolved on save
+            disciplinaNome: disciplinaNome,
+            topicoNome: topicoNome,
+            subtopicoNome: subtópicoNome,
             tipo: defaultTipo,
             origem: defaultOrigem,
             enunciado: enunciado,
