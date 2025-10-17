@@ -113,29 +113,69 @@ export default function ImportarPage() {
   };
   
   const saveMutation = useMutation({
-      mutationFn: async (questoesToSave: ParsedQuestao[]) => {
-          let createdCount = 0;
-          for (const questao of questoesToSave) {
-              await dataSource.create('questoes', questao as any);
-              createdCount++;
-          }
-          return createdCount;
-      },
-      onSuccess: (count) => {
-          queryClient.invalidateQueries({ queryKey: ["questoes"] });
-          queryClient.invalidateQueries({ queryKey: ["disciplinas"] });
-          queryClient.invalidateQueries({ queryKey: ["topicos"] });
-          toast({ title: "Importação Concluída!", description: `${count} questões foram salvas com sucesso.` });
-          setStep("upload");
-          setParsedQuestoes([]);
-      },
-      onError: (error: any) => {
-          toast({ variant: "destructive", title: "Erro ao Salvar", description: `Não foi possível salvar as questões. Detalhes: ${error.message}` });
-      },
-      onSettled: () => {
-          setIsSaving(false);
+    mutationFn: async (questoesToSave: ParsedQuestao[]) => {
+      let createdCount = 0;
+      
+      // 1. Identify and create new Disciplinas and Topicos
+      const tempDisciplinaMap = new Map<string, Omit<Disciplina, 'id'>>();
+      const tempTopicoMap = new Map<string, Omit<Topico, 'id'>>();
+
+      for (const questao of questoesToSave) {
+        if (questao.disciplinaId.startsWith('temp-')) {
+          tempDisciplinaMap.set(questao.disciplinaId, { nome: (questao as any).disciplinaNome, cor: '#00329C' });
+        }
+        if (questao.topicoId.startsWith('temp-')) {
+          tempTopicoMap.set(questao.topicoId, { nome: (questao as any).topicoNome, disciplinaId: questao.disciplinaId, topicoPaiId: (questao as any).topicoPaiId || '' });
+        }
       }
+
+      const idMapping = new Map<string, string>();
+
+      // Create Disciplinas
+      for (const [tempId, disciplinaData] of tempDisciplinaMap.entries()) {
+        const newDisciplina = await dataSource.create<Disciplina>('disciplinas', disciplinaData as any);
+        idMapping.set(tempId, newDisciplina.id);
+      }
+
+      // Create Topicos
+      for (const [tempId, topicoData] of tempTopicoMap.entries()) {
+        const finalDisciplinaId = idMapping.get(topicoData.disciplinaId) || topicoData.disciplinaId;
+        const finalTopicoPaiId = topicoData.topicoPaiId ? (idMapping.get(topicoData.topicoPaiId) || topicoData.topicoPaiId) : '';
+        const newTopico = await dataSource.create<Topico>('topicos', { ...topicoData, disciplinaId: finalDisciplinaId, topicoPaiId: finalTopicoPaiId } as any);
+        idMapping.set(tempId, newTopico.id);
+      }
+
+      // 2. Create Questoes with correct IDs
+      for (const questao of questoesToSave) {
+        const finalDisciplinaId = idMapping.get(questao.disciplinaId) || questao.disciplinaId;
+        const finalTopicoId = idMapping.get(questao.topicoId) || questao.topicoId;
+        
+        await dataSource.create('questoes', {
+          ...questao,
+          disciplinaId: finalDisciplinaId,
+          topicoId: finalTopicoId,
+        } as any);
+        createdCount++;
+      }
+      return createdCount;
+    },
+    onSuccess: (count) => {
+        queryClient.invalidateQueries({ queryKey: ["questoes"] });
+        queryClient.invalidateQueries({ queryKey: ["disciplinas"] });
+        queryClient.invalidateQueries({ queryKey: ["topicos"] });
+        toast({ title: "Importação Concluída!", description: `${count} questões foram salvas com sucesso.` });
+        setStep("upload");
+        setParsedQuestoes([]);
+    },
+    onError: (error: any) => {
+        console.error("Erro ao Salvar:", error.data || error);
+        toast({ variant: "destructive", title: "Erro ao Salvar", description: `Não foi possível salvar as questões. Detalhes: ${error.message}` });
+    },
+    onSettled: () => {
+        setIsSaving(false);
+    }
   });
+
 
   const handleSaveAll = () => {
       if (parsedQuestoes.length === 0) {
@@ -267,4 +307,3 @@ export default function ImportarPage() {
     </>
   );
 }
-

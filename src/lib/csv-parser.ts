@@ -12,7 +12,7 @@ function normalizeDificuldade(dificuldade: string | undefined): QuestionDificuld
 }
 
 // Represents a question parsed from the CSV, not yet saved
-type ParsedQuestao = Omit<Questao, 'id' | 'createdAt' | 'updatedAt' | 'user'>;
+type ParsedQuestao = Omit<Questao, 'id' | 'createdAt' | 'updatedAt' | 'user'> & { disciplinaNome?: string, topicoNome?: string, topicoPaiId?: string };
 
 
 /**
@@ -68,7 +68,7 @@ export async function parseCsvForReview(
     const rows = lines.slice(1);
     
     const log: string[] = [];
-    const parsedQuestoes: (ParsedQuestao & {tempId: string})[] = [];
+    const parsedQuestoes: ParsedQuestao[] = [];
 
     const getColumn = (row: string[], name: string) => {
         const index = header.indexOf(name);
@@ -94,16 +94,16 @@ export async function parseCsvForReview(
         }
 
         let disciplina = disciplinaMap.get(disciplinaNome.toLowerCase());
+        let topicoPaiId: string | undefined = undefined;
+
         if (!disciplina) {
-            disciplina = { nome: disciplinaNome, id: `temp-disciplina-${uuidv4()}` } as Disciplina;
-            disciplinaMap.set(disciplinaNome.toLowerCase(), disciplina);
-            log.push(`[Linha ${i + 2}] Nova disciplina será criada: ${disciplinaNome}`);
+             disciplina = { id: `temp-disciplina-${uuidv4()}`, nome: disciplinaNome } as Disciplina;
+             log.push(`[Linha ${i + 2}] Nova disciplina será criada: ${disciplinaNome}`);
         }
 
         let topico = topicoMap.get(`${disciplina.id}-${topicoNome.toLowerCase()}`);
         if (!topico) {
-            topico = { nome: topicoNome, disciplinaId: disciplina.id, id: `temp-topico-${uuidv4()}` } as Topico;
-            topicoMap.set(`${disciplina.id}-${topicoNome.toLowerCase()}`, topico);
+            topico = { id: `temp-topico-${uuidv4()}`, nome: topicoNome, disciplinaId: disciplina.id } as Topico;
             log.push(`[Linha ${i + 2}] Novo tópico será criado: ${topicoNome}`);
         }
         
@@ -111,19 +111,21 @@ export async function parseCsvForReview(
         if (subtópicoNome) {
             let subtópico = topicoMap.get(`${disciplina.id}-${subtópicoNome.toLowerCase()}`);
              if (!subtópico) {
-                subtópico = { nome: subtópicoNome, disciplinaId: disciplina.id, topicoPaiId: topico.id, id: `temp-subtopico-${uuidv4()}` } as Topico;
-                topicoMap.set(`${disciplina.id}-${subtópicoNome.toLowerCase()}`, subtópico);
+                subtópico = { id: `temp-subtopico-${uuidv4()}`, nome: subtópicoNome, disciplinaId: disciplina.id, topicoPaiId: topico.id } as Topico;
                 log.push(`[Linha ${i + 2}] Novo subtópico será criado: ${subtópicoNome}`);
              }
+             topicoPaiId = topico.id;
              topico = subtópico;
         }
 
         const alternativas = header.filter(h => h.startsWith('alternativa_')).map(h => getColumn(rowData, h)).filter(Boolean) as string[];
         
-        const questao: ParsedQuestao & {tempId: string} = {
-            tempId: uuidv4(),
+        const questao: ParsedQuestao = {
             disciplinaId: disciplina.id,
             topicoId: topico.id,
+            disciplinaNome: disciplina.nome, // Pass through names for creation step
+            topicoNome: topico.nome,
+            topicoPaiId: topicoPaiId,
             tipo: defaultTipo,
             origem: defaultOrigem,
             enunciado: enunciado,
