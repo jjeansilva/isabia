@@ -114,36 +114,54 @@ export default function ImportarPage() {
     mutationFn: async (questoesToSave: ParsedQuestao[]) => {
       let createdCount = 0;
       
-      // 1. Identify and create new Disciplinas and Topicos
       const tempDisciplinaMap = new Map<string, Omit<Disciplina, 'id'>>();
-      const tempTopicoMap = new Map<string, Omit<Topico, 'id'>>();
+      const tempTopicoMap = new Map<string, Omit<Topico, 'id' | 'topicoPaiId'> & { topicoPaiId?: string }>();
 
       for (const questao of questoesToSave) {
         if (questao.disciplinaId.startsWith('temp-')) {
           tempDisciplinaMap.set(questao.disciplinaId, { nome: (questao as any).disciplinaNome, cor: '#00329C' });
         }
         if (questao.topicoId.startsWith('temp-')) {
-          tempTopicoMap.set(questao.topicoId, { nome: (questao as any).topicoNome, disciplinaId: questao.disciplinaId, topicoPaiId: (questao as any).topicoPaiId || '' });
+            const topicoData = { 
+                nome: (questao as any).topicoNome, 
+                disciplinaId: questao.disciplinaId, 
+                topicoPaiId: (questao as any).topicoPaiId || undefined 
+            };
+            tempTopicoMap.set(questao.topicoId, topicoData);
         }
       }
 
       const idMapping = new Map<string, string>();
 
-      // Create Disciplinas
+      // 1. Create Disciplinas
       for (const [tempId, disciplinaData] of tempDisciplinaMap.entries()) {
         const newDisciplina = await dataSource.create<Disciplina>('disciplinas', disciplinaData as any);
         idMapping.set(tempId, newDisciplina.id);
       }
 
-      // Create Topicos
-      for (const [tempId, topicoData] of tempTopicoMap.entries()) {
-        const finalDisciplinaId = idMapping.get(topicoData.disciplinaId) || topicoData.disciplinaId;
-        const finalTopicoPaiId = topicoData.topicoPaiId ? (idMapping.get(topicoData.topicoPaiId) || topicoData.topicoPaiId) : '';
-        const newTopico = await dataSource.create<Topico>('topicos', { ...topicoData, disciplinaId: finalDisciplinaId, topicoPaiId: finalTopicoPaiId } as any);
-        idMapping.set(tempId, newTopico.id);
+      // 2. Create Parent Topics First
+      const parentTopics = Array.from(tempTopicoMap.entries()).filter(([_, data]) => !data.topicoPaiId);
+      for (const [tempId, topicoData] of parentTopics) {
+          const finalDisciplinaId = idMapping.get(topicoData.disciplinaId) || topicoData.disciplinaId;
+          const newTopico = await dataSource.create<Topico>('topicos', { ...topicoData, disciplinaId: finalDisciplinaId } as any);
+          idMapping.set(tempId, newTopico.id);
+      }
+      
+      // 3. Create Sub-Topics
+      const subTopics = Array.from(tempTopicoMap.entries()).filter(([_, data]) => !!data.topicoPaiId);
+       for (const [tempId, topicoData] of subTopics) {
+          const finalDisciplinaId = idMapping.get(topicoData.disciplinaId) || topicoData.disciplinaId;
+          const finalTopicoPaiId = topicoData.topicoPaiId ? (idMapping.get(topicoData.topicoPaiId) || topicoData.topicoPaiId) : undefined;
+          
+          if (topicoData.topicoPaiId && !finalTopicoPaiId) {
+             throw new Error(`Could not find parent topic for subtopic: ${topicoData.nome}`);
+          }
+          
+          const newTopico = await dataSource.create<Topico>('topicos', { ...topicoData, disciplinaId: finalDisciplinaId, topicoPaiId: finalTopicoPaiId } as any);
+          idMapping.set(tempId, newTopico.id);
       }
 
-      // 2. Create Questoes with correct IDs
+      // 4. Create Questoes with correct IDs
       for (const questao of questoesToSave) {
         const finalDisciplinaId = idMapping.get(questao.disciplinaId) || questao.disciplinaId;
         const finalTopicoId = idMapping.get(questao.topicoId) || questao.topicoId;
@@ -167,8 +185,9 @@ export default function ImportarPage() {
         setImportLog([]);
     },
     onError: (error: any) => {
-        console.error("Erro ao Salvar:", error.data || error);
-        toast({ variant: "destructive", title: "Erro ao Salvar", description: `Não foi possível salvar as questões. Detalhes: ${error.message}` });
+        const errorMessage = error?.originalError?.data?.message || error.message || "Ocorreu um erro desconhecido.";
+        console.error("Erro ao Salvar:", error);
+        toast({ variant: "destructive", title: "Erro ao Salvar", description: `Não foi possível salvar as questões. Detalhes: ${errorMessage}` });
     },
     onSettled: () => {
         setIsSaving(false);
@@ -321,3 +340,5 @@ export default function ImportarPage() {
   );
 }
 
+
+    
