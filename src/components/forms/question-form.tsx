@@ -101,7 +101,6 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
               respostaCorretaParsed = JSON.parse(questao.respostaCorreta);
             }
         } catch(e) {
-            // not a json, use as is
             respostaCorretaParsed = questao.respostaCorreta;
         }
 
@@ -112,7 +111,7 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
               finalFormRespostaCorreta = correctIndex.toString();
             }
         } else if (questao.tipo === 'Certo ou Errado') {
-            finalFormRespostaCorreta = String(respostaCorretaParsed);
+            finalFormRespostaCorreta = respostaCorretaParsed; // Keep it boolean for now
         }
         
         let topicoPrincipalId = questao.topicoId;
@@ -133,6 +132,12 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
             topicoId: topicoPrincipalId,
             subTopicoId: subTopicoId,
         });
+
+        // Explicitly set value for radio group after reset
+        if (questao.tipo === 'Certo ou Errado') {
+            form.setValue('respostaCorreta', String(finalFormRespostaCorreta));
+        }
+
     } else if (open && !questao) {
         form.reset({
             tipo: "Múltipla Escolha",
