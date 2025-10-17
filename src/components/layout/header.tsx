@@ -24,7 +24,7 @@ export function Header() {
       
       <div className="flex w-full items-center justify-end gap-1 xs:gap-2 md:ml-auto">
         <Button variant="outline" size="sm" asChild className="w-auto sm:w-auto p-0 px-2 sm:px-3">
-          <Link href="/questoes?import=true">
+          <Link href="/repositorio/importar">
             <Upload className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Importar</span>
           </Link>

@@ -25,7 +25,6 @@ export interface IDataSource {
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
   bulkDelete(collection: CollectionName, ids: string[]): Promise<void>;
-  bulkCreateFromCsv(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem, onProgress: (progress: ImportProgress) => void): Promise<number>;
   gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado>;
   getDashboardStats(): Promise<any>;
   getQuestoesParaRevisar(): Promise<Questao[]>;
@@ -304,98 +303,6 @@ class MockDataSource implements IDataSource {
     saveToStorage('revisoes', revisoes);
     return Promise.resolve();
   }
-
-  async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem, onProgress: (progress: ImportProgress) => void): Promise<number> {
-     const lines = csvData.split('\n').filter(line => line.trim() !== '');
-    const header = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    const rows = lines.slice(1);
-    
-    let createdCount = 0;
-    const log: string[] = [];
-
-    const getColumn = (row: string[], name: string) => {
-        const index = header.indexOf(name);
-        return index > -1 ? row[index]?.trim().replace(/"/g, '') : undefined;
-    }
-
-    onProgress({ message: 'Iniciando processamento...', current: 0, total: rows.length, log });
-    
-    const allDisciplinas = getFromStorage<Disciplina>('disciplinas');
-    const allTopicos = getFromStorage<Topico>('topicos');
-    const disciplinaMap = new Map(allDisciplinas.map(d => [d.nome.toLowerCase(), d.id]));
-    const topicoMap = new Map(allTopicos.map(t => [`${t.disciplinaId}-${t.nome.toLowerCase()}`, t.id]));
-
-    for (let i = 0; i < rows.length; i++) {
-        const rowData = rows[i].split(',');
-        const disciplinaNome = getColumn(rowData, 'disciplina');
-        const topicoNome = getColumn(rowData, 'tópico da disciplina');
-        const enunciado = getColumn(rowData, 'questão');
-
-        try {
-            if (!disciplinaNome || !topicoNome || !enunciado) {
-                throw new Error(`Dados insuficientes na linha ${i + 2}. As colunas "disciplina", "tópico da disciplina" e "questão" são obrigatórias.`);
-            }
-
-            let disciplinaId = disciplinaMap.get(disciplinaNome.toLowerCase());
-            if (!disciplinaId) {
-                const newDisciplina = await this.create<Disciplina>('disciplinas', { nome: disciplinaNome });
-                disciplinaId = newDisciplina.id;
-                disciplinaMap.set(disciplinaNome.toLowerCase(), disciplinaId);
-                log.push(`[Linha ${i + 2}] Nova disciplina criada: ${disciplinaNome}`);
-            }
-
-            let topicoId = topicoMap.get(`${disciplinaId}-${topicoNome.toLowerCase()}`);
-            if (!topicoId) {
-                const newTopico = await this.create<Topico>('topicos', { nome: topicoNome, disciplinaId });
-                topicoId = newTopico.id;
-                topicoMap.set(`${disciplinaId}-${topicoNome.toLowerCase()}`, topicoId);
-                 log.push(`[Linha ${i + 2}] Novo tópico criado: ${topicoNome}`);
-            }
-            
-            const subtópicoNome = getColumn(rowData, 'subtópico');
-            if (subtópicoNome) {
-                let subtópicoId = topicoMap.get(`${disciplinaId}-${subtópicoNome.toLowerCase()}`);
-                 if (!subtópicoId) {
-                    const newSubTopico = await this.create<Topico>('topicos', { nome: subtópicoNome, disciplinaId, topicoPaiId: topicoId });
-                    subtópicoId = newSubTopico.id;
-                    topicoMap.set(`${disciplinaId}-${subtópicoNome.toLowerCase()}`, subtópicoId);
-                    log.push(`[Linha ${i + 2}] Novo subtópico criado: ${subtópicoNome}`);
-                 }
-                 topicoId = subtópicoId;
-            }
-
-            const questao: Partial<Questao> = {
-                disciplinaId,
-                topicoId,
-                tipo,
-                origem,
-                enunciado,
-                dificuldade: getColumn(rowData, 'dificuldade') as QuestionDificuldade || 'Fácil',
-                respostaCorreta: JSON.stringify(getColumn(rowData, 'resposta')),
-                explicacao: getColumn(rowData, 'explicação') || '',
-                alternativas: JSON.stringify(header.filter(h => h.startsWith('alternativa_')).map(h => getColumn(rowData, h)).filter(Boolean)),
-                isActive: true,
-                version: 1,
-                hashConteudo: 'csv_import_' + uuidv4(),
-            };
-            
-            await this.create<Questao>('questoes', questao as any);
-            createdCount++;
-            onProgress({ message: `Processando linha ${i + 1}...`, current: i + 1, total: rows.length, log });
-        } catch (error: any) {
-            let errorMessage = `Erro na linha ${i + 2}: ${error.message}`;
-            if (error.data?.data) {
-                const fieldErrors = Object.entries(error.data.data).map(([field, err]: [string, any]) => `${field}: ${err.message}`).join(', ');
-                errorMessage = `Erro na linha ${i + 2}. Detalhes: ${fieldErrors}`;
-            }
-            log.push(`[Linha ${i + 2}] ERRO: ${errorMessage}`);
-            onProgress({ message: errorMessage, current: i + 1, total: rows.length, log, isError: true });
-            throw new Error(errorMessage); // Stop the process
-        }
-    }
-    
-    return createdCount;
-  }
 }
 
 class PocketBaseDataSource implements IDataSource {
@@ -587,11 +494,13 @@ class PocketBaseDataSource implements IDataSource {
     try {
         const hoje = new Date().toISOString().split('T')[0];
         
-        const respostas = await this.list<Resposta>('respostas', { filter: userFilter });
-        const disciplinas = await this.list<Disciplina>('disciplinas', { filter: userFilter });
-        const questoes = await this.list<Questao>('questoes', { filter: userFilter, fields: 'id,disciplinaId,dificuldade,tipo' });
-        const revisoes = await this.list<Revisao>('revisoes', { filter: `proximaRevisao <= "${hoje}" && ${userFilter}` });
-        const allSimulados = await this.list<Simulado>('simulados', { filter: userFilter });
+        const [respostas, disciplinas, questoes, revisoes, allSimulados] = await Promise.all([
+            this.list<Resposta>('respostas', { filter: userFilter }),
+            this.list<Disciplina>('disciplinas', { filter: userFilter }),
+            this.list<Questao>('questoes', { filter: userFilter, fields: 'id,disciplinaId,dificuldade,tipo' }),
+            this.list<Revisao>('revisoes', { filter: `proximaRevisao <= "${hoje}" && ${userFilter}` }),
+            this.list<Simulado>('simulados', { filter: userFilter })
+        ]);
         
         const simulados = allSimulados.sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
 
@@ -741,114 +650,6 @@ class PocketBaseDataSource implements IDataSource {
       };
       await this.create('revisoes', novaRevisao as any);
     }
-  }
-  
-  private normalizeDificuldade(dificuldade: string | undefined): QuestionDificuldade {
-    const d = dificuldade?.toLowerCase().trim();
-    if (d === 'fácil' || d === 'facil') return QuestionDificuldade.Facil;
-    if (d === 'média' || d === 'medio' || d === 'médio') return QuestionDificuldade.Medio;
-    if (d === 'difícil' || d === 'dificil') return QuestionDificuldade.Dificil;
-    // Default to 'Fácil' if it's unknown, to avoid validation errors.
-    return QuestionDificuldade.Facil;
-  }
-
-  async bulkCreateFromCsv(csvData: string, tipo: QuestionTipo, origem: QuestionOrigem, onProgress: (progress: ImportProgress) => void): Promise<number> {
-    const lines = csvData.split('\n').filter(line => line.trim() !== '');
-    const header = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    const rows = lines.slice(1);
-    
-    let createdCount = 0;
-    const log: string[] = [];
-
-    const getColumn = (row: string[], name: string) => {
-        const index = header.indexOf(name);
-        return index > -1 ? row[index]?.trim().replace(/"/g, '') : undefined;
-    }
-
-    onProgress({ message: 'Iniciando processamento...', current: 0, total: rows.length, log });
-    
-    const allDisciplinas = await this.list<Disciplina>('disciplinas');
-    const allTopicos = await this.list<Topico>('topicos');
-    const disciplinaMap = new Map(allDisciplinas.map(d => [d.nome.toLowerCase(), d.id]));
-    const topicoMap = new Map(allTopicos.map(t => [`${t.disciplinaId}-${t.nome.toLowerCase()}`, t.id]));
-
-    const creationPromises: Promise<any>[] = [];
-
-    for (let i = 0; i < rows.length; i++) {
-        const rowData = rows[i].split(',');
-        
-        const createRow = async () => {
-            const disciplinaNome = getColumn(rowData, 'disciplina');
-            const topicoNome = getColumn(rowData, 'tópico da disciplina');
-            const enunciado = getColumn(rowData, 'questão');
-
-            if (!disciplinaNome || !topicoNome || !enunciado) {
-                throw new Error(`Dados insuficientes na linha ${i + 2}. As colunas "disciplina", "tópico da disciplina" e "questão" são obrigatórias.`);
-            }
-
-            let disciplinaId = disciplinaMap.get(disciplinaNome.toLowerCase());
-            if (!disciplinaId) {
-                const newDisciplina = await this.create<Disciplina>('disciplinas', { nome: disciplinaNome });
-                disciplinaId = newDisciplina.id;
-                disciplinaMap.set(disciplinaNome.toLowerCase(), disciplinaId);
-                log.push(`[Linha ${i + 2}] Nova disciplina criada: ${disciplinaNome}`);
-            }
-
-            let topicoId = topicoMap.get(`${disciplinaId}-${topicoNome.toLowerCase()}`);
-            if (!topicoId) {
-                const newTopico = await this.create<Topico>('topicos', { nome: topicoNome, disciplinaId });
-                topicoId = newTopico.id;
-                topicoMap.set(`${disciplinaId}-${topicoNome.toLowerCase()}`, topicoId);
-                 log.push(`[Linha ${i + 2}] Novo tópico criado: ${topicoNome}`);
-            }
-            
-            const subtópicoNome = getColumn(rowData, 'subtópico');
-            if (subtópicoNome) {
-                let subtópicoId = topicoMap.get(`${disciplinaId}-${subtópicoNome.toLowerCase()}`);
-                 if (!subtópicoId) {
-                    const newSubTopico = await this.create<Topico>('topicos', { nome: subtópicoNome, disciplinaId, topicoPaiId: topicoId });
-                    subtópicoId = newSubTopico.id;
-                    topicoMap.set(`${disciplinaId}-${subtópicoNome.toLowerCase()}`, subtópicoId);
-                    log.push(`[Linha ${i + 2}] Novo subtópico criado: ${subtópicoNome}`);
-                 }
-                 topicoId = subtópicoId;
-            }
-
-            const questao: Partial<Questao> = {
-                disciplinaId,
-                topicoId,
-                tipo,
-                origem,
-                enunciado,
-                dificuldade: this.normalizeDificuldade(getColumn(rowData, 'dificuldade')),
-                respostaCorreta: JSON.stringify(getColumn(rowData, 'resposta')),
-                explicacao: getColumn(rowData, 'explicação') || '',
-                alternativas: JSON.stringify(header.filter(h => h.startsWith('alternativa_')).map(h => getColumn(rowData, h)).filter(Boolean)),
-                isActive: true,
-                version: 1,
-                hashConteudo: 'csv_import_' + uuidv4(),
-            };
-            
-            await this.create<Questao>('questoes', questao as any);
-        };
-
-        try {
-            await createRow();
-            createdCount++;
-            onProgress({ message: `Processando linha ${i + 1}...`, current: i + 1, total: rows.length, log });
-        } catch (error: any) {
-             let errorMessage = `Erro na linha ${i + 2}: ${error.message}`;
-             if (error?.data?.data) {
-                const fieldErrors = Object.entries(error.data.data).map(([field, err]: [string, any]) => `${field}: ${err.message}`).join(', ');
-                errorMessage = `Erro na linha ${i + 2}. Detalhes: ${fieldErrors}`;
-            }
-            log.push(`[Linha ${i + 2}] ERRO: ${errorMessage}`);
-            onProgress({ message: errorMessage, current: i + 1, total: rows.length, log, isError: true });
-            throw new Error(errorMessage); // Stop the process
-        }
-    }
-    
-    return createdCount;
   }
 }
 

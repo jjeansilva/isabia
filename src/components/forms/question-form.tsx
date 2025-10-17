@@ -61,7 +61,7 @@ const formSchema = z.object({
 }, { message: "Questões de múltipla escolha devem ter pelo menos 2 alternativas e uma resposta correta.", path: ["respostaCorreta"] });
 
 
-export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: boolean; onOpenChange: (open: boolean) => void; questao?: Questao; onDelete?: (q: Questao) => void }) {
+export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOveride }: { open: boolean; onOpenChange: (open: boolean) => void; questao?: Questao; onDelete?: (q: Questao) => void; onSaveOveride?: (data: any) => void; }) {
   const dataSource = useData();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -194,7 +194,7 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
       
       finalData.respostaCorreta = JSON.stringify(finalRespostaCorreta);
       
-      return questao
+      return questao && questao.id
         ? dataSource.update('questoes', questao.id, finalData as Partial<Questao>)
         : dataSource.create('questoes', finalData as any);
     },
@@ -231,7 +231,22 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
   }
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    mutation.mutate(values);
+    if (onSaveOveride) {
+        let finalRespostaCorreta = values.respostaCorreta;
+        if (values.tipo === 'Múltipla Escolha' && Array.isArray(values.alternativas)) {
+            finalRespostaCorreta = values.alternativas[parseInt(values.respostaCorreta)];
+        }
+        
+        const finalData = {
+            ...(questao || {}),
+            ...values,
+            respostaCorreta: finalRespostaCorreta,
+        };
+        onSaveOveride(finalData);
+        onOpenChange(false);
+    } else {
+        mutation.mutate(values);
+    }
   }
 
   const tipo = form.watch("tipo");
@@ -457,5 +472,4 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete }: { open: 
     </Dialog>
   );
 }
-
 
