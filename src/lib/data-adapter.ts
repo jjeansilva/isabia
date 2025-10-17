@@ -586,15 +586,12 @@ class PocketBaseDataSource implements IDataSource {
 
     try {
         const hoje = new Date().toISOString().split('T')[0];
-        const revisoesFilter = `proximaRevisao <= "${hoje}" && ${userFilter}`;
-
-        const [respostas, disciplinas, questoes, revisoes, allSimulados] = await Promise.all([
-            this.list<Resposta>('respostas', { filter: userFilter }),
-            this.list<Disciplina>('disciplinas', { filter: userFilter }),
-            this.list<Questao>('questoes', { filter: userFilter, fields: 'id,disciplinaId,dificuldade,tipo' }),
-            this.list<Revisao>('revisoes', { filter: revisoesFilter }),
-            this.list<Simulado>('simulados', { filter: userFilter }),
-        ]);
+        
+        const respostas = await this.list<Resposta>('respostas', { filter: userFilter });
+        const disciplinas = await this.list<Disciplina>('disciplinas', { filter: userFilter });
+        const questoes = await this.list<Questao>('questoes', { filter: userFilter, fields: 'id,disciplinaId,dificuldade,tipo' });
+        const revisoes = await this.list<Revisao>('revisoes', { filter: `proximaRevisao <= "${hoje}" && ${userFilter}` });
+        const allSimulados = await this.list<Simulado>('simulados', { filter: userFilter });
         
         const simulados = allSimulados.sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime());
 
