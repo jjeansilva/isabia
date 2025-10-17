@@ -460,17 +460,17 @@ class PocketBaseDataSource implements IDataSource {
 
       const novoSimulado = {
           nome: formValues.nome,
-          criterios: JSON.stringify(formValues.criterios),
+          criterios: formValues.criterios,
           status: 'Rascunho' as SimuladoStatus,
           criadoEm: new Date().toISOString(),
-          questoes: JSON.stringify(questoesParaSalvar),
+          questoes: questoesParaSalvar,
       };
 
       const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
       
-      const updatedQuestoes: SimuladoQuestao[] = (JSON.parse(createdSimulado.questoes as string) as any[]).map(q => ({...q, simuladoId: createdSimulado.id }));
+      const updatedQuestoes: SimuladoQuestao[] = (createdSimulado.questoes as any[]).map(q => ({...q, simuladoId: createdSimulado.id }));
       
-      return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: JSON.stringify(updatedQuestoes) as any });
+      return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: updatedQuestoes as any });
   }
 
   async getDashboardStats(): Promise<any> {
