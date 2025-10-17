@@ -55,7 +55,7 @@ const formSchema = z.object({
   explicacao: z.string().optional(),
 }).refine(data => {
     if (data.tipo === 'Múltipla Escolha') {
-        return data.alternativas && data.alternativas.length >= 2 && data.respostaCorreta !== undefined;
+        return data.alternativas && data.alternativas.length >= 2 && data.respostaCorreta !== undefined && data.respostaCorreta !== '';
     }
     return true;
 }, { message: "Questões de múltipla escolha devem ter pelo menos 2 alternativas e uma resposta correta.", path: ["respostaCorreta"] });
@@ -105,12 +105,14 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
             respostaCorretaParsed = questao.respostaCorreta;
         }
 
-        let finalFormRespostaCorreta = respostaCorretaParsed;
+        let finalFormRespostaCorreta: any = respostaCorretaParsed;
         if (questao.tipo === 'Múltipla Escolha' && Array.isArray(alternativas)) {
             const correctIndex = alternativas.indexOf(respostaCorretaParsed);
             if (correctIndex !== -1) {
               finalFormRespostaCorreta = correctIndex.toString();
             }
+        } else if (questao.tipo === 'Certo ou Errado') {
+            finalFormRespostaCorreta = String(respostaCorretaParsed);
         }
         
         let topicoPrincipalId = questao.topicoId;
@@ -195,6 +197,10 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
         finalData.alternativas = JSON.stringify(newQuestaoData.alternativas);
       } else {
         finalData.alternativas = "[]"; 
+      }
+      
+      if (newQuestaoData.tipo === 'Certo ou Errado') {
+          finalRespostaCorreta = newQuestaoData.respostaCorreta === 'true';
       }
       
       finalData.respostaCorreta = JSON.stringify(finalRespostaCorreta);
@@ -373,7 +379,10 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
             
             {tipo === 'Múltipla Escolha' && (
               <div className="space-y-4 rounded-md border p-4">
-                <FormLabel>Alternativas</FormLabel>
+                <div className="flex justify-between items-center">
+                    <FormLabel>Alternativas</FormLabel>
+                    <FormMessage>{form.formState.errors.respostaCorreta?.message}</FormMessage>
+                </div>
                 <FormField control={form.control} name="respostaCorreta" render={({ field: radioField }) => (
                   <RadioGroup onValueChange={val => radioField.onChange(val)} value={radioField.value?.toString()} className="space-y-2">
                     {fields.map((field, index) => (
@@ -402,7 +411,7 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
                     <FormItem className="space-y-3 rounded-md border p-4">
                         <FormLabel>Resposta Correta</FormLabel>
                         <FormControl>
-                            <RadioGroup onValueChange={(val) => field.onChange(val === 'true')} value={String(field.value)} className="flex gap-4">
+                            <RadioGroup onValueChange={(val) => field.onChange(val)} value={String(field.value)} className="flex gap-4">
                                 <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="true"/></FormControl><FormLabel className="font-normal">Certo</FormLabel></FormItem>
                                 <FormItem className="flex items-center space-x-3 space-y-0"><FormControl><RadioGroupItem value="false"/></FormControl><FormLabel className="font-normal">Errado</FormLabel></FormItem>
                             </RadioGroup>
