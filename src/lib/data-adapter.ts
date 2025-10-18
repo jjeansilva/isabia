@@ -341,7 +341,7 @@ class PocketBaseDataSource implements IDataSource {
             acertou: questao.acertou ?? false,
             confianca: questao.confianca || 'Dúvida',
             questaoId: questao.questaoId,
-            respostaUsuario: questao.respostaUsuario,
+            respostaUsuario: JSON.stringify(questao.respostaUsuario),
             simuladoId: simuladoId,
             tempoSegundos: questao.tempoSegundos || 0,
         };
@@ -468,7 +468,7 @@ class PocketBaseDataSource implements IDataSource {
 
       const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
       
-      const updatedQuestoes: SimuladoQuestao[] = (createdSimulado.questoes as any[]).map(q => ({...q, simuladoId: createdSimulado.id }));
+      const updatedQuestoes = (createdSimulado.questoes as any[]).map(q => ({...q, simuladoId: createdSimulado.id }));
       
       return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: updatedQuestoes });
   }
@@ -656,5 +656,3 @@ class PocketBaseDataSource implements IDataSource {
 }
 
 export { PocketBaseDataSource, MockDataSource };
-
-    
