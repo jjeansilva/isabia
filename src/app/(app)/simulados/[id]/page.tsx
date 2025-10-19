@@ -272,7 +272,7 @@ export default function SimuladoExecutionPage() {
     const handleAnswer = (answer: any, confianca: RespostaConfianca) => {
         if (!simulado || !questao) return;
         
-        const tempoSegundos = Math.max(1, Math.round((Date.now() - startTime) / 1000));
+
 
         let parsedRespostaCorreta;
         try {
@@ -296,7 +296,6 @@ export default function SimuladoExecutionPage() {
                 respostaUsuario: answer,
                 acertou: acertouValue,
                 confianca,
-                tempoSegundos,
             }
         }));
     };

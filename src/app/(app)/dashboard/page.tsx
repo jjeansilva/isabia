@@ -11,191 +11,196 @@ import {
   CheckCircle2, 
   Clock, 
   Target,
-  FileWarning,
-  History,
-  PlayCircle,
   TrendingUp,
   BarChart3,
-  HelpCircle,
-  ListChecks
 } from "lucide-react";
 import { SparklineChart } from "@/components/charts/sparkline-chart";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Progress } from "@/components/ui/progress";
-import { PerformancePorCriterio } from "@/types";
-import { Skeleton } from "@/components/ui/skeleton";
-
-function PerformanceTable({ title, data, isLoading }: { title: string, data: PerformancePorCriterio[], isLoading: boolean }) {
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base sm:text-2xl">
-                    <BarChart3 className="h-5 w-5 text-primary" />
-                    {title}
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[50%]">Critério</TableHead>
-                            <TableHead className="text-center">Questões</TableHead>
-                            <TableHead className="text-right">Acerto</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading && Array.from({ length: 3 }).map((_, i) => (
-                            <TableRow key={i}>
-                                <TableCell className="h-12" colSpan={3}><Skeleton className="h-6 w-full" /></TableCell>
-                            </TableRow>
-                        ))}
-                         {!isLoading && data.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={3} className="h-24 text-center">
-                                    Nenhuma questão respondida ainda.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                        {!isLoading && data.map(item => (
-                            <TableRow key={item.nome}>
-                                <TableCell className="font-medium truncate max-w-[120px] sm:max-w-xs">{item.nome}</TableCell>
-                                <TableCell className="text-center">{item.totalQuestoes}</TableCell>
-                                <TableCell className="text-right">
-                                    <div className="flex items-center justify-end gap-2">
-                                        <span className="text-xs">{item.percentualAcerto.toFixed(1)}%</span>
-                                        <Progress value={item.percentualAcerto} className="w-12 h-2" />
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-    );
-}
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { useMemo, useState } from "react";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from "recharts";
 
 export default function DashboardPage() {
   const dataSource = useData();
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
 
-  const { data: stats, isLoading, isError } = useQuery({
-    queryKey: ['dashboardStats'],
-    queryFn: () => dataSource.getDashboardStats(),
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['dashboardStatsRange', startDate, endDate],
+    queryFn: () => dataSource.getDashboardStatsRange({ startDate: startDate || undefined, endDate: endDate || undefined }),
   });
+
+  const desempenhoDisc = stats?.desempenhoPorDisciplina ?? [];
+  const desempenhoPontos = stats?.desempenhoPorPontos ?? [];
 
   return (
     <>
       <PageHeader
         title="Dashboard"
-        description="Bem-vindo ao seu painel de estudos iSabIA."
+        description="Estatísticas e desempenho de suas resoluções."
       />
+
+      {/* Filtros de Data */}
+      <Card className="mb-4">
+        <CardContent className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="text-sm font-medium">Início</label>
+            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1" />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Fim</label>
+            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-1" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* KPIs */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
-          title="Acerto Geral"
-          value={`${stats?.acertoGeral?.toFixed(1) ?? '...'}%`}
-          icon={<Target className="h-5 w-5 text-muted-foreground" />}
+          title="Total de Questões"
+          value={stats?.totalQuestoes ?? '...'}
+          icon={<BarChart3 className="h-5 w-5 text-muted-foreground" />}
           loading={isLoading}
         />
         <KpiCard
-          title="Questões Respondidas"
-          value={stats?.totalRespostas ?? '...'}
+          title="Total de Resoluções"
+          value={stats?.totalResolucoes ?? '...'}
           icon={<CheckCircle2 className="h-5 w-5 text-muted-foreground" />}
           loading={isLoading}
         />
         <KpiCard
-          title="Tempo Médio / Questão"
-          value={`${stats?.tempoMedioGeral?.toFixed(0) ?? '...'}s`}
-          icon={<Clock className="h-5 w-5 text-muted-foreground" />}
-          loading={isLoading}
-        />
-         <KpiCard
-          title="Acertos (Últimos 30d)"
-          value={`${stats?.acertoUltimos30d?.toFixed(1) ?? '...'}%`}
-          icon={<TrendingUp className="h-5 w-5 text-muted-foreground" />}
-          chart={
-             <SparklineChart 
-              data={stats?.historicoAcertos ?? []} 
-              dataKey="acerto" 
-              color="hsl(var(--primary))" 
-            />
-          }
+          title="Aproveitamento (período)"
+          value={`${stats?.aproveitamento?.toFixed(1) ?? '...'}%`}
+          icon={<Target className="h-5 w-5 text-muted-foreground" />}
           loading={isLoading}
         />
       </div>
+
+      {/* Desempenho por Disciplina */}
       <div className="mt-6 grid gap-6 md:grid-cols-12">
-        <div className="md:col-span-8 space-y-6">
-           <PerformanceTable title="Desempenho por Disciplina" data={stats?.desempenhoPorDisciplina ?? []} isLoading={isLoading} />
+        <div className="md:col-span-6 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Desempenho por Disciplina (período)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Disciplina</TableHead>
+                    <TableHead className="text-center">Total</TableHead>
+                    <TableHead className="text-center">Acertos</TableHead>
+                    <TableHead className="text-center">Erros</TableHead>
+                    <TableHead className="text-right">Aproveitamento</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading && (
+                    <TableRow><TableCell colSpan={5}>Carregando...</TableCell></TableRow>
+                  )}
+                  {!isLoading && desempenhoDisc.length === 0 && (
+                    <TableRow><TableCell colSpan={5}>Sem dados no período</TableCell></TableRow>
+                  )}
+                  {!isLoading && desempenhoDisc.map((d: any) => (
+                    <TableRow key={d.id}>
+                      <TableCell className="font-medium">{d.nome}</TableCell>
+                      <TableCell className="text-center">{d.total}</TableCell>
+                      <TableCell className="text-center text-green-600">{d.acertos}</TableCell>
+                      <TableCell className="text-center text-red-600">{d.erros}</TableCell>
+                      <TableCell className="text-right">{d.percentualAcerto.toFixed(1)}%</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
-        <div className="md:col-span-4 space-y-6">
-            {stats?.simuladoEmAndamento && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base sm:text-2xl">
-                            <PlayCircle className="h-5 w-5 text-primary" />
-                            Continue de onde parou
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground mb-4">Você tem um simulado em andamento.</p>
-                        <Button asChild>
-                            <Link href={`/simulados/${stats.simuladoEmAndamento.id}`}>
-                                Retomar: {stats.simuladoEmAndamento.nome}
-                            </Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-            )}
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base sm:text-2xl">
-                        <History className="h-5 w-5 text-primary" />
-                        Revisão do dia
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <p>Carregando...</p>
-                    ) : (
-                        <>
-                            <p className="text-muted-foreground mb-4">
-                                Você tem <span className="font-bold text-foreground">{stats?.questoesParaRevisarHoje ?? 0}</span> questões para revisar hoje.
-                            </p>
-                            <Button asChild variant="outline" disabled={!stats?.questoesParaRevisarHoje || stats.questoesParaRevisarHoje === 0}>
-                                <Link href="/revisao">Iniciar Revisão</Link>
-                            </Button>
-                        </>
-                    )}
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2 text-base sm:text-2xl"><HelpCircle className="h-5 w-5 text-primary" />Desempenho por Dificuldade</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                    {isLoading && <p>Carregando...</p>}
-                    {!isLoading && stats?.desempenhoPorDificuldade?.map((item: PerformancePorCriterio) => (
-                        <div key={item.nome} className="flex justify-between items-center text-sm">
-                            <span className="font-medium">{item.nome}</span>
-                            <span className="text-muted-foreground">{item.percentualAcerto.toFixed(1)}% ({item.totalQuestoes}q)</span>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader><CardTitle className="flex items-center gap-2 text-base sm:text-2xl"><ListChecks className="h-5 w-5 text-primary" />Desempenho por Tipo</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                    {isLoading && <p>Carregando...</p>}
-                    {!isLoading && stats?.desempenhoPorTipo?.map((item: PerformancePorCriterio) => (
-                        <div key={item.nome} className="flex justify-between items-center text-sm">
-                            <span className="font-medium">{item.nome}</span>
-                             <span className="text-muted-foreground">{item.percentualAcerto.toFixed(1)}% ({item.totalQuestoes}q)</span>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
+
+        {/* Desempenho por Pontos/Subpontos */}
+        <div className="md:col-span-6 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Desempenho por Pontos/Subpontos (período)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ponto</TableHead>
+                    <TableHead>Subponto</TableHead>
+                    <TableHead className="text-center">Total</TableHead>
+                    <TableHead className="text-center">Acertos</TableHead>
+                    <TableHead className="text-center">Erros</TableHead>
+                    <TableHead className="text-right">Aproveitamento</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading && (
+                    <TableRow><TableCell colSpan={6}>Carregando...</TableCell></TableRow>
+                  )}
+                  {!isLoading && desempenhoPontos.length === 0 && (
+                    <TableRow><TableCell colSpan={6}>Sem dados no período</TableCell></TableRow>
+                  )}
+                  {!isLoading && desempenhoPontos.map((p: any, idx: number) => (
+                    <TableRow key={`${p.topicoId}-${p.subTopicoId}-${idx}`}>
+                      <TableCell className="font-medium">{p.topicoNome || '-'}</TableCell>
+                      <TableCell>{p.subTopicoNome || '-'}</TableCell>
+                      <TableCell className="text-center">{p.total}</TableCell>
+                      <TableCell className="text-center text-green-600">{p.acertos}</TableCell>
+                      <TableCell className="text-center text-red-600">{p.erros}</TableCell>
+                      <TableCell className="text-right">{p.percentualAcerto.toFixed(1)}%</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {/* Gráficos com abas */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Gráficos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="resolvidas" className="w-full">
+            <TabsList>
+              <TabsTrigger value="resolvidas">Resolvidas</TabsTrigger>
+              <TabsTrigger value="desempenho">Desempenho</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="resolvidas" className="pt-4">
+              <ChartContainer config={{ resolvidas: { label: 'Resolvidas', color: 'hsl(var(--primary))' } }} className="h-[250px] w-full">
+                <AreaChart data={stats?.resolvidasDiarias ?? []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip content={<ChartTooltipContent />} />
+                  <Area type="monotone" dataKey="resolvidas" stroke="var(--color-resolvidas)" fill="var(--color-resolvidas)" />
+                </AreaChart>
+              </ChartContainer>
+            </TabsContent>
+
+            <TabsContent value="desempenho" className="pt-4">
+              <ChartContainer config={{ acertos: { label: 'Acertos', color: 'hsl(var(--chart-1))' }, erros: { label: 'Erros', color: 'hsl(var(--chart-2))' } }} className="h-[250px] w-full">
+                <AreaChart data={stats?.desempenhoDiario ?? []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  <Area type="monotone" dataKey="acertos" stroke="var(--color-acertos)" fill="var(--color-acertos)" />
+                  <Area type="monotone" dataKey="erros" stroke="var(--color-erros)" fill="var(--color-erros)" />
+                </AreaChart>
+              </ChartContainer>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </>
   );
 }

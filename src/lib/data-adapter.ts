@@ -52,12 +52,24 @@ class MockDataSource implements IDataSource {
             respostaUsuario: JSON.stringify(q.respostaUsuario),
             simuladoId: simuladoId,
             respondedAt: now,
-            tempoSegundos: q.tempoSegundos || 0,
             user: 'localuser'
         }));
     
     respostas.push(...novasRespostas as any[]);
     saveToStorage('respostas', respostas);
+    // Vincular respostas às respectivas questões no storage local
+    const questoesStore = getFromStorage<any>('questoes');
+    const questoesById = new Map(questoesStore.map((qq: any) => [qq.id, qq]));
+    for (const r of novasRespostas as any[]) {
+      const q = questoesById.get(r.questaoId);
+      if (q) {
+        const current = Array.isArray(q.respostas) ? q.respostas : [];
+        if (!current.includes(r.id)) {
+          q.respostas = [...current, r.id];
+        }
+      }
+    }
+    saveToStorage('questoes', Array.from(questoesById.values()));
     return Promise.resolve();
   }
 
@@ -168,22 +180,28 @@ class MockDataSource implements IDataSource {
   }
 
   async getDashboardStats(): Promise<any> {
-    const simulados = await this.list<Simulado>('simulados');
-    const respostas = await this.list<Resposta>('respostas');
-    const questoes = await this.list<Questao>('questoes');
-    const disciplinas = await this.list<Disciplina>('disciplinas');
-    const topicos = await this.list<Topico>('topicos');
-    const revisoes = await this.list<Revisao>('revisoes');
+    if (!this.pb.authStore.model) throw new Error("Usuário não autenticado.");
+    const userId = this.pb.authStore.model.id;
+    const userFilter = `user = "${userId}"`;
+
+    // Buscar dados do usuário
+    const [simulados, respostas, questoes, disciplinas, revisoes] = await Promise.all([
+      this.list<Simulado>('simulados', { filter: userFilter }),
+      this.list<Resposta>('respostas', { filter: userFilter }),
+      this.list<Questao>('questoes'),
+      this.list<Disciplina>('disciplinas'),
+      this.list<Revisao>('revisoes', { filter: userFilter })
+    ]);
 
     const totalRespostas = respostas.length;
-    const totalAcertos = respostas.filter(r => Boolean(r.acertou)).length;
+    const totalAcertos = respostas.filter(r => r.acertou === true || r.acertou === 'true').length;
     const acertoGeral = totalRespostas > 0 ? (totalAcertos / totalRespostas) * 100 : 0;
-    const tempoMedioGeral = totalRespostas > 0 ? respostas.reduce((acc, r) => acc + r.tempoSegundos, 0) / totalRespostas : 0;
+
 
     const umMesAtras = new Date();
     umMesAtras.setDate(umMesAtras.getDate() - 30);
     const respostasUltimos30d = respostas.filter(r => new Date(r.respondedAt) >= umMesAtras);
-    const acertosUltimos30d = respostasUltimos30d.filter(r => Boolean(r.acertou)).length;
+    const acertosUltimos30d = respostasUltimos30d.filter(r => r.acertou === true || r.acertou === 'true').length;
     const acertoUltimos30dPercent = respostasUltimos30d.length > 0 ? (acertosUltimos30d / respostasUltimos30d.length) * 100 : 0;
     
     // Histórico de acertos para o gráfico
@@ -192,7 +210,7 @@ class MockDataSource implements IDataSource {
         date.setDate(date.getDate() - (29 - i));
         const dateString = date.toISOString().split('T')[0];
         const respostasDoDia = respostas.filter(r => r.respondedAt.startsWith(dateString));
-        const acertosDoDia = respostasDoDia.filter(r => Boolean(r.acertou)).length;
+        const acertosDoDia = respostasDoDia.filter(r => r.acertou === true || r.acertou === 'true').length;
         return {
             date: dateString,
             acerto: respostasDoDia.length > 0 ? (acertosDoDia / respostasDoDia.length) * 100 : 0,
@@ -218,9 +236,10 @@ class MockDataSource implements IDataSource {
         const questao = questoesMap.get(resposta.questaoId);
         if (!questao) continue;
 
-        reducePerformance(desempenhoMap, questao.disciplinaId, Boolean(resposta.acertou));
-        reducePerformance(dificuldadeMap, questao.dificuldade, Boolean(resposta.acertou));
-        reducePerformance(tipoMap, questao.tipo, Boolean(resposta.acertou));
+        const acertouBool = resposta.acertou === true || resposta.acertou === 'true';
+        reducePerformance(desempenhoMap, questao.disciplinaId, acertouBool);
+        reducePerformance(dificuldadeMap, questao.dificuldade, acertouBool);
+        reducePerformance(tipoMap, questao.tipo, acertouBool);
     }
     
     const formatPerformanceData = (map: Map<string, { total: number; acertos: number }>, nameMap: Map<string, string>): PerformancePorCriterio[] => {
@@ -240,10 +259,9 @@ class MockDataSource implements IDataSource {
     const simuladoEmAndamento = simulados.find(s => s.status === 'Em andamento');
     const questoesParaRevisarHoje = revisoes.filter(r => new Date(r.proximaRevisao) <= new Date()).length;
 
-    return Promise.resolve({
+    return {
         totalRespostas,
         acertoGeral,
-        tempoMedioGeral,
         acertoUltimos30d: acertoUltimos30dPercent,
         historicoAcertos,
         desempenhoPorDisciplina,
@@ -251,7 +269,131 @@ class MockDataSource implements IDataSource {
         desempenhoPorTipo,
         simuladoEmAndamento,
         questoesParaRevisarHoje,
+    };
+  }
+
+  async getDashboardStatsRange(range?: { startDate?: string; endDate?: string }): Promise<any> {
+    if (!this.pb.authStore.model) throw new Error("Usuário não autenticado.");
+    const userId = this.pb.authStore.model.id;
+    const userFilter = `user = "${userId}"`;
+
+    const [questoes, disciplinas, topicos, respostasAll] = await Promise.all([
+      this.list<Questao>('questoes'),
+      this.list<Disciplina>('disciplinas'),
+      this.list<Topico>('topicos'),
+      this.list<Resposta>('respostas')
+    ]);
+
+    // Date range filtering
+    let start: Date | null = null;
+    let end: Date | null = null;
+    if (range?.startDate) start = new Date(range.startDate);
+    if (range?.endDate) {
+      const d = new Date(range.endDate);
+      end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+    }
+
+    const respostas = respostasAll.filter(r => {
+      const dt = this.parsePBDate(r.respondedAt);
+      if (start && (!dt || dt < start)) return false;
+      if (end && (!dt || dt > end)) return false;
+      return true;
     });
+
+    const totalQuestoes = questoes.length;
+    const totalResolucoes = respostasAll.length;
+
+    const questoesMap = new Map(questoes.map(q => [q.id, q]));
+    const disciplinasMap = new Map(disciplinas.map(d => [d.id, d]));
+    const topicosMap = new Map(topicos.map(t => [t.id, t]));
+
+    const isTrue = (v: any) => v === true || v === 'true' || v === 1 || v === '1';
+
+    // Aproveitamento
+    const acertos = respostas.filter(r => isTrue(r.acertou)).length;
+    const aproveitamento = respostas.length > 0 ? (acertos / respostas.length) * 100 : 0;
+
+    // Desempenho por disciplina
+    const desempenhoDisc: Record<string, { id: string; nome: string; total: number; acertos: number; erros: number; percentualAcerto: number }> = {};
+    for (const r of respostas) {
+      const q = questoesMap.get(r.questaoId);
+      if (!q) continue;
+      const d = disciplinasMap.get(q.disciplinaId);
+      const key = q.disciplinaId;
+      if (!desempenhoDisc[key]) desempenhoDisc[key] = { id: key, nome: d?.nome || key, total: 0, acertos: 0, erros: 0, percentualAcerto: 0 };
+      desempenhoDisc[key].total++;
+      if (isTrue(r.acertou)) desempenhoDisc[key].acertos++; else desempenhoDisc[key].erros++;
+    }
+    const desempenhoPorDisciplina = Object.values(desempenhoDisc).map(item => ({
+      ...item,
+      percentualAcerto: item.total > 0 ? (item.acertos / item.total) * 100 : 0,
+    })).sort((a, b) => b.total - a.total);
+
+    // Desempenho por pontos/subpontos
+    const desempenhoPontos: Array<{ disciplinaId: string; disciplinaNome: string; topicoId: string; topicoNome: string; subTopicoId?: string; subTopicoNome?: string; total: number; acertos: number; erros: number; percentualAcerto: number }> = [];
+    const keyMap = new Map<string, number>();
+    for (const r of respostas) {
+      const q = questoesMap.get(r.questaoId);
+      if (!q) continue;
+      const top = topicosMap.get(q.topicoId);
+      const disc = disciplinasMap.get(q.disciplinaId);
+      const isSub = !!top?.topicoPaiId;
+      const parent = isSub ? topicosMap.get(top!.topicoPaiId!) : null;
+      const key = `${q.disciplinaId}|${isSub ? parent?.id : top?.id}|${isSub ? top?.id : ''}`;
+      const idx = keyMap.get(key);
+      if (idx === undefined) {
+        keyMap.set(key, desempenhoPontos.length);
+        desempenhoPontos.push({
+          disciplinaId: q.disciplinaId,
+          disciplinaNome: disc?.nome || q.disciplinaId,
+          topicoId: isSub ? parent?.id || '' : top?.id || '',
+          topicoNome: isSub ? parent?.nome || '' : top?.nome || '',
+          subTopicoId: isSub ? top?.id : undefined,
+          subTopicoNome: isSub ? top?.nome : undefined,
+          total: 0,
+          acertos: 0,
+          erros: 0,
+          percentualAcerto: 0,
+        });
+      }
+      const kidx = keyMap.get(key)!;
+      const item = desempenhoPontos[kidx];
+      item.total++;
+      if (isTrue(r.acertou)) item.acertos++; else item.erros++;
+      item.percentualAcerto = item.total > 0 ? (item.acertos / item.total) * 100 : 0;
+    }
+
+    // Séries diárias
+    const byDateRes = new Map<string, { resolvidas: number }>();
+    const byDatePerf = new Map<string, { acertos: number; erros: number }>();
+    for (const r of respostas) {
+      const d = this.parsePBDate(r.respondedAt);
+      if (!d) continue; // skip invalid dates
+      const date = d.toISOString().split('T')[0];
+      const resItem = byDateRes.get(date) || { resolvidas: 0 };
+      resItem.resolvidas++;
+      byDateRes.set(date, resItem);
+
+      const perfItem = byDatePerf.get(date) || { acertos: 0, erros: 0 };
+      if (isTrue(r.acertou)) perfItem.acertos++; else perfItem.erros++;
+      byDatePerf.set(date, perfItem);
+    }
+    const resolvidasDiarias = Array.from(byDateRes.entries()).map(([date, v]) => ({ date, resolvidas: v.resolvidas })).sort((a, b) => a.date.localeCompare(b.date));
+    const desempenhoDiario = Array.from(byDatePerf.entries()).map(([date, v]) => ({ date, acertos: v.acertos, erros: v.erros })).sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      totalQuestoes,
+      totalResolucoes,
+      aproveitamento,
+      desempenhoPorDisciplina,
+      desempenhoPorPontos,
+      resolvidasDiarias,
+      desempenhoDiario,
+      range: {
+        startDate: range?.startDate || null,
+        endDate: range?.endDate || null,
+      },
+    };
   }
 
 
@@ -360,11 +502,35 @@ class PocketBaseDataSource implements IDataSource {
     const iso = date.toISOString();
     return iso.slice(0,19).replace('T',' ') + 'Z';
   }
+
+  private parsePBDate(s?: string): Date | null {
+    if (!s || typeof s !== 'string') return null;
+    // Accept both ISO and PocketBase-like formats ("YYYY-MM-DD HH:mm:ssZ")
+    let str = s.trim();
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}Z$/.test(str)) {
+      str = str.replace(' ', 'T'); // -> YYYY-MM-DDTHH:mm:ssZ
+    }
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+  }
   
   private normalizeConfianca(value: any): RespostaConfianca {
     const allowed = new Set<RespostaConfianca>(['Certeza','Dúvida','Chute']);
     const v = typeof value === 'string' ? (value as string).trim() : '';
     return allowed.has(v as RespostaConfianca) ? (v as RespostaConfianca) : 'Dúvida';
+  }
+
+  private async linkRespostaToQuestao(questaoId: string, respostaId: string): Promise<void> {
+    try {
+      const questao: any = await this.pb.collection('questoes').getOne(questaoId);
+      const current = Array.isArray(questao.respostas) ? questao.respostas : [];
+      if (current.includes(respostaId)) return;
+      const updated = [...current, respostaId];
+      await this.pb.collection('questoes').update(questaoId, { respostas: updated });
+      dlog(`Resposta ${respostaId} vinculada à questão ${questaoId}.`);
+    } catch (e) {
+      console.error(`Falha ao vincular resposta ${respostaId} à questão ${questaoId}:`, e);
+    }
   }
 
   async registrarRespostasSimulado(simuladoId: string, questoes: SimuladoQuestao[]): Promise<void> {
@@ -390,8 +556,7 @@ class PocketBaseDataSource implements IDataSource {
             dlog(`Processando questão ${questao.questaoId}:`, JSON.stringify({
                 acertou: questao.acertou,
                 tipoAcertou: typeof questao.acertou,
-                respostaUsuario: questao.respostaUsuario ? (typeof questao.respostaUsuario) : 'undefined',
-                tempoSegundos: questao.tempoSegundos
+                respostaUsuario: questao.respostaUsuario ? (typeof questao.respostaUsuario) : 'undefined'
             }));
             
             // Determinar se a resposta está correta (true/false)
@@ -434,13 +599,6 @@ class PocketBaseDataSource implements IDataSource {
                 respostaUsuarioStr = 'resposta não fornecida';
             }
             
-            // Garantir que tempoSegundos seja um número válido
-            const tempoSegundos = typeof questao.tempoSegundos === 'number' && !isNaN(questao.tempoSegundos)
-                ? questao.tempoSegundos
-                : (typeof questao.tempoSegundos === 'string' 
-                    ? Number(questao.tempoSegundos) || 0
-                    : 0);
-            
             // Criar um payload limpo com todos os campos necessários
             cleanPayload = {
                 acertou: acertouValue ? 'true' : 'false',  // Enviar como string conforme requisito
@@ -448,7 +606,6 @@ class PocketBaseDataSource implements IDataSource {
                 questaoId: questao.questaoId,
                 respostaUsuario: respostaUsuarioStr, // Garantido como string não vazia
                 simuladoId: simuladoId,
-                tempoSegundos: tempoSegundos,
                 respondedAt: this.formatPBDate(new Date()),
                 user: userId // Campo obrigatório
             };
@@ -461,7 +618,6 @@ class PocketBaseDataSource implements IDataSource {
                 questaoId: typeof cleanPayload.questaoId,
                 respostaUsuario: typeof cleanPayload.respostaUsuario,
                 simuladoId: typeof cleanPayload.simuladoId,
-                tempoSegundos: typeof cleanPayload.tempoSegundos,
                 respondedAt: typeof cleanPayload.respondedAt,
                 user: typeof cleanPayload.user
             });
@@ -472,7 +628,7 @@ class PocketBaseDataSource implements IDataSource {
             dlog('user:', cleanPayload.user, '(tipo:', typeof cleanPayload.user, ')');
             dlog('acertou:', cleanPayload.acertou, '(tipo:', typeof cleanPayload.acertou, ')');
             dlog('respostaUsuario:', cleanPayload.respostaUsuario, '(tipo:', typeof cleanPayload.respostaUsuario, ')');
-            dlog('tempoSegundos:', cleanPayload.tempoSegundos, '(tipo:', typeof cleanPayload.tempoSegundos, ')');
+
             dlog('respondedAt:', cleanPayload.respondedAt, '(tipo:', typeof cleanPayload.respondedAt, ')');
             dlog('simuladoId:', cleanPayload.simuladoId, '(tipo:', typeof cleanPayload.simuladoId, ')');
             dlog('confianca:', cleanPayload.confianca, '(tipo:', typeof cleanPayload.confianca, ')');
@@ -493,9 +649,7 @@ class PocketBaseDataSource implements IDataSource {
             if (!cleanPayload.respostaUsuario) {
                 throw new Error(`Campo respostaUsuario está vazio ou inválido`);
             }
-            if (typeof cleanPayload.tempoSegundos !== 'number' || isNaN(cleanPayload.tempoSegundos)) {
-                throw new Error(`Campo tempoSegundos não é um número válido: ${cleanPayload.tempoSegundos}`);
-            }
+
             if (!cleanPayload.respondedAt) {
                 throw new Error(`Campo respondedAt está vazio ou inválido`);
             }
@@ -769,7 +923,6 @@ class PocketBaseDataSource implements IDataSource {
           acertou: typeof dataWithUser.acertou === 'string' ? dataWithUser.acertou : (dataWithUser.acertou === true ? 'true' : 'false'), // Enviar como string 'true'/'false'
           respostaUsuario: respostaUsuarioStr, // Garantido como string não vazia
           confianca: this.normalizeConfianca(dataWithUser.confianca),
-          tempoSegundos: typeof dataWithUser.tempoSegundos === 'number' ? dataWithUser.tempoSegundos : Number(dataWithUser.tempoSegundos || 0),
           respondedAt: dataWithUser.respondedAt || this.formatPBDate(new Date()),
           user: dataWithUser.user
         };
@@ -781,7 +934,18 @@ class PocketBaseDataSource implements IDataSource {
         dlog(`Enviando para PocketBase (${collection}):`, JSON.stringify(cleanData, null, 2));
         
         // Enviar dados limpos para o PocketBase
-        return await this.pb.collection(collection).create<T>(cleanData);
+        const created = await this.pb.collection(collection).create<T>(cleanData);
+        // Vincular resposta à questão
+        try {
+          const respostaId = (created as any).id;
+          const questaoId = cleanData.questaoId;
+          if (respostaId && questaoId) {
+            await this.linkRespostaToQuestao(questaoId, respostaId);
+          }
+        } catch (e) {
+          console.error('Erro ao vincular resposta à questão:', e);
+        }
+        return created;
       }
       
       return await this.pb.collection(collection).create<T>(dataWithUser);
@@ -942,4 +1106,5 @@ class PocketBaseDataSource implements IDataSource {
   }
 }
 
+// Moved getDashboardStatsRange inside the PocketBaseDataSource class
 export { PocketBaseDataSource, MockDataSource };

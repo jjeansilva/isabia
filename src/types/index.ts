@@ -62,6 +62,8 @@ export interface Questao {
   hashConteudo: string;
   necessitaRevisao?: boolean;
   motivoRevisao?: string;
+  // Relacionamento: respostas vinculadas a esta questão (PocketBase relation field)
+  respostas?: string[];
   user: string;
   createdAt: string;
   updatedAt: string;
@@ -108,7 +110,7 @@ export interface Resposta {
   acertou: boolean;
   respostaUsuario: any;
   confianca: RespostaConfianca;
-  tempoSegundos: number;
+
   user: string;
   respondedAt: string;
   expand?: {

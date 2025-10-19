@@ -26,6 +26,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/questoes", label: "Questões", icon: BookCopy },
   { href: "/repositorio", label: "Repositório", icon: Archive },
   { href: "/simulados", label: "Simulados", icon: Target },
   { href: "/revisao", label: "Revisão", icon: History },
