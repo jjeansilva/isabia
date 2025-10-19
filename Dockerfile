@@ -1,12 +1,16 @@
 # Multi-stage Dockerfile for Next.js standalone runtime
 # Build with Node 22 LTS and run with a minimal image
 
+# Multi-stage Dockerfile for Next.js standalone runtime
+# Build with Node 22 LTS and run with a minimal image
+
 # ---- deps ----
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+# Install all dependencies (including dev) for build
+RUN npm ci
 
 # ---- builder ----
 FROM node:22-bookworm-slim AS builder
