@@ -5,6 +5,11 @@ import { CollectionName, Disciplina, Questao, Simulado, SimuladoDificuldade, Top
 import PocketBase, { ListResult } from 'pocketbase';
 import { SimuladoFormValues } from '@/components/forms/simulado-form';
 
+// Debug helpers: only log in development
+const IS_DEV = process.env.NODE_ENV === 'development';
+const dlog = (...args: any[]) => { if (IS_DEV) console.log(...args); };
+const dwarn = (...args: any[]) => { if (IS_DEV) console.warn(...args); };
+
 // Helper to get/set data from localStorage
 const getFromStorage = <T>(key: string): T[] => {
   if (typeof window === 'undefined') return [];
@@ -326,14 +331,20 @@ class PocketBaseDataSource implements IDataSource {
       const processedData = { ...data };
       
       // Verificação especial para o campo acertou
-      if (processedData.acertou !== undefined) {
-        if (processedData.acertou === null || processedData.acertou === '') {
-          console.error('ERRO: Campo acertou está nulo ou vazio em addUserData! Definindo como false.');
+      if ('acertou' in processedData) {
+        if (processedData.acertou === undefined || processedData.acertou === null || processedData.acertou === '') {
+          console.error('ERRO: Campo acertou está undefined/nulo/vazio em addUserData! Definindo como false.');
           processedData.acertou = false;
         } else if (typeof processedData.acertou !== 'boolean') {
           // Converter para booleano se não for
           processedData.acertou = Boolean(processedData.acertou);
-          console.log(`Campo acertou convertido para booleano em addUserData:`, processedData.acertou, `(tipo: ${typeof processedData.acertou})`);
+          dlog(`Campo acertou convertido para booleano em addUserData:`, processedData.acertou, `(tipo: ${typeof processedData.acertou})`);
+        }
+        
+        // Verificação final para garantir que acertou é booleano
+        if (typeof processedData.acertou !== 'boolean') {
+          console.error('ERRO CRÍTICO: Campo acertou ainda não é booleano após conversão em addUserData! Forçando para false.');
+          processedData.acertou = false;
         }
       }
       
@@ -345,74 +356,189 @@ class PocketBaseDataSource implements IDataSource {
     return data;
   }
 
+  private formatPBDate(date: Date): string {
+    const iso = date.toISOString();
+    return iso.slice(0,19).replace('T',' ') + 'Z';
+  }
+  
+  private normalizeConfianca(value: any): RespostaConfianca {
+    const allowed = new Set<RespostaConfianca>(['Certeza','Dúvida','Chute']);
+    const v = typeof value === 'string' ? (value as string).trim() : '';
+    return allowed.has(v as RespostaConfianca) ? (v as RespostaConfianca) : 'Dúvida';
+  }
+
   async registrarRespostasSimulado(simuladoId: string, questoes: SimuladoQuestao[]): Promise<void> {
     if (!this.pb.authStore.model) throw new Error("Usuário não autenticado.");
-
-    for (const questao of questoes) {
-        if (questao.respostaUsuario === undefined) continue;
-
+    
+    // Obter o ID do usuário atual
+    const userId = this.pb.authStore.model.id;
+    if (!userId) {
+        throw new Error("ID do usuário não encontrado. Faça login novamente.");
+    }
+    
+    dlog(`Iniciando registro de respostas para simulado ${simuladoId}. Total de questões: ${questoes.length}`);
+    
+    // Filtrar apenas questões que foram respondidas
+    const questoesRespondidas = questoes.filter(q => q.respostaUsuario !== undefined);
+    dlog(`Questões respondidas: ${questoesRespondidas.length}`);
+    
+    // Registrar cada resposta individualmente
+    for (const questao of questoesRespondidas) {
+        let cleanPayload: any = null; // Declarar fora do try para estar disponível no catch
+        
         try {
-            // Build a clean payload with all required fields
-            // Garantir que acertou seja sempre um booleano válido
-            let acertouValue = false;
+            dlog(`Processando questão ${questao.questaoId}:`, JSON.stringify({
+                acertou: questao.acertou,
+                tipoAcertou: typeof questao.acertou,
+                respostaUsuario: questao.respostaUsuario ? (typeof questao.respostaUsuario) : 'undefined',
+                tempoSegundos: questao.tempoSegundos
+            }));
             
-            // Verificação mais robusta para o campo acertou
-            if (questao.acertou === undefined || questao.acertou === null || questao.acertou === '') {
-                console.error(`ERRO: Campo acertou está indefinido, nulo ou vazio para questão ${questao.questaoId}! Definindo como false.`);
-                acertouValue = false;
-            } else if (typeof questao.acertou === 'boolean') {
-                acertouValue = questao.acertou;
-            } else if (typeof questao.acertou === 'string') {
-                // Converter strings para booleano
-                acertouValue = questao.acertou.toLowerCase() === 'true' || questao.acertou === '1';
-            } else {
-                // Converter qualquer outro tipo para booleano
-                acertouValue = Boolean(questao.acertou);
+            // Determinar se a resposta está correta (true/false)
+            const acertouValue = Boolean(
+                questao.acertou === true || 
+                questao.acertou === 'true' || 
+                questao.acertou === 1 || 
+                questao.acertou === '1'
+            );
+            
+            // Garantir que respostaUsuario seja uma string não vazia
+            let respostaUsuarioStr = 'resposta não fornecida';
+            
+            try {
+                // Primeiro, tentar converter para string de forma segura
+                if (questao.respostaUsuario === null || questao.respostaUsuario === undefined) {
+                    respostaUsuarioStr = 'resposta não fornecida';
+                } else if (typeof questao.respostaUsuario === 'string') {
+                    // Se já for string, usar diretamente (se não for vazia)
+                    respostaUsuarioStr = questao.respostaUsuario.trim() !== '' 
+                        ? questao.respostaUsuario 
+                        : 'resposta não fornecida';
+                } else if (typeof questao.respostaUsuario === 'object') {
+                    // Se for objeto, tentar serializar
+                    const jsonStr = JSON.stringify(questao.respostaUsuario);
+                    respostaUsuarioStr = jsonStr && jsonStr !== 'null' && jsonStr !== 'undefined' && jsonStr !== '{}' && jsonStr !== '[]'
+                        ? jsonStr 
+                        : 'resposta não fornecida';
+                } else {
+                    // Para outros tipos (number, boolean, etc)
+                    respostaUsuarioStr = String(questao.respostaUsuario);
+                }
+            } catch (e) {
+                console.error(`Erro ao processar respostaUsuario para questão ${questao.questaoId}:`, e);
+                respostaUsuarioStr = 'resposta não fornecida (erro de processamento)';
             }
             
-            // Log para depuração
-            console.log(`Registrando resposta para questão ${questao.questaoId}:`, {
-                acertouOriginal: questao.acertou,
-                acertouConvertido: acertouValue,
-                tipoAcertou: typeof questao.acertou
-            });
+            // Verificação final para garantir que nunca seja vazio
+            if (!respostaUsuarioStr || respostaUsuarioStr.trim() === '') {
+                respostaUsuarioStr = 'resposta não fornecida';
+            }
             
-            const payload = {
-                acertou: acertouValue,
-                confianca: questao.confianca || 'Dúvida',
+            // Garantir que tempoSegundos seja um número válido
+            const tempoSegundos = typeof questao.tempoSegundos === 'number' && !isNaN(questao.tempoSegundos)
+                ? questao.tempoSegundos
+                : (typeof questao.tempoSegundos === 'string' 
+                    ? Number(questao.tempoSegundos) || 0
+                    : 0);
+            
+            // Criar um payload limpo com todos os campos necessários
+            cleanPayload = {
+                acertou: acertouValue ? 'true' : 'false',  // Enviar como string conforme requisito
+                confianca: this.normalizeConfianca(questao.confianca),
                 questaoId: questao.questaoId,
-                respostaUsuario: JSON.stringify(questao.respostaUsuario),
+                respostaUsuario: respostaUsuarioStr, // Garantido como string não vazia
                 simuladoId: simuladoId,
-                tempoSegundos: questao.tempoSegundos || 0,
-                respondedAt: new Date().toISOString(),
+                tempoSegundos: tempoSegundos,
+                respondedAt: this.formatPBDate(new Date()),
+                user: userId // Campo obrigatório
             };
             
-            // Verificação final e reforçada para garantir que acertou é sempre um booleano
-            if (payload.acertou === undefined || payload.acertou === null || payload.acertou === '') {
-                console.error('ERRO CRÍTICO: Campo acertou está undefined/null/vazio! Definindo como false.');
-                payload.acertou = false; // Valor padrão para evitar erro
-            } else if (typeof payload.acertou !== 'boolean') {
-                // Forçar conversão para booleano
-                payload.acertou = Boolean(payload.acertou);
-                console.log(`Campo acertou forçado para booleano:`, payload.acertou, `(tipo: ${typeof payload.acertou})`);
+            // Log detalhado do payload final
+            dlog(`Payload final para questão ${questao.questaoId}:`, JSON.stringify(cleanPayload, null, 2));
+            dlog(`Tipos dos campos:`, {
+                acertou: typeof cleanPayload.acertou,
+                confianca: typeof cleanPayload.confianca,
+                questaoId: typeof cleanPayload.questaoId,
+                respostaUsuario: typeof cleanPayload.respostaUsuario,
+                simuladoId: typeof cleanPayload.simuladoId,
+                tempoSegundos: typeof cleanPayload.tempoSegundos,
+                respondedAt: typeof cleanPayload.respondedAt,
+                user: typeof cleanPayload.user
+            });
+
+            // Verificar se todos os campos obrigatórios estão presentes
+            dlog('=== VERIFICAÇÃO DE CAMPOS OBRIGATÓRIOS ===');
+            dlog('questaoId:', cleanPayload.questaoId, '(tipo:', typeof cleanPayload.questaoId, ')');
+            dlog('user:', cleanPayload.user, '(tipo:', typeof cleanPayload.user, ')');
+            dlog('acertou:', cleanPayload.acertou, '(tipo:', typeof cleanPayload.acertou, ')');
+            dlog('respostaUsuario:', cleanPayload.respostaUsuario, '(tipo:', typeof cleanPayload.respostaUsuario, ')');
+            dlog('tempoSegundos:', cleanPayload.tempoSegundos, '(tipo:', typeof cleanPayload.tempoSegundos, ')');
+            dlog('respondedAt:', cleanPayload.respondedAt, '(tipo:', typeof cleanPayload.respondedAt, ')');
+            dlog('simuladoId:', cleanPayload.simuladoId, '(tipo:', typeof cleanPayload.simuladoId, ')');
+            dlog('confianca:', cleanPayload.confianca, '(tipo:', typeof cleanPayload.confianca, ')');
+            dlog('=======================================');
+            
+            if (!cleanPayload.questaoId) {
+                throw new Error(`Campo questaoId está vazio ou inválido`);
+            }
+            if (!cleanPayload.user) {
+                throw new Error(`Campo user está vazio ou inválido`);
+            }
+            if (typeof cleanPayload.acertou !== 'string') {
+                 throw new Error(`Campo acertou não é uma string: ${typeof cleanPayload.acertou}`);
+             }
+             if (cleanPayload.acertou !== 'true' && cleanPayload.acertou !== 'false') {
+                 throw new Error(`Campo acertou não está em 'true'/'false': ${cleanPayload.acertou}`);
+             }
+            if (!cleanPayload.respostaUsuario) {
+                throw new Error(`Campo respostaUsuario está vazio ou inválido`);
+            }
+            if (typeof cleanPayload.tempoSegundos !== 'number' || isNaN(cleanPayload.tempoSegundos)) {
+                throw new Error(`Campo tempoSegundos não é um número válido: ${cleanPayload.tempoSegundos}`);
+            }
+            if (!cleanPayload.respondedAt) {
+                throw new Error(`Campo respondedAt está vazio ou inválido`);
             }
             
-            // Log final do payload antes de enviar
-            console.log('Payload final para criar resposta:', JSON.stringify(payload, null, 2));
-            console.log('Campo acertou no payload final:', payload.acertou, `(tipo: ${typeof payload.acertou})`);
-
-            // Criar uma cópia do payload para garantir que não há mutação inesperada
-            const payloadFinal = {
-                ...payload,
-                acertou: Boolean(payload.acertou) // Garantir que seja booleano
-            };
-
-            await this.create('respostas', payloadFinal);
+            // Usar o método create para garantir padronização e validações
+            const result = await this.create('respostas', cleanPayload);
+            dlog(`Resposta criada com sucesso para questão ${questao.questaoId}:`, (result as any).id);
+            
         } catch (error) {
             console.error(`Falha ao criar registro de resposta para questão ${questao.questaoId}:`, error);
+            
+            // Extrair detalhes do erro do PocketBase
+            if (error instanceof Error) {
+                console.error(`Mensagem de erro:`, error.message);
+                
+                if ('data' in error) {
+                    const pbError = error as any;
+                    console.error('Objeto de erro completo:', JSON.stringify(pbError, null, 2));
+                    
+                    if (pbError.data) {
+                        console.error('Dados do erro:', JSON.stringify(pbError.data, null, 2));
+                    }
+                    
+                    if (pbError.response) {
+                        console.error('Resposta do erro:', JSON.stringify(pbError.response, null, 2));
+                    }
+                    
+                    // Log adicional para depuração
+                    console.error('Status do erro:', pbError.status);
+                    console.error('URL da requisição:', pbError.url);
+                    if (cleanPayload) {
+                        console.error('Dados enviados que causaram o erro:', JSON.stringify(cleanPayload, null, 2));
+                    } else {
+                        console.error('Payload não foi criado antes do erro');
+                    }
+                }
+            }
+            
             throw new Error(`Não foi possível salvar a resposta para a questão ID: ${questao.questaoId}. Detalhes: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
         }
     }
+    
+    dlog(`Registro de respostas concluído para simulado ${simuladoId}`);
   }
 
   async registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void> {
@@ -513,38 +639,38 @@ class PocketBaseDataSource implements IDataSource {
   // Na classe PocketBaseDataSource, adicionar tratamento de erros:
 
   async list<T>(collection: CollectionName, options?: any): Promise<T[]> {
-  try {
-    const records = await this.pb.collection(collection).getFullList<T>(options);
-    
-    // Verificação especial para a coleção simulados
-    if (collection === 'simulados') {
-      return records.map((record: any) => {
-        if (record.questoes) {
-          // Garantir que todas as questões tenham acertou como booleano válido
-          const questoesComAcertouValido = record.questoes.map((questao: any) => {
-            if (questao.respostaUsuario !== undefined && questao.acertou !== undefined) {
-              return {
-                ...questao,
-                acertou: Boolean(questao.acertou)
-              };
-            }
-            return questao;
-          });
-          record.questoes = questoesComAcertouValido;
-        }
-        return record;
-      });
+    try {
+      const records = await this.pb.collection(collection).getFullList<T>(options);
+      
+      // Verificação especial para a coleção simulados
+      if (collection === 'simulados') {
+        return records.map((record: any) => {
+          if (record.questoes) {
+            // Garantir que todas as questões tenham acertou como booleano válido
+            const questoesComAcertouValido = record.questoes.map((questao: any) => {
+              if (questao.respostaUsuario !== undefined && questao.acertou !== undefined) {
+                return {
+                  ...questao,
+                  acertou: Boolean(questao.acertou)
+                };
+              }
+              return questao;
+            });
+            record.questoes = questoesComAcertouValido;
+          }
+          return record;
+        });
+      }
+      
+      return records;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        dwarn('Requisição abortada:', collection);
+        return [];
+      }
+      throw error;
     }
-    
-    return records;
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.log('Requisição abortada:', collection);
-      return [];
-    }
-    throw error;
   }
-}
 
   async get<T>(collection: CollectionName, id: string): Promise<T | null> {
     try {
@@ -576,58 +702,92 @@ class PocketBaseDataSource implements IDataSource {
   
   async create<T>(collection: CollectionName, data: any): Promise<T> {
     try {
-      // Garantir que acertou seja sempre um booleano válido antes de adicionar dados do usuário
-      let processedData = { ...data };
+      // Cria uma cópia limpa dos dados para evitar referências
+      let processedData = JSON.parse(JSON.stringify(data));
       
-      // Verificação especial para o campo acertou
+      // Tratamento especial para a coleção respostas
       if (collection === 'respostas') {
-        if (processedData.acertou === undefined || processedData.acertou === null || processedData.acertou === '') {
-          console.error('ERRO: Campo acertou está indefinido, nulo ou vazio! Definindo como false.');
-          processedData.acertou = false;
-        } else if (typeof processedData.acertou !== 'boolean') {
-          // Converter para booleano se não for
-          processedData.acertou = Boolean(processedData.acertou);
-          console.log(`Campo acertou convertido para booleano:`, processedData.acertou, `(tipo: ${typeof processedData.acertou})`);
+        // Forçar o campo acertou para uma string válida 'true'/'false'
+        if (processedData.acertou === undefined || processedData.acertou === null || 
+            processedData.acertou === '' || processedData.acertou === 'undefined' || 
+            processedData.acertou === 'null') {
+          console.error('ERRO: Campo acertou inválido! Definindo como "false".');
+          processedData.acertou = 'false';
+        } else {
+          // Converter explicitamente para string
+          const isTrue = processedData.acertou === true || 
+                         processedData.acertou === 'true' || 
+                         processedData.acertou === 1 || 
+                         processedData.acertou === '1';
+          processedData.acertou = isTrue ? 'true' : 'false';
         }
+        
+        // Verificação final
+        if (typeof processedData.acertou !== 'string' || (processedData.acertou !== 'true' && processedData.acertou !== 'false')) {
+          console.error(`ERRO CRÍTICO: Campo acertou ainda não é string válida (${typeof processedData.acertou}): ${processedData.acertou}`);
+          processedData.acertou = 'false';
+        }
+        
+        dlog(`Campo acertou processado:`, processedData.acertou, `(tipo: ${typeof processedData.acertou})`);
       }
       
+      // Adicionar dados do usuário
       const dataWithUser = this.addUserData(processedData);
       
-      // Log para depuração - dados originais
-      console.log(`Dados originais para criar em ${collection}:`, JSON.stringify(data, null, 2));
-      
-      // Log para depuração - dados após adicionar usuário
-      console.log(`Dados com usuário para criar em ${collection}:`, JSON.stringify(dataWithUser, null, 2));
-      
-      // Verificação final do campo acertou
+      // Verificação final para respostas
       if (collection === 'respostas') {
-        console.log(`Campo acertou nos dados finais:`, dataWithUser.acertou, `(tipo: ${typeof dataWithUser.acertou})`);
-        
-        // Garantir que acertou seja um booleano puro antes de enviar ao PocketBase
-        if (typeof dataWithUser.acertou !== 'boolean') {
-          console.warn(`AVISO: Campo acertou ainda não é booleano. Convertendo para booleano. Valor atual:`, dataWithUser.acertou, `(tipo: ${typeof dataWithUser.acertou})`);
-          dataWithUser.acertou = Boolean(dataWithUser.acertou);
-          console.log(`Campo acertou após conversão final:`, dataWithUser.acertou, `(tipo: ${typeof dataWithUser.acertou})`);
+        // Garantir que respostaUsuario seja uma string válida
+        let respostaUsuarioStr = 'resposta não fornecida';
+        try {
+          if (dataWithUser.respostaUsuario === null || dataWithUser.respostaUsuario === undefined) {
+            respostaUsuarioStr = 'resposta não fornecida';
+          } else if (typeof dataWithUser.respostaUsuario === 'string') {
+            respostaUsuarioStr = dataWithUser.respostaUsuario.trim() !== '' 
+              ? dataWithUser.respostaUsuario 
+              : 'resposta não fornecida';
+          } else if (typeof dataWithUser.respostaUsuario === 'object') {
+            const jsonStr = JSON.stringify(dataWithUser.respostaUsuario);
+            respostaUsuarioStr = jsonStr && jsonStr !== 'null' && jsonStr !== 'undefined' && jsonStr !== '{}' && jsonStr !== '[]'
+              ? jsonStr 
+              : 'resposta não fornecida';
+          } else {
+            respostaUsuarioStr = String(dataWithUser.respostaUsuario);
+          }
+        } catch (e) {
+          console.error(`Erro ao processar respostaUsuario no método create:`, e);
+          respostaUsuarioStr = 'resposta não fornecida (erro de processamento)';
         }
         
-        // Criar uma cópia explícita para garantir que não haja problemas de referência
-        const finalData = { ...dataWithUser };
-        finalData.acertou = Boolean(finalData.acertou);
+        // Verificação final para garantir que nunca seja vazio
+        if (!respostaUsuarioStr || respostaUsuarioStr.trim() === '') {
+          respostaUsuarioStr = 'resposta não fornecida';
+        }
         
-        // Log final antes de enviar ao PocketBase
-        console.log(`Dados finais antes de enviar ao PocketBase:`, JSON.stringify({
-          ...finalData,
-          acertou: finalData.acertou,
-          acertouType: typeof finalData.acertou
-        }, null, 2));
+        // Criar um objeto limpo com apenas os campos necessários
+        const cleanData: any = {
+          questaoId: dataWithUser.questaoId,
+          acertou: typeof dataWithUser.acertou === 'string' ? dataWithUser.acertou : (dataWithUser.acertou === true ? 'true' : 'false'), // Enviar como string 'true'/'false'
+          respostaUsuario: respostaUsuarioStr, // Garantido como string não vazia
+          confianca: this.normalizeConfianca(dataWithUser.confianca),
+          tempoSegundos: typeof dataWithUser.tempoSegundos === 'number' ? dataWithUser.tempoSegundos : Number(dataWithUser.tempoSegundos || 0),
+          respondedAt: dataWithUser.respondedAt || this.formatPBDate(new Date()),
+          user: dataWithUser.user
+        };
+        if (dataWithUser.simuladoId) {
+          cleanData.simuladoId = dataWithUser.simuladoId;
+        }
         
-        return await this.pb.collection(collection).create<T>(finalData);
+        // Log final antes de enviar
+        dlog(`Enviando para PocketBase (${collection}):`, JSON.stringify(cleanData, null, 2));
+        
+        // Enviar dados limpos para o PocketBase
+        return await this.pb.collection(collection).create<T>(cleanData);
       }
       
       return await this.pb.collection(collection).create<T>(dataWithUser);
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log(`Request to ${collection} aborted`);
+        dlog(`Request to ${collection} aborted`);
         return {} as T;
       }
       
@@ -635,6 +795,9 @@ class PocketBaseDataSource implements IDataSource {
       if (error instanceof Error && 'data' in error) {
         const pbError = error as any;
         console.error(`PocketBase error creating record in ${collection}:`, pbError);
+        if (pbError.data && pbError.data.data) {
+          console.error('Detalhes do erro:', JSON.stringify(pbError.data.data, null, 2));
+        }
         throw new Error(`Falha ao criar registro: ${pbError.message || pbError.data?.message || 'Erro desconhecido'}`);
       }
       
@@ -643,136 +806,136 @@ class PocketBaseDataSource implements IDataSource {
     }
   }
 
-async update<T extends { id: string; }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> {
-  try {
-    // Verificação especial para a coleção simulados
-    if (collection === 'simulados' && data.questoes) {
-      // Garantir que todas as questões tenham acertou como booleano válido
-      const questoesComAcertouValido = (data.questoes as any[]).map(questao => {
-        if (questao.respostaUsuario !== undefined) {
-          return {
-            ...questao,
-            acertou: questao.acertou !== undefined && questao.acertou !== null ? Boolean(questao.acertou) : false
-          };
+  async update<T extends { id: string; }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> {
+    try {
+      // Verificação especial para a coleção simulados
+      if (collection === 'simulados' && data.questoes) {
+        // Garantir que todas as questões tenham acertou como booleano válido
+        const questoesComAcertouValido = (data.questoes as any[]).map(questao => {
+          if (questao.respostaUsuario !== undefined) {
+            return {
+              ...questao,
+              acertou: questao.acertou !== undefined && questao.acertou !== null ? Boolean(questao.acertou) : false
+            };
+          }
+          return questao;
+        });
+        data.questoes = questoesComAcertouValido as any;
+      }
+      
+      // Verificação especial para o campo acertou na coleção respostas
+      if (collection === 'respostas' && data.acertou !== undefined) {
+        if (data.acertou === null || data.acertou === '') {
+          console.error('ERRO: Campo acertou está nulo ou vazio no update! Definindo como false.');
+          data.acertou = false;
+        } else if (typeof data.acertou !== 'boolean') {
+          // Converter para booleano se não for
+          data.acertou = Boolean(data.acertou);
+          dlog(`Campo acertou convertido para booleano no update:`, data.acertou, `(tipo: ${typeof data.acertou})`);
         }
-        return questao;
-      });
-      data.questoes = questoesComAcertouValido as any;
-    }
-    
-    // Verificação especial para o campo acertou na coleção respostas
-    if (collection === 'respostas' && data.acertou !== undefined) {
-      if (data.acertou === null || data.acertou === '') {
-        console.error('ERRO: Campo acertou está nulo ou vazio no update! Definindo como false.');
-        data.acertou = false;
-      } else if (typeof data.acertou !== 'boolean') {
-        // Converter para booleano se não for
-        data.acertou = Boolean(data.acertou);
-        console.log(`Campo acertou convertido para booleano no update:`, data.acertou, `(tipo: ${typeof data.acertou})`);
       }
+      
+      const record = await this.pb.collection(collection).update<T>(id, data);
+      return record;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        dlog('Requisição de atualização abortada:', collection);
+        throw new Error('Operação cancelada pelo usuário');
+      }
+      throw error;
     }
-    
-    const record = await this.pb.collection(collection).update<T>(id, data);
-    return record;
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.log('Requisição de atualização abortada:', collection);
-      throw new Error('Operação cancelada pelo usuário');
-    }
-    throw error;
   }
-}
 
-async gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado> {
-  try {
-    let combinedQuestoes: Questao[] = [];
-    const userFilter = `user = "${this.pb.authStore.model?.id}"`;
-    
-    const allRespostas = await this.list<Resposta>('respostas', { filter: userFilter, fields: 'id,questaoId,acertou' });
-    
-    const resolvidasIds = new Set(allRespostas.map(r => r.questaoId));
-    const acertadasIds = new Set(allRespostas.filter(r => r.acertou).map(r => r.questaoId));
-    const erradasIds = new Set(allRespostas.filter(r => !r.acertou).map(r => r.questaoId));
-
-    for(const criteria of formValues.criterios) {
-      let filterParts: string[] = [];
-      filterParts.push(`isActive=true`);
-      filterParts.push(`disciplinaId="${criteria.disciplinaId}"`);
-      filterParts.push(userFilter);
+  async gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado> {
+    try {
+      let combinedQuestoes: Questao[] = [];
+      const userFilter = `user = "${this.pb.authStore.model?.id}"`;
       
-      if (criteria.topicoId && criteria.topicoId !== 'all') {
-        filterParts.push(`topicoId="${criteria.topicoId}"`);
-      }
-
-      if (criteria.dificuldade !== 'aleatorio') {
-        filterParts.push(`dificuldade="${criteria.dificuldade}"`);
-      }
+      const allRespostas = await this.list<Resposta>('respostas', { filter: userFilter, fields: 'id,questaoId,acertou' });
       
-      const filterString = filterParts.join(" && ");
-      let availableQuestoes = await this.list<Questao>('questoes', { filter: filterString });
+      const resolvidasIds = new Set(allRespostas.map(r => r.questaoId));
+      const acertadasIds = new Set(allRespostas.filter(r => r.acertou).map(r => r.questaoId));
+      const erradasIds = new Set(allRespostas.filter(r => !r.acertou).map(r => r.questaoId));
 
-      // Apply performance filter
-      switch(criteria.statusQuestoes) {
-          case 'nao_resolvidas':
-              availableQuestoes = availableQuestoes.filter(q => !resolvidasIds.has(q.id));
-              break;
-          case 'resolvidas':
-              availableQuestoes = availableQuestoes.filter(q => resolvidasIds.has(q.id));
-              break;
-          case 'acertadas':
-              availableQuestoes = availableQuestoes.filter(q => acertadasIds.has(q.id));
-              break;
-          case 'erradas':
-               availableQuestoes = availableQuestoes.filter(q => erradasIds.has(q.id));
-              break;
-          case 'todas':
-          default:
-              // No additional filtering needed
-              break;
+      for(const criteria of formValues.criterios) {
+        let filterParts: string[] = [];
+        filterParts.push(`isActive=true`);
+        filterParts.push(`disciplinaId="${criteria.disciplinaId}"`);
+        filterParts.push(userFilter);
+        
+        if (criteria.topicoId && criteria.topicoId !== 'all') {
+          filterParts.push(`topicoId="${criteria.topicoId}"`);
+        }
+
+        if (criteria.dificuldade !== 'aleatorio') {
+          filterParts.push(`dificuldade="${criteria.dificuldade}"`);
+        }
+        
+        const filterString = filterParts.join(" && ");
+        let availableQuestoes = await this.list<Questao>('questoes', { filter: filterString });
+
+        // Apply performance filter
+        switch(criteria.statusQuestoes) {
+            case 'nao_resolvidas':
+                availableQuestoes = availableQuestoes.filter(q => !resolvidasIds.has(q.id));
+                break;
+            case 'resolvidas':
+                availableQuestoes = availableQuestoes.filter(q => resolvidasIds.has(q.id));
+                break;
+            case 'acertadas':
+                availableQuestoes = availableQuestoes.filter(q => acertadasIds.has(q.id));
+                break;
+            case 'erradas':
+                 availableQuestoes = availableQuestoes.filter(q => erradasIds.has(q.id));
+                break;
+            case 'todas':
+            default:
+                // No additional filtering needed
+                break;
+        }
+
+        const shuffled = availableQuestoes.sort(() => 0.5 - Math.random());
+        const selectedQuestoes = shuffled.slice(0, criteria.quantidade);
+        
+        if (selectedQuestoes.length < criteria.quantidade) {
+            const disciplina = await this.get<Disciplina>('disciplinas', criteria.disciplinaId);
+            throw new Error(`Questões insuficientes para a disciplina ${disciplina?.nome} com os filtros aplicados. Pedidas: ${criteria.quantidade}, Encontradas: ${selectedQuestoes.length}.`);
+        }
+
+        combinedQuestoes.push(...selectedQuestoes);
       }
 
-      const shuffled = availableQuestoes.sort(() => 0.5 - Math.random());
-      const selectedQuestoes = shuffled.slice(0, criteria.quantidade);
+      const finalQuestoes = combinedQuestoes.sort(() => 0.5 - Math.random());
+
+      const questoesParaSalvar: SimuladoQuestao[] = finalQuestoes.map((q, index) => ({
+        id: uuidv4(),
+        simuladoId: '', 
+        questaoId: q.id,
+        ordem: index + 1,
+        acertou: false, // Garantir que acertou seja sempre um booleano válido
+      }));
+
+      const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt' | 'user'> = {
+          nome: formValues.nome,
+          criterios: formValues.criterios,
+          status: 'Rascunho' as SimuladoStatus,
+          criadoEm: new Date().toISOString(),
+          questoes: questoesParaSalvar,
+      };
+
+      const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
       
-      if (selectedQuestoes.length < criteria.quantidade) {
-          const disciplina = await this.get<Disciplina>('disciplinas', criteria.disciplinaId);
-          throw new Error(`Questões insuficientes para a disciplina ${disciplina?.nome} com os filtros aplicados. Pedidas: ${criteria.quantidade}, Encontradas: ${selectedQuestoes.length}.`);
+      const updatedQuestoes = (createdSimulado.questoes as any[]).map(q => ({...q, simuladoId: createdSimulado.id }));
+      
+      return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: updatedQuestoes });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        dwarn('Requisição de geração de simulado abortada');
+        throw new Error('Operação cancelada pelo usuário');
       }
-
-      combinedQuestoes.push(...selectedQuestoes);
+      throw error;
     }
-
-    const finalQuestoes = combinedQuestoes.sort(() => 0.5 - Math.random());
-
-    const questoesParaSalvar: SimuladoQuestao[] = finalQuestoes.map((q, index) => ({
-      id: uuidv4(),
-      simuladoId: '', 
-      questaoId: q.id,
-      ordem: index + 1,
-      acertou: false, // Garantir que acertou seja sempre um booleano válido
-    }));
-
-    const novoSimulado: Omit<Simulado, 'id' | 'createdAt' | 'updatedAt' | 'user'> = {
-        nome: formValues.nome,
-        criterios: formValues.criterios,
-        status: 'Rascunho' as SimuladoStatus,
-        criadoEm: new Date().toISOString(),
-        questoes: questoesParaSalvar,
-    };
-
-    const createdSimulado = await this.create<Simulado>('simulados', novoSimulado as any);
-    
-    const updatedQuestoes = (createdSimulado.questoes as any[]).map(q => ({...q, simuladoId: createdSimulado.id }));
-    
-    return await this.update<Simulado>('simulados', createdSimulado.id, { questoes: updatedQuestoes });
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.log('Requisição de geração de simulado abortada');
-      throw new Error('Operação cancelada pelo usuário');
-    }
-    throw error;
   }
-}
 
   async delete(collection: CollectionName, id: string): Promise<void> {
     await this.pb.collection(collection).delete(id);
