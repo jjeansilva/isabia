@@ -9,8 +9,8 @@ FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 ENV NODE_ENV=development
 COPY package.json package-lock.json ./
-# Install all dependencies (including dev) for build
-RUN npm ci
+# Install all dependencies (including dev) for build; fallback to npm install if lockfile mismatch
+RUN npm ci || npm install
 
 # ---- builder ----
 FROM node:22-bookworm-slim AS builder

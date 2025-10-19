@@ -1,0 +1,11 @@
+# Nixpacks configuration for Next.js
+# Force Node 22 and fallback install command if npm ci fails
+
+providers = ["node"]
+
+buildCommand = "npm ci || npm install && npm run build"
+startCommand = "npm run start"
+
+[variables]
+NODE_VERSION = "22"
+NPM_VERSION = "10"
