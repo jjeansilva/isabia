@@ -47,9 +47,22 @@ export function QuestoesTab() {
     queryFn: () => dataSource.list<Topico>('topicos')
   });
 
-  const { data: questoes, isLoading: isLoadingQuestoes } = useQuery({
+  // Adicionar tratamento de erros nas queries:
+  
+  const { data: questoes, isLoading: isLoadingQuestoes, error: questoesError } = useQuery({
     queryKey: ['questoes'],
     queryFn: () => dataSource.list<Questao>('questoes', { expand: 'disciplinaId,topicoId' }),
+    onError: (error) => {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Requisição de questões abortada');
+        return;
+      }
+      toast({ 
+        variant: "destructive", 
+        title: "Erro ao carregar questões", 
+        description: error.message 
+      });
+    }
   });
 
   const isLoading = isLoadingDisciplinas || isLoadingTopicos || isLoadingQuestoes;

@@ -56,17 +56,44 @@ const statusQuestoesOptions: { value: StatusQuestoesSimulado, label: string }[] 
 function CriterioRow({ index, remove }: { index: number; remove: (index: number) => void; }) {
   const dataSource = useData();
   const form = useFormContext<SimuladoFormValues>();
-
-  const { data: disciplinas } = useQuery({ 
-      queryKey: ['disciplinas'], 
-      queryFn: () => dataSource.list<Disciplina>('disciplinas') 
-  });
-
+  const { toast } = useToast();
+  
+  // Definir selectedDisciplinaId antes de usá-lo
   const selectedDisciplinaId = form.watch(`criterios.${index}.disciplinaId`);
-  const { data: topicos } = useQuery({ 
-      queryKey: ['topicos', selectedDisciplinaId], 
-      queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${selectedDisciplinaId}"` }),
-      enabled: !!selectedDisciplinaId,
+
+  // Adicionar tratamento de erros nas queries:
+  const { data: disciplinas, isLoading: isLoadingDisciplinas, error: disciplinasError } = useQuery({ 
+    queryKey: ['disciplinas'], 
+    queryFn: () => dataSource.list<Disciplina>('disciplinas'),
+    onError: (error) => {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Requisição de disciplinas abortada');
+        return;
+      }
+      toast({ 
+        variant: "destructive", 
+        title: "Erro ao carregar disciplinas", 
+        description: error.message 
+      });
+    }
+  });
+  
+  // Removida a duplicação do useQuery para topicos
+  const { data: topicos, isLoading: isLoadingTopicos, error: topicosError } = useQuery({ 
+    queryKey: ['topicos', selectedDisciplinaId], 
+    queryFn: () => dataSource.list<Topico>('topicos', { filter: `disciplinaId = "${selectedDisciplinaId}"` }),
+    enabled: !!selectedDisciplinaId,
+    onError: (error) => {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Requisição de tópicos abortada');
+        return;
+      }
+      toast({ 
+        variant: "destructive", 
+        title: "Erro ao carregar tópicos", 
+        description: error.message 
+      });
+    }
   });
 
   return (
@@ -180,6 +207,7 @@ export function SimuladoForm() {
       name: "criterios"
     });
 
+    // Mover o mutation hook para o componente SimuladoForm
     const mutation = useMutation({
         mutationFn: (criteria: SimuladoFormValues) => dataSource.gerarSimulado(criteria),
         onSuccess: (newSimulado) => {
@@ -187,6 +215,15 @@ export function SimuladoForm() {
             router.push(`/simulados/${newSimulado.id}`);
         },
         onError: (error) => {
+            if (error instanceof Error && error.name === 'AbortError') {
+              console.log('Geração de simulado abortada');
+              toast({ 
+                variant: "destructive", 
+                title: "Operação Cancelada", 
+                description: "A criação do simulado foi cancelada." 
+              });
+              return;
+            }
             toast({ variant: "destructive", title: "Erro!", description: error.message || "Não foi possível gerar o simulado." });
         },
     });

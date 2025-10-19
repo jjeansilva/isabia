@@ -93,9 +93,9 @@ export default function ResultadoPage() {
                                         <TableCell>{sq.ordem}</TableCell>
                                         <TableCell className="max-w-[150px] sm:max-w-sm truncate">{questao?.enunciado ?? 'Carregando...'}</TableCell>
                                         <TableCell>
-                                            {sq.acertou === undefined ? (
+                                            {sq.respostaUsuario === undefined ? (
                                                 <Badge variant="secondary">Não respondida</Badge>
-                                            ) : sq.acertou ? (
+                                            ) : Boolean(sq.acertou) ? (
                                                 <Badge className="bg-approval/20 text-approval-foreground">Correta</Badge>
                                             ) : (
                                                 <Badge variant="destructive">Incorreta</Badge>

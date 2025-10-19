@@ -197,7 +197,12 @@ export default function SimuladoExecutionPage() {
             let lastAnsweredIndex = -1;
             (simulado.questoes as SimuladoQuestao[]).forEach((q, index) => {
                 if (q.respostaUsuario !== undefined) {
-                    initialAnswers[q.questaoId] = q; // Already has acertou from DB
+                    // Garantir que acertou seja sempre um booleano válido
+                    const questaoComAcertouValido = {
+                        ...q,
+                        acertou: Boolean(q.acertou)
+                    };
+                    initialAnswers[q.questaoId] = questaoComAcertouValido;
                     lastAnsweredIndex = index;
                 }
             });
@@ -234,8 +239,14 @@ export default function SimuladoExecutionPage() {
             
             const answeredQuestoes = Object.values(localAnswers).filter(q => q.respostaUsuario !== undefined);
             
-            if (answeredQuestoes.length > 0) {
-                await dataSource.registrarRespostasSimulado(simulado.id, answeredQuestoes);
+            // Garantir que todas as respostas tenham acertou como booleano válido
+            const answeredQuestoesComAcertouValido = answeredQuestoes.map(q => ({
+                ...q,
+                acertou: Boolean(q.acertou)
+            }));
+            
+            if (answeredQuestoesComAcertouValido.length > 0) {
+                await dataSource.registrarRespostasSimulado(simulado.id, answeredQuestoesComAcertouValido);
             }
     
             const finalQuestoesState = (simulado.questoes as SimuladoQuestao[]).map(q => localAnswers[q.questaoId] ? {...q, ...localAnswers[q.questaoId]} : q);
@@ -274,13 +285,16 @@ export default function SimuladoExecutionPage() {
         
         let isCorrect = parsedRespostaCorreta == answer;
         
+        // Garantir que acertou seja sempre um booleano válido
+        const acertouValue = Boolean(isCorrect);
+        
         setLocalAnswers(prev => ({
             ...prev,
             [questao.id]: {
                 ...currentSimuladoQuestao,
                 questaoId: questao.id,
                 respostaUsuario: answer,
-                acertou: isCorrect,
+                acertou: acertouValue,
                 confianca,
                 tempoSegundos,
             }
@@ -366,7 +380,7 @@ export default function SimuladoExecutionPage() {
 
             {isCurrentQuestionAnswered && questao && answeredLocalOrDB && (
                 <div className="mt-4 space-y-4">
-                    <AnswerFeedback isCorrect={answeredLocalOrDB.acertou!} explanation={questao.explicacao} />
+                    <AnswerFeedback isCorrect={Boolean(answeredLocalOrDB.acertou)} explanation={questao.explicacao} />
                     {isLastQuestion ? (
                          <Button onClick={handleFinish} className="w-full" disabled={finishSimuladoMutation.isPending}>
                             {finishSimuladoMutation.isPending ? "Finalizando..." : "Finalizar Simulado"}
