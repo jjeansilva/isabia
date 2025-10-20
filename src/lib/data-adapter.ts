@@ -32,6 +32,7 @@ export interface IDataSource {
   bulkDelete(collection: CollectionName, ids: string[]): Promise<void>;
   gerarSimulado(formValues: SimuladoFormValues): Promise<Simulado>;
   getDashboardStats(): Promise<any>;
+  getDashboardStatsRange(range?: { startDate?: string; endDate?: string }): Promise<any>;
   getQuestoesParaRevisar(): Promise<Questao[]>;
   registrarRespostaRevisao(questaoId: string, performance: 'facil' | 'medio' | 'dificil'): Promise<void>;
   registrarRespostasSimulado(simuladoId: string, questoes: SimuladoQuestao[]): Promise<void>;
@@ -273,10 +274,6 @@ class MockDataSource implements IDataSource {
   }
 
   async getDashboardStatsRange(range?: { startDate?: string; endDate?: string }): Promise<any> {
-    if (!this.pb.authStore.model) throw new Error("Usuário não autenticado.");
-    const userId = this.pb.authStore.model.id;
-    const userFilter = `user = "${userId}"`;
-
     const [questoes, disciplinas, topicos, respostasAll] = await Promise.all([
       this.list<Questao>('questoes'),
       this.list<Disciplina>('disciplinas'),
@@ -464,6 +461,124 @@ class PocketBaseDataSource implements IDataSource {
             delete (options.headers as any)['Content-Type'];
         }
         return { url, options };
+    };
+  }
+  
+  async getDashboardStatsRange(range?: { startDate?: string; endDate?: string }): Promise<any> {
+    if (!this.pb.authStore.model) throw new Error("Usuário não autenticado.");
+    const userId = this.pb.authStore.model.id;
+
+    const [questoes, disciplinas, topicos, respostasAll] = await Promise.all([
+      this.list<Questao>('questoes'),
+      this.list<Disciplina>('disciplinas'),
+      this.list<Topico>('topicos'),
+      this.list<Resposta>('respostas', { filter: `user = "${userId}"` }),
+    ]);
+
+    let start: Date | null = null;
+    let end: Date | null = null;
+    if (range?.startDate) start = new Date(range.startDate);
+    if (range?.endDate) {
+      const d = new Date(range.endDate);
+      end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+    }
+
+    const respostas = respostasAll.filter(r => {
+      const dt = this.parsePBDate(r.respondedAt);
+      if (start && (!dt || dt < start)) return false;
+      if (end && (!dt || dt > end)) return false;
+      return true;
+    });
+
+    const totalQuestoes = questoes.length;
+    const totalResolucoes = respostas.length;
+
+    const questoesMap = new Map(questoes.map(q => [q.id, q]));
+    const disciplinasMap = new Map(disciplinas.map(d => [d.id, d]));
+    const topicosMap = new Map(topicos.map(t => [t.id, t]));
+
+    const isTrue = (v: any) => v === true || v === 'true' || v === 1 || v === '1';
+
+    const acertos = respostas.filter(r => isTrue(r.acertou)).length;
+    const aproveitamento = respostas.length > 0 ? (acertos / respostas.length) * 100 : 0;
+
+    const desempenhoDisc: Record<string, { id: string; nome: string; total: number; acertos: number; erros: number; percentualAcerto: number }> = {};
+    for (const r of respostas) {
+      const q = questoesMap.get(r.questaoId);
+      if (!q) continue;
+      const d = disciplinasMap.get(q.disciplinaId);
+      const key = q.disciplinaId;
+      if (!desempenhoDisc[key]) desempenhoDisc[key] = { id: key, nome: d?.nome || key, total: 0, acertos: 0, erros: 0, percentualAcerto: 0 };
+      desempenhoDisc[key].total++;
+      if (isTrue(r.acertou)) desempenhoDisc[key].acertos++; else desempenhoDisc[key].erros++;
+    }
+    const desempenhoPorDisciplina = Object.values(desempenhoDisc).map(item => ({
+      ...item,
+      percentualAcerto: item.total > 0 ? (item.acertos / item.total) * 100 : 0,
+    })).sort((a, b) => b.total - a.total);
+
+    const desempenhoPontos: Array<{ disciplinaId: string; disciplinaNome: string; topicoId: string; topicoNome: string; subTopicoId?: string; subTopicoNome?: string; total: number; acertos: number; erros: number; percentualAcerto: number }> = [];
+    const keyMap = new Map<string, number>();
+    for (const r of respostas) {
+      const q = questoesMap.get(r.questaoId);
+      if (!q) continue;
+      const top = topicosMap.get(q.topicoId);
+      const disc = disciplinasMap.get(q.disciplinaId);
+      const isSub = !!top?.topicoPaiId;
+      const parent = isSub ? topicosMap.get(top!.topicoPaiId!) : null;
+      const key = `${q.disciplinaId}|${isSub ? parent?.id : top?.id}|${isSub ? top?.id : ''}`;
+      const idx = keyMap.get(key);
+      if (idx === undefined) {
+        keyMap.set(key, desempenhoPontos.length);
+        desempenhoPontos.push({
+          disciplinaId: q.disciplinaId,
+          disciplinaNome: disc?.nome || q.disciplinaId,
+          topicoId: isSub ? parent?.id || '' : top?.id || '',
+          topicoNome: isSub ? parent?.nome || '' : top?.nome || '',
+          subTopicoId: isSub ? top?.id : undefined,
+          subTopicoNome: isSub ? top?.nome : undefined,
+          total: 0,
+          acertos: 0,
+          erros: 0,
+          percentualAcerto: 0,
+        });
+      }
+      const kidx = keyMap.get(key)!;
+      const item = desempenhoPontos[kidx];
+      item.total++;
+      if (isTrue(r.acertou)) item.acertos++; else item.erros++;
+      item.percentualAcerto = item.total > 0 ? (item.acertos / item.total) * 100 : 0;
+    }
+
+    const byDateRes = new Map<string, { resolvidas: number }>();
+    const byDatePerf = new Map<string, { acertos: number; erros: number }>();
+    for (const r of respostas) {
+      const d = this.parsePBDate(r.respondedAt);
+      if (!d) continue;
+      const date = d.toISOString().split('T')[0];
+      const resItem = byDateRes.get(date) || { resolvidas: 0 };
+      resItem.resolvidas++;
+      byDateRes.set(date, resItem);
+
+      const perfItem = byDatePerf.get(date) || { acertos: 0, erros: 0 };
+      if (isTrue(r.acertou)) perfItem.acertos++; else perfItem.erros++;
+      byDatePerf.set(date, perfItem);
+    }
+    const resolvidasDiarias = Array.from(byDateRes.entries()).map(([date, v]) => ({ date, resolvidas: v.resolvidas })).sort((a, b) => a.date.localeCompare(b.date));
+    const desempenhoDiario = Array.from(byDatePerf.entries()).map(([date, v]) => ({ date, acertos: v.acertos, erros: v.erros })).sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      totalQuestoes,
+      totalResolucoes,
+      aproveitamento,
+      desempenhoPorDisciplina,
+      desempenhoPorPontos,
+      resolvidasDiarias,
+      desempenhoDiario,
+      range: {
+        startDate: range?.startDate || null,
+        endDate: range?.endDate || null,
+      },
     };
   }
   
