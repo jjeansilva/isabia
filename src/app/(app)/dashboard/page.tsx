@@ -63,6 +63,16 @@ export default function DashboardPage() {
     enabled: !!user && !authLoading,
   });
 
+  // Total de Questões global (independente de período)
+  const { data: totalQuestoesGlobal, isLoading: totalQuestoesLoading } = useQuery({
+    queryKey: ["dashboardTotalQuestoesGlobal"],
+    queryFn: async () => {
+      const r = await dataSource.getDashboardStatsRange({});
+      return r.totalQuestoes;
+    },
+    enabled: !!user && !authLoading,
+  });
+
   const desempenhoPontos = stats?.desempenhoPorPontos ?? [];
 
   // Agrupar pontos/subpontos em estrutura por disciplina -> tópicos -> subtópicos
@@ -146,9 +156,9 @@ export default function DashboardPage() {
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           title="Total de Questões"
-          value={stats?.totalQuestoes ?? "..."}
+          value={totalQuestoesGlobal ?? "..."}
           icon={<BarChart3 className="h-5 w-5 text-muted-foreground" />}
-          loading={statsLoading}
+          loading={totalQuestoesLoading}
         />
         <KpiCard
           title="Total de Resoluções"

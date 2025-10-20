@@ -194,82 +194,98 @@ class MockDataSource implements IDataSource {
       this.list<Revisao>('revisoes', { filter: userFilter })
     ]);
 
-    const totalRespostas = respostas.length;
-    const totalAcertos = respostas.filter(r => r.acertou === true || r.acertou === 'true').length;
-    const acertoGeral = totalRespostas > 0 ? (totalAcertos / totalRespostas) * 100 : 0;
+    const isTrue = (v: any) => v === true || v === 'true' || v === 1 || v === '1';
 
+    const totalRespostas = respostas.length;
+    const totalAcertos = respostas.filter(r => isTrue(r.acertou)).length;
+    const acertoGeral = totalRespostas > 0 ? (totalAcertos / totalRespostas) * 100 : 0;
 
     const umMesAtras = new Date();
     umMesAtras.setDate(umMesAtras.getDate() - 30);
-    const respostasUltimos30d = respostas.filter(r => new Date(r.respondedAt) >= umMesAtras);
-    const acertosUltimos30d = respostasUltimos30d.filter(r => r.acertou === true || r.acertou === 'true').length;
+    const respostasUltimos30d = respostas.filter(r => {
+      const dt = this.parsePBDate(r.respondedAt);
+      return dt && dt >= umMesAtras;
+    });
+    const acertosUltimos30d = respostasUltimos30d.filter(r => isTrue(r.acertou)).length;
     const acertoUltimos30dPercent = respostasUltimos30d.length > 0 ? (acertosUltimos30d / respostasUltimos30d.length) * 100 : 0;
-    
-    // Histórico de acertos para o gráfico
+
     const historicoAcertos = Array.from({ length: 30 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (29 - i));
-        const dateString = date.toISOString().split('T')[0];
-        const respostasDoDia = respostas.filter(r => r.respondedAt.startsWith(dateString));
-        const acertosDoDia = respostasDoDia.filter(r => r.acertou === true || r.acertou === 'true').length;
-        return {
-            date: dateString,
-            acerto: respostasDoDia.length > 0 ? (acertosDoDia / respostasDoDia.length) * 100 : 0,
-        };
+      const date = new Date();
+      date.setDate(date.getDate() - (29 - i));
+      const dateString = date.toISOString().split('T')[0];
+      const respostasDoDia = respostas.filter(r => {
+        const d = this.parsePBDate(r.respondedAt);
+        return d && d.toISOString().split('T')[0] === dateString;
+      });
+      const acertosDoDia = respostasDoDia.filter(r => isTrue(r.acertou)).length;
+      return {
+        date: dateString,
+        acerto: respostasDoDia.length > 0 ? (acertosDoDia / respostasDoDia.length) * 100 : 0,
+      };
     });
 
     const questoesMap = new Map(questoes.map(q => [q.id, q]));
-    
     const reducePerformance = (map: Map<string, { total: number; acertos: number }>, key: string, acertou: boolean) => {
-        if (!map.has(key)) map.set(key, { total: 0, acertos: 0 });
-        const current = map.get(key)!;
-        current.total++;
-        if (acertou) {
-          current.acertos++;
-        }
+      const current = map.get(key) || { total: 0, acertos: 0 };
+      current.total += 1;
+      if (acertou) current.acertos += 1;
+      map.set(key, current);
     };
-    
+
     const desempenhoMap = new Map<string, { total: number; acertos: number }>();
     const dificuldadeMap = new Map<string, { total: number; acertos: number }>();
     const tipoMap = new Map<string, { total: number; acertos: number }>();
 
-    for (const resposta of respostas) {
-        const questao = questoesMap.get(resposta.questaoId);
-        if (!questao) continue;
-
-        const acertouBool = resposta.acertou === true || resposta.acertou === 'true';
-        reducePerformance(desempenhoMap, questao.disciplinaId, acertouBool);
-        reducePerformance(dificuldadeMap, questao.dificuldade, acertouBool);
-        reducePerformance(tipoMap, questao.tipo, acertouBool);
+    for (const r of respostas) {
+      const q = questoesMap.get(r.questaoId);
+      if (!q) continue;
+      const acertouBool = isTrue(r.acertou);
+      reducePerformance(desempenhoMap, q.disciplinaId, acertouBool);
+      reducePerformance(dificuldadeMap, q.dificuldade, acertouBool);
+      reducePerformance(tipoMap, q.tipo, acertouBool);
     }
-    
-    const formatPerformanceData = (map: Map<string, { total: number; acertos: number }>, nameMap: Map<string, string>): PerformancePorCriterio[] => {
-        return Array.from(map.entries()).map(([id, data]) => ({
-            nome: nameMap.get(id) || id,
-            totalQuestoes: data.total,
-            percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
-        })).sort((a, b) => b.totalQuestoes - a.totalQuestoes);
+
+    const disciplinaNameMap = new Map(disciplinas.map((d) => [d.id, d.nome]));
+    const formatPerformanceData = (
+      map: Map<string, { total: number; acertos: number }>,
+      nameMap: Map<string, string>,
+    ) => {
+      return Array.from(map.entries())
+        .map(([id, data]) => ({
+          nome: nameMap.get(id) || id,
+          totalQuestoes: data.total,
+          percentualAcerto: data.total > 0 ? (data.acertos / data.total) * 100 : 0,
+        }))
+        .sort((a, b) => b.totalQuestoes - a.totalQuestoes);
     };
 
-    const disciplinaNameMap = new Map(disciplinas.map(d => [d.id, d.nome]));
     const desempenhoPorDisciplina = formatPerformanceData(desempenhoMap, disciplinaNameMap);
-    
-    const desempenhoPorDificuldade = formatPerformanceData(dificuldadeMap, new Map(Object.values(QuestionDificuldade).map(d => [d, d])));
-    const desempenhoPorTipo = formatPerformanceData(tipoMap, new Map(Object.values(QuestionTipo).map(t => [t,t])));
-    
-    const simuladoEmAndamento = simulados.find(s => s.status === 'Em andamento');
-    const questoesParaRevisarHoje = revisoes.filter(r => new Date(r.proximaRevisao) <= new Date()).length;
+    const desempenhoPorDificuldade = formatPerformanceData(
+      dificuldadeMap,
+      new Map(Object.values(QuestionDificuldade).map((d) => [d, d])),
+    );
+    const desempenhoPorTipo = formatPerformanceData(
+      tipoMap,
+      new Map(Object.values(QuestionTipo).map((t) => [t, t])),
+    );
+
+    const simuladoEmAndamento = simulados.find((s) => s.status === 'Em andamento');
+
+    const questoesParaRevisarHoje = revisoes.filter((r) => {
+      const d = this.parsePBDate(r.proximaRevisao);
+      return d && d <= new Date();
+    }).length;
 
     return {
-        totalRespostas,
-        acertoGeral,
-        acertoUltimos30d: acertoUltimos30dPercent,
-        historicoAcertos,
-        desempenhoPorDisciplina,
-        desempenhoPorDificuldade,
-        desempenhoPorTipo,
-        simuladoEmAndamento,
-        questoesParaRevisarHoje,
+      totalRespostas,
+      acertoGeral,
+      acertoUltimos30d: acertoUltimos30dPercent,
+      historicoAcertos,
+      desempenhoPorDisciplina,
+      desempenhoPorDificuldade,
+      desempenhoPorTipo,
+      simuladoEmAndamento,
+      questoesParaRevisarHoje,
     };
   }
 
