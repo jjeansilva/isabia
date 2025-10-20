@@ -3,9 +3,19 @@
 
 providers = ["node"]
 
-buildCommand = "npm ci || npm install && npm run build"
-startCommand = "npm run start"
-
-[variables]
 NODE_VERSION = "22"
-NPM_VERSION = "10"
+
+[phases.setup]
+cmds = [
+  "corepack enable",
+  "corepack prepare npm@10.8.2 --activate"
+]
+
+[phases.install]
+cmd = "node -v && npm -v && (npm ci || npm install)"
+
+[phases.build]
+cmd = "npm run build"
+
+[start]
+cmd = "npm run start"
