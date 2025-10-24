@@ -12,7 +12,7 @@ cmds = [
 ]
 
 [phases.install]
-cmd = "node -v && npm -v && (npm ci || npm install)"
+cmd = "node -v && npm -v && npm install"
 
 [phases.build]
 cmd = "npm run build"
