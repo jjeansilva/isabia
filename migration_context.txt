@@ -1,0 +1,187 @@
+# Contexto de Migração: PocketBase para Directus Self-Hosted
+
+## Resumo do Projeto
+Este documento contém todo o contexto do trabalho realizado para migrar o backend de PocketBase para Directus self-hosted com PostgreSQL.
+
+## 1. Configuração do Docker Compose
+
+O arquivo `docker-compose.yml` foi criado para configurar:
+- PostgreSQL 15 como banco de dados principal
+- Redis 7 para cache
+- Directus como CMS e API
+
+### Configurações do PostgreSQL:
+- Container: `isabia_db`
+- Database: `isabia_db`
+- Usuário: `isabia_user`
+- Senha: `isabia_password`
+- Porta: `5432`
+
+### Configurações do Redis:
+- Container: `isabia_redis`
+- Porta: `6379`
+
+### Configurações do Directus:
+- Container: `isabia_directus`
+- Porta: `8055`
+- Admin Email: `admin@example.com`
+- Admin Password: `admin-password`
+- Key: `your-secret-key`
+- Secret: `your-secret-secret`
+
+## 2. Script de Migração de Schema
+
+O arquivo `directus-migration.js` foi criado para converter o schema do PocketBase para o formato do Directus. O script:
+- Carrega o schema do PocketBase de `pocketbase_schema_import.json`
+- Converte as coleções, campos e relações para o formato do Directus
+- Mapeia tipos de dados do PocketBase para tipos compatíveis com Directus
+- Gera um arquivo de schema compatível com Directus
+
+### Principais funções do script:
+- `convertToDirectusSchema()`: Converte o schema completo
+- `mapFieldType()`: Mapeia tipos de campos
+- `mapFieldInterface()`: Mapeia interfaces de campos
+- `mapFieldOptions()`: Mapeia opções de campos
+- `mapFieldSpecial()`: Mapeia campos especiais
+- `mapDataType()`: Mapeia tipos de dados
+
+## 3. Adaptador de Dados para Directus
+
+O arquivo `src/lib/directus-adapter.ts` foi iniciado para substituir o `data-adapter.ts` atual que usa PocketBase.
+
+### Estrutura atual do adaptador:
+- Importação dos módulos necessários do Directus SDK
+- Definição da interface `IDataSource` adaptada para Directus
+- Funções auxiliares para localStorage (mantidas do adaptador original)
+
+### Métodos a serem implementados:
+- `list<T>()`: Listar itens de uma coleção
+- `get<T>()`: Obter um item específico
+- `create<T>()`: Criar um novo item
+- `update<T>()`: Atualizar um item existente
+- `delete()`: Excluir um item
+- `bulkDelete()`: Excluir múltiplos itens
+- `gerarSimulado()`: Gerar simulados
+- `getDashboardStats()`: Obter estatísticas do dashboard
+- `getDashboardStatsRange()`: Obter estatísticas por período
+- `getQuestoesParaRevisar()`: Obter questões para revisão
+- `registrarRespostaRevisao()`: Registrar resposta de revisão
+- `registrarRespostasSimulado()`: Registrar respostas de simulado
+
+## 4. Informações de Conexão
+
+### URL do Directus:
+- Local: `http://localhost:8055`
+- Pública: Configurada no `docker-compose.yml` como `PUBLIC_URL`
+
+### Credenciais de Administrador:
+- Email: `admin@example.com`
+- Senha: `admin-password`
+
+### Credenciais do Banco de Dados:
+- Tipo: PostgreSQL
+- Host: `postgres` (nome do serviço no Docker Compose)
+- Porta: `5432`
+- Nome do Banco: `isabia_db`
+- Usuário: `isabia_user`
+- Senha: `isabia_password`
+
+### Configuração do Redis:
+- Host: `redis` (nome do serviço no Docker Compose)
+- Porta: `6379`
+
+## 5. Variáveis de Ambiente Necessárias
+
+Para conectar a aplicação ao Directus, adicionar ao `.env.local`:
+
+```
+# Conexão com o Directus
+NEXT_PUBLIC_DIRECTUS_URL=http://localhost:8055
+DIRECTUS_ADMIN_EMAIL=admin@example.com
+DIRECTUS_ADMIN_PASSWORD=admin-password
+
+# Configuração do SDK do Directus
+DIRECTUS_PROJECT_KEY=your-secret-key
+DIRECTUS_PROJECT_SECRET=your-secret-secret
+```
+
+## 6. Próximos Passos
+
+1. **Instalar o SDK do Directus**:
+   ```bash
+   npm install @directus/sdk
+   ```
+
+2. **Completar a implementação do `directus-adapter.ts`**:
+   - Implementar todos os métodos da interface `IDataSource`
+   - Configurar a conexão com o Directus
+   - Implementar autenticação e autorização
+   - Adaptar as consultas para a API do Directus
+
+3. **Executar a migração de schema**:
+   ```bash
+   node directus-migration.js
+   ```
+
+4. **Importar o schema para o Directus** usando a CLI ou interface web.
+
+5. **Migrar os dados** do SQLite para PostgreSQL usando ferramentas como `pgloader` ou scripts personalizados.
+
+6. **Testar a aplicação** com o novo adaptador Directus.
+
+## 7. Considerações Importantes
+
+- **Segurança**: Alterar as senhas padrão no `docker-compose.yml` antes de usar em produção
+- **Backup**: Configurar backups regulares do banco de dados PostgreSQL
+- **SSL**: Para produção, configurar SSL/TLS para o Directus e o PostgreSQL
+- **Escalabilidade**: Monitorar o uso de recursos e ajustar a configuração do Docker Compose conforme necessário
+
+## 8. Estrutura de Dados
+
+O projeto utiliza as seguintes coleções principais (conforme definido em `pocketbase_schema_import.json`):
+- `users`: Usuários do sistema
+- `disciplinas`: Disciplinas de estudo
+- `topicos`: Tópicos dentro das disciplinas
+- `questoes`: Questões para estudo
+- `simulados`: Simulados criados
+- `respostas`: Respostas dos usuários
+- `revisoes`: Revisões programadas
+- `stats`: Estatísticas de desempenho
+
+## 9. Comandos Úteis
+
+### Iniciar os serviços:
+```bash
+docker-compose up -d
+```
+
+### Parar os serviços:
+```bash
+docker-compose down
+```
+
+### Acessar o banco de dados PostgreSQL:
+```bash
+docker exec -it isabia_db psql -U isabia_user -d isabia_db
+```
+
+### Acessar o Redis:
+```bash
+docker exec -it isabia_redis redis-cli
+```
+
+### Ver logs do Directus:
+```bash
+docker logs -f isabia_directus
+```
+
+## 10. Solução de Problemas Comuns
+
+- **Problemas de conexão com o banco de dados**: Verificar se o serviço PostgreSQL está rodando e se as credenciais estão corretas
+- **Problemas de cache**: Verificar se o serviço Redis está rodando
+- **Problemas com o Directus**: Verificar os logs do container e garantir que as variáveis de ambiente estão corretas
+- **Problemas de migração**: Verificar se o schema do PocketBase é compatível com o formato esperado pelo Directus
+
+---
+
+Este documento contém todas as informações necessárias para continuar a migração do PocketBase para Directus self-hosted em outro terminal.
