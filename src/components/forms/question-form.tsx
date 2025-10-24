@@ -37,7 +37,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Trash2, AlertTriangle } from "lucide-react";
-import { suggestSimilarQuestions } from "@/ai/flows/suggest-similar-questions";
+
 import { useEffect, useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Skeleton } from "../ui/skeleton";
@@ -220,26 +220,7 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
     },
   });
   
-  const [similarQuestions, setSimilarQuestions] = useState<string[]>([]);
-  const [isAiLoading, setIsAiLoading] = useState(false);
 
-  async function handleSuggestSimilar() {
-    const enunciado = form.getValues("enunciado");
-    if(!enunciado) {
-      toast({ variant: "destructive", title: "Oops!", description: "Escreva o enunciado antes de pedir sugestões." });
-      return;
-    }
-    setIsAiLoading(true);
-    setSimilarQuestions([]);
-    try {
-      const result = await suggestSimilarQuestions({ enunciado });
-      setSimilarQuestions(result.similarQuestions);
-    } catch(e) {
-      toast({ variant: "destructive", title: "Erro de IA", description: "Não foi possível gerar sugestões." });
-    } finally {
-      setIsAiLoading(false);
-    }
-  }
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     if (onSaveOveride) {
@@ -447,25 +428,7 @@ export function QuestionForm({ open, onOpenChange, questao, onDelete, onSaveOver
                 </FormItem>
             )}/>
             
-            <div className="space-y-4 rounded-md border p-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">Sugestões de IA</h3>
-                <Button type="button" variant="outline" size="sm" onClick={handleSuggestSimilar} disabled={isAiLoading}>
-                  {isAiLoading ? "Gerando..." : "Sugerir similares"}
-                </Button>
-              </div>
-              {isAiLoading && <div className="space-y-2"><Skeleton className="h-4 w-full"/><Skeleton className="h-4 w-[90%]"/><Skeleton className="h-4 w-[95%]"/></div>}
-              {similarQuestions.length > 0 && (
-                <Alert>
-                  <AlertTitle>Questões Similares Sugeridas</AlertTitle>
-                  <AlertDescription>
-                    <ul className="list-disc pl-5 space-y-1 mt-2">
-                      {similarQuestions.map((q, i) => <li key={i}>{q}</li>)}
-                    </ul>
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
+
 
             <DialogFooter>
                <div className="flex w-full justify-between">

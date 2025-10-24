@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:15
+    container_name: isabia_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: isabia_db
+      POSTGRES_USER: isabia_user
+      POSTGRES_PASSWORD: isabia_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: isabia_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  # Directus CMS
+  directus:
+    image: directus/directus:latest
+    container_name: isabia_directus
+    restart: unless-stopped
+    ports:
+      - "8055:8055"
+    volumes:
+      - ./uploads:/directus/uploads
+      - ./extensions:/directus/extensions
+    environment:
+      KEY: "your-secret-key"
+      SECRET: "your-secret-secret"
+      DB_CLIENT: "pg"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_DATABASE: "isabia_db"
+      DB_USER: "isabia_user"
+      DB_PASSWORD: "isabia_password"
+      CACHE_ENABLED: "true"
+      CACHE_STORE: "redis"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      ADMIN_EMAIL: "admin@example.com"
+      ADMIN_PASSWORD: "admin-password"
+      PUBLIC_URL: "http://localhost:8055"
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:

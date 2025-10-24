@@ -120,7 +120,7 @@ function createMockData() {
   return { disciplinas, topicosData, questoesData, stats };
 }
 
-async function bulkCreateWithFallBack<T extends {id?: string}>(dataSource: IDataSource, collection: CollectionName, records: T[]): Promise<any[]> {
+async function bulkCreateWithFallBack<T>(dataSource: IDataSource, collection: CollectionName, records: T[]): Promise<any[]> {
     const createdRecords = [];
     for (const record of records) {
         try {

@@ -25,8 +25,8 @@ const saveToStorage = <T>(key: string, data: T[]): void => {
 export interface IDataSource {
   pb?: PocketBase;
   list<T>(collection: CollectionName, options?: any): Promise<T[]>;
-  get<T>(collection: CollectionName, id: string): Promise<T | null>;
-  create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'user'>): Promise<T>;
+  get<T extends { id: string }>(collection: CollectionName, id: string): Promise<T | null>;
+  create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T>;
   update<T extends { id: string }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T>;
   delete(collection: CollectionName, id: string): Promise<void>;
   bulkDelete(collection: CollectionName, ids: string[]): Promise<void>;
@@ -181,8 +181,7 @@ class MockDataSource implements IDataSource {
   }
 
   async getDashboardStats(): Promise<any> {
-    if (!this.pb.authStore.model) throw new Error("Usuário não autenticado.");
-    const userId = this.pb.authStore.model.id;
+    const userId = 'localuser';
     const userFilter = `user = "${userId}"`;
 
     // Buscar dados do usuário
@@ -399,7 +398,7 @@ class MockDataSource implements IDataSource {
       totalResolucoes,
       aproveitamento,
       desempenhoPorDisciplina,
-      desempenhoPorPontos,
+      desempenhoPontos,
       resolvidasDiarias,
       desempenhoDiario,
       range: {
@@ -456,12 +455,24 @@ class MockDataSource implements IDataSource {
         questaoId: questaoId,
         bucket: bucket,
         proximaRevisao: new Date(new Date().setDate(now.getDate() + diasParaAdicionar)).toISOString(),
+        user: 'localuser'
       };
       revisoes.push(revisao as any);
     }
     
     saveToStorage('revisoes', revisoes);
     return Promise.resolve();
+  }
+  
+  private parsePBDate(dateStr?: string): Date | null {
+    if (!dateStr) return null;
+    try {
+      // Tenta formatos comuns de data (ISO e PocketBase-like)
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? null : date;
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -588,13 +599,72 @@ class PocketBaseDataSource implements IDataSource {
       totalResolucoes,
       aproveitamento,
       desempenhoPorDisciplina,
-      desempenhoPorPontos,
+      desempenhoPontos,
       resolvidasDiarias,
       desempenhoDiario,
       range: {
         startDate: range?.startDate || null,
         endDate: range?.endDate || null,
       },
+    };
+  }
+
+  async getDashboardStats(): Promise<any> {
+    if (!this.pb.authStore.model) throw new Error("Usuário não autenticado.");
+    const userId = this.pb.authStore.model.id;
+    const userFilter = `user = "${userId}"`;
+
+    // Buscar dados do usuário
+    const [simulados, respostas, questoes, disciplinas, revisoes] = await Promise.all([
+      this.list<Simulado>('simulados', { filter: userFilter }),
+      this.list<Resposta>('respostas', { filter: userFilter }),
+      this.list<Questao>('questoes'),
+      this.list<Disciplina>('disciplinas'),
+      this.list<Revisao>('revisoes', { filter: userFilter })
+    ]);
+
+    const isTrue = (v: any) => v === true || v === 'true' || v === 1 || v === '1';
+
+    const totalRespostas = respostas.length;
+    const totalAcertos = respostas.filter(r => isTrue(r.acertou)).length;
+    const acertoGeral = totalRespostas > 0 ? (totalAcertos / totalRespostas) * 100 : 0;
+
+    const umMesAtras = new Date();
+    umMesAtras.setDate(umMesAtras.getDate() - 30);
+    const respostasUltimos30d = respostas.filter(r => {
+      const dt = this.parsePBDate(r.respondedAt);
+      return dt && dt >= umMesAtras;
+    });
+    const acertosUltimos30d = respostasUltimos30d.filter(r => isTrue(r.acertou)).length;
+    const acertoUltimos30dPercent = respostasUltimos30d.length > 0 ? (acertosUltimos30d / respostasUltimos30d.length) * 100 : 0;
+
+    const historicoAcertos = Array.from({ length: 30 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (29 - i));
+      const dateString = date.toISOString().split('T')[0];
+      const respostasDoDia = respostas.filter(r => {
+        const d = this.parsePBDate(r.respondedAt);
+        return d && d.toISOString().split('T')[0] === dateString;
+      });
+      const acertosDoDia = respostasDoDia.filter(r => isTrue(r.acertou)).length;
+      return {
+        data: dateString,
+        total: respostasDoDia.length,
+        acertos: acertosDoDia,
+        percentual: respostasDoDia.length > 0 ? (acertosDoDia / respostasDoDia.length) * 100 : 0
+      };
+    });
+
+    return {
+      totalRespostas,
+      totalAcertos,
+      acertoGeral,
+      acertoUltimos30dPercent,
+      historicoAcertos,
+      totalSimulados: simulados.length,
+      totalRevisoes: revisoes.length,
+      totalQuestoes: questoes.length,
+      totalDisciplinas: disciplinas.length
     };
   }
   
@@ -693,9 +763,9 @@ class PocketBaseDataSource implements IDataSource {
             // Determinar se a resposta está correta (true/false)
             const acertouValue = Boolean(
                 questao.acertou === true || 
-                questao.acertou === 'true' || 
-                questao.acertou === 1 || 
-                questao.acertou === '1'
+                (typeof questao.acertou === 'string' && String(questao.acertou) === 'true') || 
+                (typeof questao.acertou === 'number' && Number(questao.acertou) === 1) || 
+                (typeof questao.acertou === 'string' && String(questao.acertou) === '1')
             );
             
             // Garantir que respostaUsuario seja uma string não vazia
@@ -844,7 +914,7 @@ class PocketBaseDataSource implements IDataSource {
       
       if (revisoes.length > 0) {
         // Atualizar revisão existente
-        const revisao = revisoes[0] as any;
+        const revisao = revisoes[0] as Revisao & { bucket: number };
         
         if (performance === 'dificil') {
           revisao.bucket = 0; // Resetar
@@ -856,9 +926,9 @@ class PocketBaseDataSource implements IDataSource {
         const proximaRevisao = new Date(now.setDate(now.getDate() + diasParaAdicionar)).toISOString();
         
         await this.update('revisoes', revisao.id, {
-          bucket: revisao.bucket,
+          bucket: (revisao as any).bucket,
           proximaRevisao: proximaRevisao
-        });
+        } as any);
       } else {
         // Criar nova revisão
         const bucket = performance === 'dificil' ? 0 : 1;
@@ -985,7 +1055,7 @@ class PocketBaseDataSource implements IDataSource {
 
   // Na classe PocketBaseDataSource, adicionar tratamento de erros nos métodos create e update:
   
-  async create<T>(collection: CollectionName, data: any): Promise<T> {
+  async create<T>(collection: CollectionName, data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T> {
     try {
       // Cria uma cópia limpa dos dados para evitar referências
       let processedData = JSON.parse(JSON.stringify(data));
@@ -1049,7 +1119,7 @@ class PocketBaseDataSource implements IDataSource {
         }
         
         // Criar um objeto limpo com apenas os campos necessários
-        const cleanData: any = {
+        const cleanData: Partial<Resposta> = {
           questaoId: dataWithUser.questaoId,
           acertou: typeof dataWithUser.acertou === 'string' ? dataWithUser.acertou : (dataWithUser.acertou === true ? 'true' : 'false'), // Enviar como string 'true'/'false'
           respostaUsuario: respostaUsuarioStr, // Garantido como string não vazia
@@ -1104,9 +1174,9 @@ class PocketBaseDataSource implements IDataSource {
   async update<T extends { id: string; }>(collection: CollectionName, id: string, data: Partial<T>): Promise<T> {
     try {
       // Verificação especial para a coleção simulados
-      if (collection === 'simulados' && data.questoes) {
+      if (collection === 'simulados' && 'questoes' in data && data.questoes) {
         // Garantir que todas as questões tenham acertou como booleano válido
-        const questoesComAcertouValido = (data.questoes as any[]).map(questao => {
+        const questoesComAcertouValido = ((data as any).questoes as any[]).map(questao => {
           if (questao.respostaUsuario !== undefined) {
             return {
               ...questao,
@@ -1115,19 +1185,19 @@ class PocketBaseDataSource implements IDataSource {
           }
           return questao;
         });
-        data.questoes = questoesComAcertouValido as any;
+        (data as any).questoes = questoesComAcertouValido as any;
       }
       
       // Verificação especial para o campo acertou na coleção respostas
-      if (collection === 'respostas' && data.acertou !== undefined) {
-        if (data.acertou === null || data.acertou === '') {
-          console.error('ERRO: Campo acertou está nulo ou vazio no update! Definindo como false.');
-          data.acertou = false;
-        } else if (typeof data.acertou !== 'boolean') {
-          // Converter para booleano se não for
-          data.acertou = Boolean(data.acertou);
-          dlog(`Campo acertou convertido para booleano no update:`, data.acertou, `(tipo: ${typeof data.acertou})`);
-        }
+      if (collection === 'respostas' && 'acertou' in data && data.acertou !== undefined) {
+        if ((data as any).acertou === null || (data as any).acertou === '') {
+            console.error('ERRO: Campo acertou está nulo ou vazio no update! Definindo como false.');
+            (data as any).acertou = false;
+          } else if (typeof (data as any).acertou !== 'boolean') {
+            // Converter para booleano se não for
+            (data as any).acertou = Boolean((data as any).acertou);
+            dlog(`Campo acertou convertido para booleano no update:`, (data as any).acertou, `(tipo: ${typeof (data as any).acertou})`);
+          }
       }
       
       const record = await this.pb.collection(collection).update<T>(id, data);
@@ -1226,6 +1296,21 @@ class PocketBaseDataSource implements IDataSource {
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         dwarn('Requisição de geração de simulado abortada');
+        throw new Error('Operação cancelada pelo usuário');
+      }
+      throw error;
+    }
+  }
+
+  async bulkDelete(collection: CollectionName, ids: string[]): Promise<void> {
+    try {
+      // Para cada ID na lista, deletar o registro correspondente
+      for (const id of ids) {
+        await this.pb.collection(collection).delete(id);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error(`Requisição de exclusão em massa abortada para a coleção ${collection}`);
         throw new Error('Operação cancelada pelo usuário');
       }
       throw error;
